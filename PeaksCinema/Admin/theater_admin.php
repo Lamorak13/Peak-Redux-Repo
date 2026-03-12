@@ -1,3 +1,4 @@
+theater_admin.php
 <?php 
     include("peakscinemas_database.php");
     
@@ -70,11 +71,10 @@
         while ($seat = $seatLayout -> fetch_assoc()) {
             $SeatRow = $seat['SeatRow'];
             $SeatColumn = $seat['SeatColumn'];
-            $SeatType = $seat['SeatType'];
 
-            $screeningSeatsToDb_stmt = $conn -> prepare("INSERT INTO seats(SeatRow, SeatColumn, SeatType, SeatPrice, SeatAvailability, Theater_ID, TimeSlot_ID)
-                                                         VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $screeningSeatsToDb_stmt -> bind_param("sisiiii", $SeatRow, $SeatColumn, $SeatType, $SeatPrice, $SeatAvailability, $Theater_ID, $TimeSlot_ID);
+            $screeningSeatsToDb_stmt = $conn -> prepare("INSERT INTO seats(SeatRow, SeatColumn, SeatPrice, SeatAvailability, Theater_ID, TimeSlot_ID)
+                                                         VALUES (?, ?, ?, ?, ?, ?)");
+            $screeningSeatsToDb_stmt -> bind_param("siiiii", $SeatRow, $SeatColumn, $SeatPrice, $SeatAvailability, $Theater_ID, $TimeSlot_ID);
             $screeningSeatsToDb_stmt -> execute();
         }
 
