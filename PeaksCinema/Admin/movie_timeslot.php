@@ -221,16 +221,17 @@
                 }                
             }
 
-            function getTheaterInfo() {
-                xmlhttp = new XMLHttpRequest();
+            function getTheaterInfo(theaterId) {
+                var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
                     if (this.readyState == 4 && this.status == 200) {
                         allDatesContainer.innerHTML = this.responseText;
                     }
                 };
-                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + 13)
+                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + theaterId, true);
                 xmlhttp.send();
             }
+
 
             const form = document.getElementById('timeslotAllForm');
             const startDate = document.getElementById('startDate');

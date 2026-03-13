@@ -50,34 +50,43 @@
     }
 
     if ($q == 'theaternames') {
-        $stmt = $conn->prepare("SELECT DISTINCT theater.Theater_ID, theater.TheaterName
-                                FROM theater");
+        $stmt = $conn->prepare("SELECT Theater_ID, TheaterName FROM theater");
         $stmt->execute();
         $result = $stmt->get_result();
         
         while($row = $result->fetch_assoc()) {
             echo '<label>';
-            echo '<input type="radio" class="theaterSelection" name="theaterSelection" value="', $row['Theater_ID'], '" onclick="getTheaterInfo()">';
+            echo '<input type="radio" class="theaterSelection" name="theaterSelection" 
+                    value="' . $row['Theater_ID'] . '" 
+                    onclick="getTheaterInfo(' . $row['Theater_ID'] . ')">';
             echo htmlspecialchars($row['TheaterName']);
             echo '</label><br>';
         }
     }
 
+
     if ($q == 'theaterdatetimes') {
         $id = intval($_GET['id']);
-        $stmt = $conn->prepare("SELECT DISTINCT daterange.DateRange_ID, dateRange.StartDate, dateRange.EndDate
-                                FROM daterange
-                                INNER JOIN theater
-                                ON daterange.Theater_ID = theater.Theater_ID
-                                WHERE daterange.Theater_ID = ?");
+        $stmt = $conn->prepare("
+            SELECT DISTINCT daterange.DateRange_ID, daterange.StartDate, daterange.EndDate
+            FROM daterange
+            INNER JOIN theater
+            ON daterange.Theater_ID = theater.Theater_ID
+            WHERE daterange.Theater_ID = ?
+        ");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        while($row = $result->fetch_assoc()) {
-            echo '<div class="currentDates" id=' . $row['DateRange_ID'] . ' onclick="deleteDateTime(' . $row['DateRange_ID'] . ')">StartDate: ' . $row['StartDate'] . ' ' . ' - End Date: ', $row['EndDate'], '</div>';
+        while ($row = $result->fetch_assoc()) {
+            echo '<div class="currentDates" id="' . $row['DateRange_ID'] . 
+                '" onclick="deleteDateTime(' . $row['DateRange_ID'] . ')">' .
+                'Start Date: ' . htmlspecialchars($row['StartDate']) .
+                ' - End Date: ' . htmlspecialchars($row['EndDate']) .
+                '</div>';
         }
     }
+
 
     if ($q == 'datetimesent') {
         $data = json_decode(file_get_contents("php://input"), true);
@@ -140,7 +149,6 @@
                     $screeningSeatsToDb_stmt->bind_param("iiii", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
                     $screeningSeatsToDb_stmt->execute();
                 }
-
             }
         }
     }
