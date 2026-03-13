@@ -5,13 +5,11 @@
 
     if ($Mall_ID) {
         $stmt = $conn -> prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-        $stmt -> bind_param("i", $Mall_ID);
-        $stmt -> execute();
+        $stmt -> execute([$Mall_ID]);
         $mallDetails = ($stmt -> get_result()) -> fetch_assoc();
 
         $theater_stmt = $conn -> prepare("SELECT * FROM theater WHERE Mall_ID = ?");
-        $theater_stmt -> bind_param("i", $Mall_ID);
-        $theater_stmt -> execute();
+        $theater_stmt -> execute([$Mall_ID]);
         $theatersInMall = $theater_stmt -> get_result();
     }
 ?>
@@ -20,60 +18,10 @@
 <html>
     <head>
         <style>
-            body {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                min-height: 100vh;
-                margin: 0;      
-                background: linear-gradient(90deg,rgba(106, 127, 63, 1) 0%, rgba(74, 106, 90, 1) 100%);
-                padding-top: 150px;
-            }
-
-            header {
-                border: 4px solid black;
-                border-bottom: none;
-                border-top-left-radius: 25px;
-                border-top-right-radius: 25px;
-                background: rgba(255, 255, 255, 0.8);
-                overflow: hidden;
-                padding: 0px;
-            }
-
-            nav {
-                display: flex;
-            }
-
-            a {
-                padding: 5px 10px;
-                text-decoration: none;
-                border-radius: 10px 10px 0 0;
-                border-bottom: none;
-                color: black;
-            }
-
-            a:hover {
-                background: rgba(70, 58, 58, 0.8);
-                color: white;
-            }
-
-            main {
-                display: flex;
-                flex-direction: column;
-                border: 4px solid black;
-                border-radius: 50px;
-                overflow: hidden;
-                background: rgba(255, 255, 255, 0.8);
-                padding: 20px;
-            }
-
             body #mallDetailsSection {
                 width:35%;
-                padding: 20px;
-            }
-
-            main a {
                 border: 2px solid black;
+                padding: 20px;
             }
         </style>
     </head>
@@ -89,8 +37,8 @@
         </header>
         <main>
             <?php if($mallDetails): ?>
-                    <div><strong>Location: </strong><?= htmlspecialchars($mallDetails['Location']) ?> </div><br>
-                    <div><strong>Theaters in <?= htmlspecialchars($mallDetails['MallName']) ?>:</strong></div><br>
+                    <div>Location: <?= htmlspecialchars($mallDetails['Location']) ?> </div><br>
+                    <div> Theaters in <?= htmlspecialchars($mallDetails['MallName']) ?>:</div><br>
 
                     <?php while ($row = $theatersInMall -> fetch_assoc()): ?>
                         <a href = "theater_admin.php?mall_id=<?= urlencode($mallDetails['Mall_ID']) ?>&theater_id=<?= urlencode($row['Theater_ID']) ?>" >

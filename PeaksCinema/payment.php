@@ -4,70 +4,79 @@
     $profile_link = "personal_info_form.php";
 
 
-$Movie_ID = isset($_POST['movie_id']) ? $_POST['movie_id'] : '';
-$Mall_ID = isset($_POST['mall_id']) ? $_POST['mall_id'] : '';
-$Date = isset($_POST['date']) ? $_POST['date'] : '';
-$TimeSlot_ID = isset($_POST['timeslot_id']) ? $_POST['timeslot_id'] : '';
-$selectedSeats = isset($_POST['selectedSeats']) ? $_POST['selectedSeats'] : [];
-$totalPrice = isset($_POST['priceTotal']) ? $_POST['priceTotal'] : 0;
+    $Movie_ID = isset($_POST['movie_id']) ? $_POST['movie_id'] : '';
+    $Mall_ID = isset($_POST['mall_id']) ? $_POST['mall_id'] : '';
+    $Date = isset($_POST['date']) ? $_POST['date'] : '';
+    $TimeSlot_ID = isset($_POST['timeslot_id']) ? $_POST['timeslot_id'] : '';
+    $selectedSeats = isset($_POST['selectedSeats']) ? $_POST['selectedSeats'] : [];
+    $totalPrice = isset($_POST['priceTotal']) ? $_POST['priceTotal'] : 0;
 
 
-if (empty($selectedSeats) || $totalPrice <= 0) {
-    header("Location: seat_selection.php?movie_id=" . $Movie_ID . "&mall_id=" . $Mall_ID . "&date=" . $Date . "&timeslot_id=" . $TimeSlot_ID);
-    exit;
-}
-
-
-$_SESSION['booking_data'] = [
-    'movie_id' => $Movie_ID,
-    'mall_id' => $Mall_ID,
-    'date' => $Date,
-    'timeslot_id' => $TimeSlot_ID,
-    'selectedSeats' => $selectedSeats,
-    'totalPrice' => $totalPrice
-];
-
-
-include("peakscinemas_database.php");
-
-
-$movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
-$movie_stmt->bind_param("i", $Movie_ID);
-$movie_stmt->execute();
-$movieDetails = ($movie_stmt->get_result())->fetch_assoc();
-
-
-$mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-$mall_stmt->bind_param("i", $Mall_ID);
-$mall_stmt->execute();
-$mallDetails = ($mall_stmt->get_result())->fetch_assoc();
-
-
-$timeslot_stmt = $conn->prepare("SELECT * FROM timeslot INNER JOIN theater ON timeslot.Theater_ID=theater.Theater_ID WHERE TimeSlot_ID = ?");
-$timeslot_stmt->bind_param("i", $TimeSlot_ID);
-$timeslot_stmt->execute();
-$timeslotDetails = ($timeslot_stmt->get_result())->fetch_assoc();
-
-
-$seatPositions = [];
-if (!empty($selectedSeats)) {
-  
-    $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
-    $seat_stmt = $conn->prepare("SELECT Seat_ID, SeatRow, SeatColumn FROM seats WHERE Seat_ID IN ($placeholders)");
-    
- 
-    $types = str_repeat('i', count($selectedSeats));
-    $seat_stmt->bind_param($types, ...$selectedSeats);
-    $seat_stmt->execute();
-    $seatResult = $seat_stmt->get_result();
-    
-    while ($seat = $seatResult->fetch_assoc()) {
-        $seatPositions[] = $seat['SeatRow'] . $seat['SeatColumn'];
+    if (empty($selectedSeats) || $totalPrice <= 0) {
+        header("Location: seat_selection.php?movie_id=" . $Movie_ID . "&mall_id=" . $Mall_ID . "&date=" . $Date . "&timeslot_id=" . $TimeSlot_ID);
+        exit;
     }
-    
 
-    sort($seatPositions);
-}
+
+    $_SESSION['booking_data'] = [
+        'movie_id' => $Movie_ID,
+        'mall_id' => $Mall_ID,
+        'date' => $Date,
+        'timeslot_id' => $TimeSlot_ID,
+        'selectedSeats' => $selectedSeats,
+        'totalPrice' => $totalPrice
+    ];
+
+
+    include("peakscinemas_database.php");
+
+
+    $movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
+    $movie_stmt->bind_param("i", $Movie_ID);
+    $movie_stmt->execute();
+    $movieDetails = ($movie_stmt->get_result())->fetch_assoc();
+
+
+    $mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
+    $mall_stmt->bind_param("i", $Mall_ID);
+    $mall_stmt->execute();
+    $mallDetails = ($mall_stmt->get_result())->fetch_assoc();
+
+
+    $timeslot_stmt = $conn->prepare("SELECT * FROM timeslot INNER JOIN theater ON timeslot.Theater_ID=theater.Theater_ID WHERE TimeSlot_ID = ?");
+    $timeslot_stmt->bind_param("i", $TimeSlot_ID);
+    $timeslot_stmt->execute();
+    $timeslotDetails = ($timeslot_stmt->get_result())->fetch_assoc();
+
+
+    $seatPositions = [];
+    if (!empty($selectedSeats)) {
+        $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
+        $seat_stmt = $conn->prepare("
+            SELECT Seat_ID, SeatRow, SeatColumn 
+            FROM seats 
+            WHERE Seat_ID IN ($placeholders)
+        ");
+        $types = str_repeat('i', count($selectedSeats));
+        $seat_stmt->bind_param($types, ...$selectedSeats);
+        $seat_stmt->execute();
+        $seatResult = $seat_stmt->get_result();
+
+        $seatMap = [];
+        while ($seat = $seatResult->fetch_assoc()) {
+            $seatMap[$seat['Seat_ID']] = [
+                'row' => trim($seat['SeatRow']),
+                'col' => (int)$seat['SeatColumn']
+            ];
+        }
+
+        foreach ($selectedSeats as $id) {
+            if (isset($seatMap[$id])) {
+                $seatPositions[] = "Row " . $seatMap[$id]['row'] . ", Seat " . $seatMap[$id]['col'];
+            }
+        }
+    }
+
 ?>
 
 <!DOCTYPE html>

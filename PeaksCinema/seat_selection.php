@@ -2,79 +2,100 @@
     include("peakscinemas_database.php");
     session_start();
     $profile_link = "personal_info_form.php";
-      
-    $Movie_ID = filter_input(INPUT_GET, 'movie_id', FILTER_VALIDATE_INT);
-    $Mall_ID = filter_input(INPUT_GET, 'mall_id', FILTER_VALIDATE_INT);
-    $Date = filter_input(INPUT_GET, 'date');
+
+    // Validate inputs
+    $Movie_ID    = filter_input(INPUT_GET, 'movie_id', FILTER_VALIDATE_INT);
+    $Mall_ID     = filter_input(INPUT_GET, 'mall_id', FILTER_VALIDATE_INT);
+    $Date        = filter_input(INPUT_GET, 'date');
     $TimeSlot_ID = filter_input(INPUT_GET, 'timeslot_id', FILTER_VALIDATE_INT);
 
-    if (!$Movie_ID || !$Mall_ID || !$Date || !$TimeSlot_ID) {
+    if ($Movie_ID === null || $Movie_ID === false ||
+        $Mall_ID === null || $Mall_ID === false ||
+        $Date === null || $Date === false ||
+        $TimeSlot_ID === null || $TimeSlot_ID === false) {
         header("Location: home.php");
         exit;
     }
 
-    $movie_stmt = $conn -> prepare("SELECT * FROM movie WHERE Movie_ID = ?");
-    $movie_stmt -> bind_param("i", $Movie_ID);
-    $movie_stmt -> execute();
-    $movieDetails = ($movie_stmt -> get_result()) -> fetch_assoc();
 
-    $mall_stmt = $conn -> prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-    $mall_stmt -> bind_param("i", $Mall_ID);
-    $mall_stmt -> execute();
-    $mallDetails = ($mall_stmt -> get_result()) -> fetch_assoc();
+    // Fetch movie details
+    $movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
+    $movie_stmt->bind_param("i", $Movie_ID);
+    $movie_stmt->execute();
+    $movieDetails = $movie_stmt->get_result()->fetch_assoc();
 
-    $timeslot_stmt = $conn -> prepare("SELECT * FROM timeslot
-                                       INNER JOIN theater ON timeslot.Theater_ID=theater.Theater_ID
-                                       WHERE TimeSlot_ID = ?");
-    $timeslot_stmt -> bind_param("i", $TimeSlot_ID);
-    $timeslot_stmt -> execute();
-    $timeslotDetails = ($timeslot_stmt -> get_result()) -> fetch_assoc();
+    // Fetch mall details
+    $mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
+    $mall_stmt->bind_param("i", $Mall_ID);
+    $mall_stmt->execute();
+    $mallDetails = $mall_stmt->get_result()->fetch_assoc();
 
-    if (!$timeslotDetails) {
+    // Fetch timeslot + theater details
+    $timeslot_stmt = $conn->prepare("
+        SELECT t.*, th.*
+        FROM timeslot t
+        INNER JOIN theater th ON t.Theater_ID = th.Theater_ID
+        WHERE t.TimeSlot_ID = ?
+    ");
+    $timeslot_stmt->bind_param("i", $TimeSlot_ID);
+    $timeslot_stmt->execute();
+    $timeslotDetails = $timeslot_stmt->get_result()->fetch_assoc();
+
+    if (!$timeslotDetails || !$movieDetails || !$mallDetails) {
         header("Location: home.php");
         exit;
     }
 
-    $seats_stmt = $conn -> prepare("SELECT * FROM seats WHERE TimeSlot_ID = ?");
-    $seats_stmt -> bind_param("i", $TimeSlot_ID);
-    $seats_stmt -> execute();
-    $seatLayout = $seats_stmt -> get_result();
+    // Fetch seats with availability and price for this timeslot
+    $seats_stmt = $conn->prepare("
+        SELECT s.Seat_ID, s.SeatRow, s.SeatColumn, st.SeatPrice, st.SeatAvailability
+        FROM seats s
+        INNER JOIN seat_timeslot st ON s.Seat_ID = st.Seat_ID
+        WHERE st.TimeSlot_ID = ?
+        GROUP BY s.Seat_ID, s.SeatRow, s.SeatColumn, st.SeatPrice, st.SeatAvailability
+        ORDER BY s.SeatRow, CAST(s.SeatColumn AS UNSIGNED)
+    ");
+    $seats_stmt->bind_param("i", $TimeSlot_ID);
+    $seats_stmt->execute();
+    $seatLayout = $seats_stmt->get_result();
 
+    $layoutProper = [];
     if ($seatLayout) {
-        $layoutProper = [];
-
-        while ($seat = $seatLayout -> fetch_assoc()) {
-            $Seat_ID = $seat['Seat_ID'];
-            $rows = $seat['SeatRow'];
-            $cols = $seat['SeatColumn'];
-            $type = $seat['SeatType'];
-            $price = $seat['SeatPrice'];
-            $availability = $seat['SeatAvailability'];
-            $layoutProper[$rows][] = [
-                'Seat_ID' => $Seat_ID,
-                'SeatType' => $type,
-                'SeatPrice' => $price,
-                'SeatAvailability' => $availability,
-                'SeatColumn' => $cols
+        while ($seat = $seatLayout->fetch_assoc()) {
+            // Normalize row key (avoid duplicates like "A", "a", " A ")
+            $rowKey = strtoupper(trim($seat['SeatRow']));
+            $layoutProper[$rowKey][] = [
+                'Seat_ID'         => $seat['Seat_ID'],
+                'SeatPrice'       => $seat['SeatPrice'],
+                'SeatAvailability'=> (int)$seat['SeatAvailability'],
+                'SeatColumn'      => (int)$seat['SeatColumn']
             ];
         }
     }
-    
-    if (!$movieDetails || !$mallDetails) {
-        header("Location: home.php");
-        exit;
-    }
 
+    // Sort seats within each row by column number
+    foreach ($layoutProper as $row => &$seats) {
+        usort($seats, function($a, $b) {
+            return $a['SeatColumn'] <=> $b['SeatColumn'];
+        });
+    }
+    unset($seats); // break reference
+
+
+
+    // Utility function
     function input_cleanup($data) {
         $data = trim($data);
         $data = stripslashes($data);
         return $data;
     }
 
+    // Handle seat selection
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selectedSeats'])) {
         $_SESSION['selectedSeats'] = array_map('input_cleanup', $_POST['selectedSeats']);
     }
 ?>
+
 
 <!DOCTYPE html>
 <html>
@@ -584,25 +605,33 @@
                     <table class="seatsLayoutProper">
                         <?php foreach ($layoutProper as $row => $columns): ?> 
                             <tr>
+                                <!-- Row label at the start -->
                                 <th class="seatRows"><?= htmlspecialchars($row) ?></th>
+
                                 <?php foreach ($columns as $seat): ?>
-                                    <?php if ($seat['SeatType'] === 'Empty' || $seat['SeatColumn'] == 0): ?>
-                                        <td class = "emptySeat"></td>
-                                    <?php elseif ($seat['SeatAvailability'] == 0 ): ?>
-                                        <td class = "unavailableTheaterSeat"><?=htmlspecialchars($seat['SeatColumn'])?></td>
+                                    <?php if ($seat['SeatColumn'] == 0) continue; ?> <!-- Skip 0s -->
+
+                                    <?php if ($seat['SeatAvailability'] == 0): ?>
+                                        <td class="unavailableTheaterSeat"><?= htmlspecialchars($seat['SeatColumn']) ?></td>
                                     <?php else: ?>
                                         <td>
                                             <label class="availableSeatCheckbox">
-                                                <input type="checkbox" data-type ="<?= htmlspecialchars($seat['SeatType']) ?>" data-price="<?= htmlspecialchars($seat['SeatPrice']) ?>" name= "selectedSeats[]" value="<?= htmlspecialchars($seat['Seat_ID']) ?>">
-                                                <div class="availableTheaterSeat"><?=htmlspecialchars($seat['SeatColumn'])?></div>
+                                                <input type="checkbox" 
+                                                    data-price="<?= htmlspecialchars($seat['SeatPrice']) ?>" 
+                                                    name="selectedSeats[]" 
+                                                    value="<?= htmlspecialchars($seat['Seat_ID']) ?>">
+                                                <div class="availableTheaterSeat"><?= htmlspecialchars($seat['SeatColumn']) ?></div>
                                             </label>
                                         </td>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
+
+                                <!-- Row label at the end -->
                                 <th class="seatRows"><?= htmlspecialchars($row) ?></th>
                             </tr>
                         <?php endforeach; ?>
-                    </table>                    
+                    </table>
+
                 </div>
                 <div id="seatsCalculatorContainer">
                     <div>
