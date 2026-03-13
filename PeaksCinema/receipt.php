@@ -75,12 +75,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn -> begin_transaction();
 
     try {
-        $seatUpdate_stmt = $conn -> prepare("UPDATE seats SET SeatAvailability = 0 WHERE Seat_ID = ?");
-
+        $seatUpdate_stmt = $conn->prepare("UPDATE seat_timeslot 
+                                   SET SeatAvailability = 0 
+                                   WHERE Seat_ID = ? AND TimeSlot_ID = ?");
         foreach ($selectedSeats as $Seat_ID) {
-            $seatUpdate_stmt -> bind_param("i", $Seat_ID);
-            $seatUpdate_stmt -> execute();
+            $seatUpdate_stmt->bind_param("ii", $Seat_ID, $TimeSlot_ID);
+            $seatUpdate_stmt->execute();
         }
+
 
         $ticketIDs = [];
         $ticket_stmt = $conn -> prepare("INSERT INTO ticket(Seat_ID, Customer_ID, Movie_ID, TimeSlot_ID, Price, Status, DateTime)
@@ -88,13 +90,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $Status = 1;
         $dateTime = date('Y-m-d H:i:s');    
-        $price = $totalPrice / count($selectedSeats);
-
+        $price_stmt = $conn->prepare("SELECT SeatPrice 
+                              FROM seat_timeslot 
+                              WHERE Seat_ID = ? AND TimeSlot_ID = ?");
         foreach ($selectedSeats as $Seat_ID) {
-            $ticket_stmt -> bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
-            $ticket_stmt -> execute();
-            $ticketIDs[] = $conn -> insert_id;
+            // Get the actual seat price for this timeslot
+            $price_stmt->bind_param("ii", $Seat_ID, $TimeSlot_ID);
+            $price_stmt->execute();
+            $priceResult = $price_stmt->get_result()->fetch_assoc();
+            $price = $priceResult['SeatPrice'];
+
+            // Insert ticket with the correct seat price
+            $ticket_stmt->bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
+            $ticket_stmt->execute();
+            $ticketIDs[] = $conn->insert_id;
         }
+
 
         $payment_stmt = $conn -> prepare("INSERT INTO payment(Ticket_ID, PaymentMethod, AmountPaid, PaymentDate, PaymentStatus)
                                         VALUES (?, ?, ?, ?, ?)");    

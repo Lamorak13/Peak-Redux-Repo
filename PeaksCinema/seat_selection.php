@@ -52,7 +52,6 @@
         FROM seats s
         INNER JOIN seat_timeslot st ON s.Seat_ID = st.Seat_ID
         WHERE st.TimeSlot_ID = ?
-        GROUP BY s.Seat_ID, s.SeatRow, s.SeatColumn, st.SeatPrice, st.SeatAvailability
         ORDER BY s.SeatRow, CAST(s.SeatColumn AS UNSIGNED)
     ");
     $seats_stmt->bind_param("i", $TimeSlot_ID);
@@ -60,26 +59,20 @@
     $seatLayout = $seats_stmt->get_result();
 
     $layoutProper = [];
-    if ($seatLayout) {
-        while ($seat = $seatLayout->fetch_assoc()) {
-            // Normalize row key (avoid duplicates like "A", "a", " A ")
-            $rowKey = strtoupper(trim($seat['SeatRow']));
-            $layoutProper[$rowKey][] = [
-                'Seat_ID'         => $seat['Seat_ID'],
-                'SeatPrice'       => $seat['SeatPrice'],
-                'SeatAvailability'=> (int)$seat['SeatAvailability'],
-                'SeatColumn'      => (int)$seat['SeatColumn']
-            ];
-        }
+    while ($seat = $seatLayout->fetch_assoc()) {
+        $rowKey = strtoupper(trim($seat['SeatRow']));
+        $layoutProper[$rowKey][] = [
+            'Seat_ID'         => $seat['Seat_ID'],
+            'SeatPrice'       => $seat['SeatPrice'],
+            'SeatAvailability'=> (int)$seat['SeatAvailability'],
+            'SeatColumn'      => (int)$seat['SeatColumn']
+        ];
     }
+    foreach ($layoutProper as &$seats) {
+        usort($seats, fn($a,$b) => $a['SeatColumn'] <=> $b['SeatColumn']);
+    }
+    unset($seats);
 
-    // Sort seats within each row by column number
-    foreach ($layoutProper as $row => &$seats) {
-        usort($seats, function($a, $b) {
-            return $a['SeatColumn'] <=> $b['SeatColumn'];
-        });
-    }
-    unset($seats); // break reference
 
 
 
@@ -449,23 +442,26 @@
                 width: 0;
             }
 
-            .availableTheaterSeat {
-                display: flex;
-                border: 1px solid black;
-                background: #0a9900;
-                background: linear-gradient(360deg, rgba(10, 153, 0, 1) 0%, rgba(1, 125, 16, 1) 100%);
-                color: #fff;
+            .availableTheaterSeat,
+            .unavailableTheaterSeat {
+                display: inline-block;        /* same for both */
                 width: 40px;
                 height: 40px;
-                margin: 4px;
-                text-align: center;
-                justify-content: center;
-                align-items: center;
+                border: 1px solid black;
                 border-radius: 20px 20px 0 0;
+                margin: 2px;                  /* equal spacing */
+                text-align: center;
+                line-height: 40px;            /* vertical centering */
+                font-weight: bold;
             }
 
-             .availableTheaterSeat:hover {
-                background: #00e842;
+            /* Available seat colors */
+            .availableTheaterSeat {
+                background: linear-gradient(360deg, rgba(10, 153, 0, 1) 0%, rgba(1, 125, 16, 1) 100%);
+                color: #fff;
+            }
+
+            .availableTheaterSeat:hover {
                 background: linear-gradient(360deg, rgba(0, 232, 66, 1) 0%, rgba(0, 173, 0, 1) 100%);
                 color: #2b2b2b;
                 border: 1px solid #CCCCCC;
@@ -473,30 +469,24 @@
                 transition: 0.3s;
             }
 
+            /* Selected seat */
             .availableSeatCheckbox input:checked ~ .availableTheaterSeat {
-                background: #a84c00;
                 background: linear-gradient(360deg, rgba(168, 76, 0, 1) 0%, rgba(102, 44, 0, 1) 100%);
             }
 
             .availableSeatCheckbox input:checked ~ .availableTheaterSeat:hover {
-                background: #A84C00;
                 background: linear-gradient(360deg, rgba(168, 76, 0, 1) 0%, rgba(219, 66, 0, 1) 100%);
                 border: 1px solid #CCCCCC;
             }
 
+            /* Unavailable seat colors */
             .unavailableTheaterSeat {
-                display: flex;
-                border: 1px solid black;
-                background: #960008;
                 background: linear-gradient(360deg, rgba(150, 0, 8, 1) 0%, rgba(255, 0, 0, 1) 100%);
-                width: 40px;
-                height: 40px;
-                text-align: center;
-                justify-content: center;
-                align-items: center;
-                border-radius: 20px 20px 0 0;
-                margin: 4px;
+                color: #fff;
             }
+
+
+
 
             tr {
                 text-align: center;
@@ -612,7 +602,9 @@
                                     <?php if ($seat['SeatColumn'] == 0) continue; ?> <!-- Skip 0s -->
 
                                     <?php if ($seat['SeatAvailability'] == 0): ?>
-                                        <td class="unavailableTheaterSeat"><?= htmlspecialchars($seat['SeatColumn']) ?></td>
+                                        <td>
+                                            <div class="unavailableTheaterSeat"><?= htmlspecialchars($seat['SeatColumn']) ?></div>
+                                        </td>
                                     <?php else: ?>
                                         <td>
                                             <label class="availableSeatCheckbox">
