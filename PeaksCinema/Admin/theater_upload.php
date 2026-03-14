@@ -64,6 +64,7 @@
         <style>
             body.theaterUpload main{
                 display: flex;
+                color: white;
             }
 
             body.theaterUpload section {
@@ -116,15 +117,7 @@
         </style>
     </head>
     <body class = "theaterUpload">
-        <header>
-            <nav>
-                <a href="dashboard.php" target="_self">Dashboard</a>
-                <a href="malls_selection_admin.php" target="_self">Malls</a>
-                <a href="movie_upload.php" target="_self">Movie Upload</a>
-                <a href="theater_upload.php" target="_self">Theater Upload</a>
-                <a href="mall_upload.php" target="_self">Mall Upload</a>
-            </nav>            
-        </header>
+        <?php include('header_admin.php')?>
         <main>
             <section id = "theaterFormSection">
                 <form id = "theaterDetails" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST" enctype="multipart/form-data" autocomplete="off">

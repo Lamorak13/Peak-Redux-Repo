@@ -1,3 +1,17 @@
+<?php 
+    include '../peakscinemas_database.php';
+
+    $Movie_ID = "";
+
+    if (isset($_GET['id'])) {
+        $Movie_ID = $_GET['id'];
+        $Movie_ID = intval($Movie_ID);
+    } else {
+        header("Location: movies.php");
+        exit;
+    }
+?>
+
 <!DOCTYPE html>
 <html>
     <style>
@@ -36,12 +50,13 @@
 
     #theaterSelection {
         padding: 25px;
+        border-bottom: 2px solid black;
     }
 
     #everythingAboutDates {
         height: 100%;
-        border-top: 2px solid black;
         padding: 25px;
+        display: none;
     }
 
     button#addDateButton {
@@ -88,14 +103,62 @@
         font-weight: bold;
     }
 
+    #warningMessage {
+        font-weight: bold;
+        padding: 25px;
+    }
+
     </style>
-    <body onload="getMovieInfo()">
+    <body>
         <?php include("header_admin.php"); ?>
         <main>
-            <div id="failed"></div>
-            <section id="movieDetails"></section>
+            <section id="movieDetails">
+                <?php
+                    $stmt = $conn->prepare("SELECT * FROM movie
+                                            WHERE Movie_ID = ?");
+                    $stmt->bind_param("i", $Movie_ID);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    if ($result->num_rows === 0) {
+                        header("Location: movies.php");
+                        exit;
+                    } else {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '<div class="leftSection">';
+                            echo '<div class="posterCard">';
+                            echo '<img src=../../', htmlspecialchars($row['MoviePoster']), ' class="moviePoster">';
+                            echo '<h1>', htmlspecialchars($row['MovieName']), '</h1>';
+                            echo '<p class="desc">', htmlspecialchars($row['MovieDescription']), '</p>';
+                            echo '<div class="bottomDetails">';
+                            echo '<div><strong>Genre:</strong> ', htmlspecialchars($row['Genre']), '</div>';
+                            echo '<div><strong>Rating:</strong> ', htmlspecialchars($row['Rating']), '</div>';
+                            echo '<div><strong>Runtime:</strong> ', htmlspecialchars($row['Runtime']), ' minutes </div>';
+                            echo '<div><strong>Trailer Link:</strong> ', htmlspecialchars($row['TrailerURL']), '</div>';
+                            echo '</div></div></div>';
+                            $stmt->close();
+                        }
+                    }
+                ?>
+            </section>
             <section id="dateSection">
-                <div id="theaterSelection"></div>
+                <div id="theaterSelection">
+                    <?php
+                        $stmt = $conn->prepare("SELECT Theater_ID, TheaterName FROM theater");
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        
+                        while($row = $result->fetch_assoc()) {
+                            echo '<label>';
+                            echo '<input type="radio" class="theaterSelection" name="theaterSelection" 
+                                    value="' . $row['Theater_ID'] . '" 
+                                    onclick="getTheaterInfo(' . $row['Theater_ID'] . ')">';
+                            echo htmlspecialchars($row['TheaterName']);
+                            echo '</label><br>';
+                        }
+                        $stmt->close();
+                    ?>
+                </div>
+                <div id="warningMessage">Please select a theater first.</div>
                 <div id="everythingAboutDates">
                     <div id="allDatesContainer"></div>
                     <div>
@@ -124,28 +187,7 @@
         </main>
         <footer></footer>
         <script>
-            const failed = document.getElementById('failed');
-
-            const movieDetails = document.getElementById('movieDetails');
-            const urlParams = new URLSearchParams(window.location.search);
-            function getMovieInfo() {
-                var Movie_ID = urlParams.get('id');
-                var xmlhttp = new XMLHttpRequest();
-                xmlhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        if (this.responseText.includes('id=failed')) {
-                            failed.innerHTML = this.responseText;
-                            window.location.href = 'movies.php';
-                        } else {
-                            movieDetails.innerHTML = this.responseText;
-                            getTheaterNames();
-                        }                        
-                    }                    
-                };                
-                xmlhttp.open("GET", "queries_admin.php?q=moviedetails&movie_id=" + Movie_ID, true);
-                xmlhttp.send();
-            }
-
+            theaterSelection = document.getElementById('theaterSelection');
             function getTheaterNames() {
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
@@ -221,26 +263,31 @@
                 }                
             }
 
-            function getTheaterInfo(theaterId) {
+            
+            const everythingAboutDates = document.getElementById('everythingAboutDates');
+            const warningMessage = document.getElementById('warningMessage');
+            function getTheaterInfo(Theater_ID) {
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
                     if (this.readyState == 4 && this.status == 200) {
+                        everythingAboutDates.style.display = 'block';
+                        warningMessage.style.display = 'none';
                         allDatesContainer.innerHTML = this.responseText;
                     }
                 };
-                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + theaterId, true);
+                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + Theater_ID, true);
                 xmlhttp.send();
             }
 
-
-            const form = document.getElementById('timeslotAllForm');
+            form = document.getElementById('timeslotAllForm');
             const startDate = document.getElementById('startDate');
             const endDate = document.getElementById('endDate');
             form.addEventListener("submit", function(e) {
                 e.preventDefault();
 
+                const urlParams = new URLSearchParams(window.location.search);
                 var Movie_ID = urlParams.get('id');
-                var selectedTheater = document.querySelector('input[name="theaterSelection"]:checked').value;
+                var Theater_ID = document.querySelector('input[name="theaterSelection"]:checked').value;
 
                 const formData = new FormData(form);
                 let timeslots = formData.getAll('timeslotALL').filter(t => t !== "");
@@ -264,13 +311,14 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
                     if (this.readyState == 4 && this.status == 200) {
+                        getTheaterInfo(Theater_ID);
                         console.log(this.responseText);
                     }
                 };
                 xmlhttp.open("POST", "queries_admin.php?q=datetimesent", true);
                 xmlhttp.setRequestHeader("Content-Type", "application/json");
                 xmlhttp.send(JSON.stringify({
-                    Theater_ID: selectedTheater,
+                    Theater_ID: Theater_ID,
                     Movie_ID: Movie_ID,
                     StartDate: startDate.value,
                     EndDate: endDate.value,

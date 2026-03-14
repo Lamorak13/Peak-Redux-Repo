@@ -23,47 +23,6 @@
 
         $stmt->free_result();
     }
-    
-    if ($q == 'moviedetails') {
-        $stmt = $conn->prepare("SELECT * FROM movie
-                                WHERE Movie_ID = ?");
-        $stmt->bind_param("i", $Movie_ID);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($result->num_rows === 0) {
-            echo "<div id=failed>Loading...</div>";
-        } else {
-            while ($row = $result->fetch_assoc()) {
-                echo '<div class="leftSection">';
-                echo '<div class="posterCard">';
-                echo '<img src=../../', htmlspecialchars($row['MoviePoster']), ' class="moviePoster">';
-                echo '<h1>', htmlspecialchars($row['MovieName']), '</h1>';
-                echo '<p class="desc">', htmlspecialchars($row['MovieDescription']), '</p>';
-                echo '<div class="bottomDetails">';
-                echo '<div><strong>Genre:</strong> ', htmlspecialchars($row['Genre']), '</div>';
-                echo '<div><strong>Rating:</strong> ', htmlspecialchars($row['Rating']), '</div>';
-                echo '<div><strong>Runtime:</strong> ', htmlspecialchars($row['Runtime']), ' minutes </div>';
-                echo '</div></div></div>';
-            }
-            
-        }
-    }
-
-    if ($q == 'theaternames') {
-        $stmt = $conn->prepare("SELECT Theater_ID, TheaterName FROM theater");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        while($row = $result->fetch_assoc()) {
-            echo '<label>';
-            echo '<input type="radio" class="theaterSelection" name="theaterSelection" 
-                    value="' . $row['Theater_ID'] . '" 
-                    onclick="getTheaterInfo(' . $row['Theater_ID'] . ')">';
-            echo htmlspecialchars($row['TheaterName']);
-            echo '</label><br>';
-        }
-    }
-
 
     if ($q == 'theaterdatetimes') {
         $id = intval($_GET['id']);

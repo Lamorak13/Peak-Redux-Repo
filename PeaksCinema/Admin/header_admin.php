@@ -5,9 +5,6 @@
         background-size: cover;
         margin: 0;
     }
-    body.active {
-        background-color: rgba(43, 2, 2, 0.47);
-    }
 
     header {        
         background-color: #1C1C1C;
@@ -27,16 +24,23 @@
         border: 2px solid black;
         padding: 5px;
         border-radius: 8px;
-        background-color: white;
-        color: black;
+        background-color: black;
+        color: white;
         font-weight: bold;
         text-decoration: none;
         transition: border 0.3s, padding 0.3s, transform 0.3s;
     }
     header a:hover {
-        border: 2px solid #ff4d4d;
+        border: 2px solid black;
+        background-color: white;
+        color: black;
         padding: 7px;
         transform: scale(1.05);
+    }
+    header a.active {
+        border: 2px solid white;
+        background-color: black;
+        color: white;
     }
 
     #logo{
@@ -54,4 +58,5 @@
     <img src= "peakscinematransparent.png" id="logo">
     <a href="dashboard.php">Dashboard</a>
     <a href="movies.php">Movies</a>
+    <a href="theater_upload.php">Theater Upload Temp.</a>
 </header>
