@@ -357,18 +357,21 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
 .poster-container {
   position: relative;
   cursor: pointer;
+  width: 100%;
+  height: 280px;
+  border-radius: 6px;
+  overflow: hidden; /* THIS fixes the margin/edge issue */
 }
 
 .poster-container img {
   width: 100%;
-  height: 280px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
   transition: transform 0.3s ease;
 }
 
 .poster-container:hover img {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .poster-overlay {
@@ -386,13 +389,12 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
   font-weight: 600;
   font-size: 18px;
   opacity: 0;
-  border-radius: 6px;
   transition: opacity 0.3s ease;
 }
 
 .poster-container:hover .poster-overlay {
   opacity: 1;
-} 
+}
   </style>
 </head>
 
