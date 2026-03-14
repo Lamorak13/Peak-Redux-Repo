@@ -431,7 +431,7 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
 
           <?php while ($row = $now_showing_results -> fetch_assoc()): ?>
             <div class = 'movie-card'>
-            <div class="poster-container" onclick="window.open('<?= htmlspecialchars($row['TrailerURL']) ?>','_blank')">
+            <div class="poster-container" onclick="openTrailer('<?= htmlspecialchars($row['TrailerURL']) ?>')">
                 <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
                 <div class="poster-overlay">Watch Trailer ▶</div>
             </div>
@@ -465,6 +465,34 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
   </footer>
 
   <script>
+
+
+
+
+//allows the embed to work basically I hope
+function openTrailer(url){
+
+    let videoId = "";
+
+    if(url.includes("watch?v=")){
+        videoId = url.split("watch?v=")[1];
+    } 
+    else if(url.includes("youtu.be/")){
+        videoId = url.split("youtu.be/")[1];
+    }
+
+    const embedURL = "https://www.youtube.com/embed/" + videoId + "?autoplay=1";
+
+    document.getElementById("trailerFrame").src = embedURL;
+    document.getElementById("trailerModal").style.display = "flex";
+}
+
+function closeTrailer(){
+    document.getElementById("trailerModal").style.display = "none";
+    document.getElementById("trailerFrame").src = "";
+}
+
+
 function showTab(tabId) {
     const tabs = document.querySelectorAll('.tab');
     const contents = document.querySelectorAll('.tab-content');
@@ -520,5 +548,25 @@ document.addEventListener("click", function(e){
     }
 });
 </script>
+//This will allow us to have like a embed system instead for the trailers I reckon
+    <div id="trailerModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
+      
+      <div style="position:relative; width:80%; max-width:900px;">
+        
+        <span onclick="closeTrailer()" 
+              style="position:absolute; top:-40px; right:0; font-size:30px; cursor:pointer; color:white;">✖</span>
+
+        <iframe id="trailerFrame"
+                width="100%"
+                height="500"
+                src=""
+                frameborder="0"
+                allow="autoplay; encrypted-media"
+                allowfullscreen>
+        </iframe>
+
+      </div>
+
+    </div>
 </body>
 </html>
