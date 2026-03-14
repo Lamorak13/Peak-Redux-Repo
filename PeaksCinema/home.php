@@ -359,41 +359,58 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
   cursor: pointer;
   width: 100%;
   height: 280px;
-  border-radius: 6px;
-  overflow: hidden; /* THIS fixes the margin/edge issue */
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .poster-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease;
+}
+
+.poster-container:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.7);
 }
 
 .poster-container:hover img {
-  transform: scale(1.08);
+  transform: scale(1.12);
 }
 
 .poster-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.65);
-  color: white;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.35));
   display: flex;
   justify-content: center;
   align-items: center;
+  color: white;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-size: 18px;
+  letter-spacing: 1px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.35s ease;
+}
+
+.poster-overlay span {
+  background: rgba(255,255,255,0.15);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .poster-container:hover .poster-overlay {
   opacity: 1;
+}
+
+.poster-container:hover .poster-overlay span {
+  transform: scale(1.08);
+  background: rgba(255,255,255,0.25);
 }
   </style>
 </head>
@@ -435,7 +452,9 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
             <div class = 'movie-card'>
             <div class="poster-container" onclick="openTrailer('<?= htmlspecialchars($row['TrailerURL']) ?>')">
                 <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
-                <div class="poster-overlay">Watch Trailer ▶</div>
+                <div class="poster-overlay">
+                  <span>▶ Watch Trailer</span>
+                </div>
             </div>
             <div class = 'movie-title'><?= htmlspecialchars($row['MovieName']) ?></div>
             <button class = 'buy-btn' data-id='<?= htmlspecialchars($row['Movie_ID'])?>'>Buy Tickets</button>
