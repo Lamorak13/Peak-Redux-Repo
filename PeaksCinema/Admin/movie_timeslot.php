@@ -87,26 +87,74 @@
         display: none;
     }
 
-    .currentDates {
-        display: inline-block;
-        border: 3px solid black;
-        border-radius: 15px;
-        padding: 5px;
-        margin-bottom: 5px;
-        transition: border 0.3s, color 0.3s, padding 0.3s, font-weight 0.1s;
-    }
-
-    .currentDates:hover {
-        border: 3px solid red;
-        color: red;
-        padding: 7px;
-        font-weight: bold;
-    }
-
     #warningMessage {
         font-weight: bold;
         padding: 25px;
     }
+
+    .currentDatesContainer {
+        border-bottom: 2px solid black;
+        margin: 5px;
+        padding-bottom: 5px;
+    }
+
+    .daterange {
+        display: inline-flex;
+        justify-content: center;
+        border-bottom: 2px solid black;
+        margin-bottom: 10px;
+        margin-right: 7px;
+    }
+
+    .daterangeContainer {
+        display: inline-flex;
+        justify-content: flex-end;
+    }
+
+    .daterangeOptions {
+        display: inline-flex;
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .daterangeOptions div {
+        border: 2px solid black;
+        border-radius: 15px;
+        padding: 5px;
+        font-weight: bold;
+    }
+
+    .daterangeOptions .daterangeEdit {
+        border-color: black;
+        color: black;
+        transition: transform 0.3s;
+    }
+    .daterangeOptions .daterangeEdit:hover {
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+
+    .daterangeOptions .daterangeDelete {
+        border-color: black;
+        background-color: #ad1b07;
+        color: white;
+        transition: transform 0.3s;
+    }
+    .daterangeOptions .daterangeDelete:hover {
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+
+    .timeslots {
+        display: inline-block;
+        border: 2px solid black;
+        border-radius: 15px;
+        padding: 5px;
+        margin-bottom: 5px;
+    }
+
+
+
 
     </style>
     <body>
@@ -332,7 +380,7 @@
                 DateRange_ID = id;
                 xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
-                    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {                        
                         document.getElementById(DateRange_ID).remove();
                     }
                 };

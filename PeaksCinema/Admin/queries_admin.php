@@ -38,11 +38,32 @@
         $result = $stmt->get_result();
 
         while ($row = $result->fetch_assoc()) {
-            echo '<div class="currentDates" id="' . $row['DateRange_ID'] . 
-                '" onclick="deleteDateTime(' . $row['DateRange_ID'] . ')">' .
+            echo '<div class="currentDatesContainer" id=' . $row['DateRange_ID'] .'>';
+            echo '<div class="daterangeContainer">';
+            echo '<div class="daterange">' .
                 'Start Date: ' . htmlspecialchars($row['StartDate']) .
                 ' - End Date: ' . htmlspecialchars($row['EndDate']) .
                 '</div>';
+            echo '<div class="daterangeOptions">';
+            echo '<div class="daterangeEdit">Edit</div>';
+            echo '<div class="daterangeDelete" onclick="deleteDateTime(' . $row['DateRange_ID'] . ')">Delete</div>';
+            echo '</div>';
+            echo '</div>';
+            
+            $stmt2 = $conn->prepare("SELECT DISTINCT timeslot.StartTime 
+                                    FROM timeslot 
+                                    INNER JOIN daterange 
+                                    ON timeslot.DateRange_ID = daterange.DateRange_ID 
+                                    WHERE daterange.DateRange_ID = ?");
+            $stmt2->bind_param("i", $row['DateRange_ID']);
+            $stmt2->execute();
+            $result2 = $stmt2->get_result();
+
+            echo '<div class="timeslotForDateRange">';
+            while ($timeslots = $result2->fetch_assoc()) {
+                echo '<div class="timeslots">' . $timeslots['StartTime'] . '</div>';
+            }
+            echo '</div></div>';
         }
     }
 
