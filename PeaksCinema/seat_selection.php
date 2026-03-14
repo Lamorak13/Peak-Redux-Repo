@@ -3,6 +3,10 @@
     session_start();
     $profile_link = "personal_info_form.php";
 
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: personal_info_form.php");
+    }
+
     // Validate inputs
     $Movie_ID    = filter_input(INPUT_GET, 'movie_id', FILTER_VALIDATE_INT);
     $Mall_ID     = filter_input(INPUT_GET, 'mall_id', FILTER_VALIDATE_INT);
