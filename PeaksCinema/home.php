@@ -569,7 +569,8 @@ document.addEventListener("click", function(e){
     }
 });
 </script>
-//This will allow us to have like a embed system instead for the trailers I reckon
+
+
     <div id="trailerModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
       
       <div style="position:relative; width:80%; max-width:900px;">
