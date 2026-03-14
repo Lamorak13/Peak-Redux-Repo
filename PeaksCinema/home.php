@@ -230,12 +230,19 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
       
     }
 
-    .movie-card img {
+      .movie-card img {
       width: 100%;
       height: 280px;
       object-fit: cover;
       border-radius: 6px;
       background-color: #fff;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+
+    .movie-card img:hover {
+      transform: scale(1.08);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.6);
     }
 
     .movie-title {
@@ -346,6 +353,46 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
 .profile-btn:hover svg {
     transform: scale(1.05);
 }
+
+.poster-container {
+  position: relative;
+  cursor: pointer;
+}
+
+.poster-container img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 6px;
+  transition: transform 0.3s ease;
+}
+
+.poster-container:hover img {
+  transform: scale(1.05);
+}
+
+.poster-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  opacity: 0;
+  border-radius: 6px;
+  transition: opacity 0.3s ease;
+}
+
+.poster-container:hover .poster-overlay {
+  opacity: 1;
+} 
   </style>
 </head>
 
@@ -384,7 +431,10 @@ $coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
 
           <?php while ($row = $now_showing_results -> fetch_assoc()): ?>
             <div class = 'movie-card'>
-            <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
+            <div class="poster-container" onclick="window.open('<?= htmlspecialchars($row['TrailerURL']) ?>','_blank')">
+                <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
+                <div class="poster-overlay">Watch Trailer ▶</div>
+            </div>
             <div class = 'movie-title'><?= htmlspecialchars($row['MovieName']) ?></div>
             <button class = 'buy-btn' data-id='<?= htmlspecialchars($row['Movie_ID'])?>'>Buy Tickets</button>
             </div>

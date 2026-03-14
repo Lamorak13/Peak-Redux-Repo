@@ -10,6 +10,22 @@
     $MovieName = $MovieDescription = $Genre = $Rating = $Runtime = $MoviePoster = $MovieAvailability = $TrailerUrl = "";
 
 
+
+
+    //Para lang universal yung pag input sa yt link url since magkakaiba
+    function getYoutubeID($url) {
+        if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
+            return $matches[1];
+        }
+        if (preg_match('/v=([^&]+)/', $url, $matches)) {
+            return $matches[1];
+        }
+        return $url; // fallback if admin pastes just the ID dito
+    }
+
+    
+
+
     // kung nagsubmit nung admin nung form tapos nandun rin nung poster
     if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["moviePosterUp"])) {
         // input cleanup func for later use   
@@ -30,7 +46,8 @@
         $Genre = input_cleanup($_POST['movieGenre']);
         $Rating = input_cleanup($_POST['movieRating']);
         $Runtime = input_cleanup($_POST['movieRuntime']);
-        $TrailerURL = input_cleanup($_POST['TrailerURL']);
+        $TrailerInput = input_cleanup($_POST['TrailerURL']);
+        $TrailerURL = getYoutubeID($TrailerInput);
 
         // this makes a "path" to the uploaded file
         $temp = $_FILES['moviePosterUp']['tmp_name'];
@@ -162,9 +179,10 @@
                     </div>
                     <br>
 
-                    <div>
+                   <div>
                         <label for="TrailerURL">Movie Trailer: </label><br>
                         <input type="text" id="TrailerURL" name="TrailerURL" placeholder="Trailer Link" required>
+                        <div id="trailerPreview" style="margin-top:10px;"></div> <!-- Preview container -->
                     </div>
                     <br>
 
@@ -194,6 +212,32 @@
                 })
                 reader.readAsDataURL(this.files[0]);
             })
+
+            <script>
+        const trailerInput = document.getElementById('TrailerURL');
+        const trailerPreview = document.getElementById('trailerPreview');
+
+        function getYoutubeID(url) {
+            let id = url.match(/youtu\.be\/([^\?]+)/);
+            if(id) return id[1];
+            id = url.match(/v=([^&]+)/);
+            if(id) return id[1];
+            return url; // fallback if they just paste the ID
+        }
+
+        trailerInput.addEventListener('input', () => {
+            const id = getYoutubeID(trailerInput.value.trim());
+            if(id) {
+                trailerPreview.innerHTML = `
+                    <iframe width="320" height="180" 
+                            src="https://www.youtube.com/embed/${id}" 
+                            frameborder="0" allowfullscreen></iframe>
+                `;
+            } else {
+                trailerPreview.innerHTML = ''; // clear if input empty
+            }
+        });
+        </script>
         </script>
     </body>
 </html>
