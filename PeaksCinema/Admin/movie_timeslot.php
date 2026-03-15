@@ -18,39 +18,77 @@
     
     main {
         display: flex;
-        background-color: white;
+        color: white;
+        background-color: #122729;
         height: 100vh;
     }
 
     #movieDetails {
         display: flex;
         height: 100%;
-        width: 30%;
+        width: 40%;
+        color: #f6e8e0;
+        background-color: #122729;
     }
 
     .leftSection {
         gap:30px;
         height:100%;
-        border: 2px solid black;
         padding:25px;
     }
 
-    .posterCard img {
+    .topDetails {
+        display: flex;
+    }
+
+    .topDetails img {
         width:220px; 
         border-radius:8px; 
         box-shadow:0 5px 20px rgba(0,0,0,0.5);
     }
 
+    .topDetails #rightOfPosterDetails {
+        padding: 0 15px 0 25px;
+    }
+
+    .topDetails #rightOfPosterDetails #movieTitle {
+        font-weight: bold;
+        font-size: 28px;
+    }
+
+    .topDetails #rightOfPosterDetails #trailerLink {
+        background-color: #ac2847;
+        border: 2px solid #ec273f;
+        border-radius: 15px;
+        margin-top: 10px;
+        padding: 5px;
+        display: inline-flex;
+        font-weight: bold;
+        margin-bottom: 10px;
+        transition: transform 0.3s;
+    }
+    .topDetails #rightOfPosterDetails #trailerLink:hover {
+        transform: scale(1.05);
+        cursor: pointer;
+    }
+
+    .bottomDetails {
+        display: flex;
+        margin-top: 15px;
+        gap: 5px;
+    }
+
     #dateSection {    
         display: flex;
         flex-direction: column;
-        width: 70%;
-        border: 2px solid black;
+        width: 60%;
+        border-left: 2px solid #f6e8e0;;
+        background-color: #122729;
     }
 
     #theaterSelection {
         padding: 25px;
-        border-bottom: 2px solid black;
+        border-bottom: 2px solid #f6e8e0;
     }
 
     #everythingAboutDates {
@@ -81,10 +119,14 @@
 
     #addDateMenu {
         visibility: hidden;
-    }
-
-    #allTimeslotsContainer, #dayTimeslotsContainer {
-        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        z-index: 100;
+        transform: translate(-50%, -50%);
+        border: 2px solid black;
+        border-radius: 15px;
+        padding: 5px;
     }
 
     #warningMessage {
@@ -93,17 +135,20 @@
     }
 
     .currentDatesContainer {
-        border-bottom: 2px solid black;
+        border: 3px solid #f6e8e0;
+        border-radius: 10px;
+        background-color: #122729;
         margin: 5px;
-        padding-bottom: 5px;
+        padding: 5px;
     }
 
     .daterange {
         display: inline-flex;
-        justify-content: center;
-        border-bottom: 2px solid black;
+        align-items: flex-end;
+        border-bottom: 2px solid #f6e8e0;
         margin-bottom: 10px;
-        margin-right: 7px;
+        max-width: 280px;
+        min-width: 280px;
     }
 
     .daterangeContainer {
@@ -125,6 +170,7 @@
     }
 
     .daterangeOptions .daterangeEdit {
+        background-color: white;
         border-color: black;
         color: black;
         transition: transform 0.3s;
@@ -148,12 +194,49 @@
     .timeslots {
         display: inline-block;
         border: 2px solid black;
+        color: black;
+        background-color: #f6e8e0;
         border-radius: 15px;
         padding: 5px;
         margin-bottom: 5px;
     }
 
+    #movieEdit {
+        display: inline-flex;
+        width: 100%;
+        justify-content: center;
+        padding: 5px;
+        background-color: black;
+        color: white;
+        border: 2px solid white;
+        border-radius: 15px;
+        margin-top: 15px;
+        font-weight: bold;
+        transition: background-color 0.3s, color 0.3s, border 0.3s;
+    }
+    #movieEdit:hover {
+        background-color: white;
+        color: black;
+        border: 2px solid black;
+        cursor: pointer;
+    }
 
+    #trailerModal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.85);
+        justify-content: center;
+        align-items: center;
+    }
+
+    #allDatesContainer {
+        font-weight: bold;
+    }
 
 
     </style>
@@ -173,20 +256,25 @@
                     } else {
                         while ($row = $result->fetch_assoc()) {
                             echo '<div class="leftSection">';
-                            echo '<div class="posterCard">';
-                            echo '<img src=../../', htmlspecialchars($row['MoviePoster']), ' class="moviePoster">';
-                            echo '<h1>', htmlspecialchars($row['MovieName']), '</h1>';
-                            echo '<p class="desc">', htmlspecialchars($row['MovieDescription']), '</p>';
+                            echo '<div class="topDetails">';
+                            echo '<img src=../../' . htmlspecialchars($row['MoviePoster']), ' class="moviePoster">';
+                            echo '<div id="rightOfPosterDetails">';
+                            echo '<div id="movieTitle">"', htmlspecialchars($row['MovieName']), '"</div>';
+                            echo '<div id="trailerLink" onclick="openTrailer(\'' . htmlspecialchars($row['TrailerURL']) . '\')">Youtube Trailer</div>';
+                            echo '<div><strong>Genre:</strong> ' . htmlspecialchars($row['Genre']), '</div>';
+                            echo '<div><strong>Rating:</strong> ' . htmlspecialchars($row['Rating']), '</div>';
+                            echo '<div><strong>Runtime:</strong> ' . htmlspecialchars($row['Runtime']), ' minutes </div>';
+                            echo '</div>';
+                            echo '</div>';
                             echo '<div class="bottomDetails">';
-                            echo '<div><strong>Genre:</strong> ', htmlspecialchars($row['Genre']), '</div>';
-                            echo '<div><strong>Rating:</strong> ', htmlspecialchars($row['Rating']), '</div>';
-                            echo '<div><strong>Runtime:</strong> ', htmlspecialchars($row['Runtime']), ' minutes </div>';
-                            echo '<div><strong>Trailer Link:</strong> ', htmlspecialchars($row['TrailerURL']), '</div>';
-                            echo '</div></div></div>';
+                            echo '<div><strong>Description:</strong></div>';
+                            echo '<div class="desc">'. htmlspecialchars($row['MovieDescription']), '</div>';
+                            echo '</div>';
                             $stmt->close();
                         }
                     }
                 ?>
+                <div id="movieEdit">Edit Movie Details</div></div>
             </section>
             <section id="dateSection">
                 <div id="theaterSelection">
@@ -210,28 +298,24 @@
                 <div id="everythingAboutDates">
                     <div id="allDatesContainer"></div>
                     <div>
-                        <span><button type="button" id="addDateButton">Add New Date +</button></span>
-                        <div id="addDateMenu">
-                            <input type="radio" class="dateTypeSelection" name="dateTypeSelection" value="0" onclick="dateTypeSelection()">Add timeslots for all days</input>
-                            <input type="radio" class="dateTypeSelection" name="dateTypeSelection" value="1" onclick="dateTypeSelection()">Add timeslots for specific days</input><br>
-                            <div id="allTimeslotsContainer" class="timeslotContainer">
-                                <form id="timeslotAllForm">
-                                    <p>Start Date: <input type="date" id="startDate"> - End Date: <input type="date" id="endDate"><span style="color: grey;">(optional)</span></p>
-                                    <div>Timeslots: </div>
-                                    <span id="allTimeslots"><input type="time" class="timeslots" name="timeslotALL"onchange="addTimeslot()"></span><br>
-                                    <input type="submit" id="saveDateButton" value="Save"></input>
-                                </form>
-                                <div id="maxNumberForAll"></div>
-                            </div>
-                            
-                            <div id="dayTimeslotsContainer" class="timeslotContainer">hello</div>
-
-                        </div>
+                        <span><button type="button" id="addDateButton">Add New Date +</button></span>                        
                     </div>
-                </div>
+                </div>                
             </section>
-            
-            
+            <div id="addDateMenu">
+                <input type="radio" class="dateTypeSelection" name="dateTypeSelection" value="0" onclick="dateTypeSelection()" checked>Add timeslots for all days</input>
+                <input type="radio" class="dateTypeSelection" name="dateTypeSelection" value="1" onclick="dateTypeSelection()">Add timeslots for specific days</input><br>
+                <div id="allTimeslotsContainer" class="timeslotContainer">
+                <form id="timeslotAllForm">
+                    <p>Start Date: <input type="date" id="startDate"> - End Date: <input type="date" id="endDate"><span style="color: grey;">(optional)</span></p>
+                    <div>Timeslots: </div>
+                    <span id="allTimeslots"><input type="time" class="timeslots" name="timeslotALL"onchange="addTimeslot()"></span><br>
+                    <input type="submit" id="saveDateButton" value="Save"></input>
+                </form>
+                <div id="maxNumberForAll"></div>
+            </div>
+                <div id="dayTimeslotsContainer" class="timeslotContainer">hello</div>
+            </div>
         </main>
         <footer></footer>
         <script>
@@ -360,7 +444,20 @@
                 xmlhttp.onreadystatechange = function() {
                     if (this.readyState == 4 && this.status == 200) {
                         getTheaterInfo(Theater_ID);
-                        console.log(this.responseText);
+                        
+                        startDate.value = "";
+                        endDate.value = "";
+
+                        const timeslotContainer = document.getElementById("allTimeslots");
+                        timeslotContainer.innerHTML = ""; // clear all inputs
+
+                        // add back a single empty timeslot input
+                        const newInput = document.createElement("input");
+                        newInput.type = "time";
+                        newInput.className = "timeslots";
+                        newInput.name = "timeslotALL";
+                        newInput.onchange = addTimeslot;
+                        timeslotContainer.appendChild(newInput);
                     }
                 };
                 xmlhttp.open("POST", "queries_admin.php?q=datetimesent", true);
@@ -375,7 +472,7 @@
                 console.log(allTimeslots);
             })
 
-            function deleteDateTime(id) {                       
+            function deleteDateTime(id) {
                 console.log("test");
                 DateRange_ID = id;
                 xmlhttp = new XMLHttpRequest();
@@ -388,8 +485,36 @@
                 xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                 xmlhttp.send("id=" + encodeURIComponent(DateRange_ID));
             }
+
+            function openTrailer(url){
+                let videoId = "";
+
+                if(url.includes("watch?v=")){
+                    videoId = url.split("watch?v=")[1];
+                } 
+                else if(url.includes("youtu.be/")){
+                    videoId = url.split("youtu.be/")[1];
+                }
+
+                const embedURL = "https://www.youtube.com/embed/" + videoId + "?autoplay=1";
+
+                document.getElementById("trailerFrame").src = embedURL;
+                document.getElementById("trailerModal").style.display = "flex";
+            }
+
+            function closeTrailer(){
+                document.getElementById("trailerModal").style.display = "none";
+                document.getElementById("trailerFrame").src = "";
+            }
             
         </script>
+
+        <div id="trailerModal">
+            <div style="position: relative; width: 80%; max-width: 900px;">
+                <span onclick="closeTrailer()" style="position: absolute; top: -40px; right: 0; font-size: 30px; cursor:pointer; color: white;">X</span>
+                <iframe id="trailerFrame" width="100%" height="500" src="" framborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+            </div>
+        </div>
     </body>
 </html>
 

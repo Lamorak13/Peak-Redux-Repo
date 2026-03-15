@@ -41,8 +41,8 @@
             echo '<div class="currentDatesContainer" id=' . $row['DateRange_ID'] .'>';
             echo '<div class="daterangeContainer">';
             echo '<div class="daterange">' .
-                'Start Date: ' . htmlspecialchars($row['StartDate']) .
-                ' - End Date: ' . htmlspecialchars($row['EndDate']) .
+                date("F j Y", strtotime(htmlspecialchars($row['StartDate']))) .
+                '---' . date("F j Y", strtotime(htmlspecialchars($row['EndDate']))) .
                 '</div>';
             echo '<div class="daterangeOptions">';
             echo '<div class="daterangeEdit">Edit</div>';
@@ -61,7 +61,7 @@
 
             echo '<div class="timeslotForDateRange">';
             while ($timeslots = $result2->fetch_assoc()) {
-                echo '<div class="timeslots">' . $timeslots['StartTime'] . '</div>';
+                echo '<div class="timeslots">' . date("g:i A", strtotime($timeslots['StartTime'])) . '</div>';
             }
             echo '</div></div>';
         }
