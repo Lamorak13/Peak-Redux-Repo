@@ -763,7 +763,12 @@ CREATE TABLE `theater` (
 --
 
 INSERT INTO `theater` (`Theater_ID`, `Mall_ID`, `TheaterName`, `TotalSeats`, `TheaterType`) VALUES
-(10, 1, 'Regular 1', 50, 'Regular');
+(5, 1, 'Regular 1', 50, 'Regular'),
+(6, 1, 'Regular 2', 50, 'Regular'),
+(7, 1, 'Regular 3', 50, 'Regular'),
+(8, 1, 'Regular 4', 50, 'Regular'),
+(9, 1, 'Regular 5', 50, 'Regular'),
+(10, 1, 'Regular 6', 50, 'Regular');
 
 -- --------------------------------------------------------
 
