@@ -4,7 +4,6 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: url("movie-background-collage.jpg") no-repeat center center fixed;
             background-size: cover;
         }
         body.active {
@@ -12,33 +11,20 @@
         }
 
         main {
-            position: relative;
-            margin: 30px auto;
-            width: 90%;
-            height: 100%;
-            padding: 30px 20px;
-            backdrop-filter: blur(3px);
-            background-color: rgba(0, 0, 0, 0.5);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            color: #F9F9F9;
+            display: flex;
+            color: white;
+            background-color: #122729;
+            height: 100vh;
+        }
+
+        #moviesGallery {
+            padding: 25px;
         }
 
         #moviesContainer {
             display: flex;
         }
-
-        .movieCard {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .movieCard:hover {
-            background: rgba(255, 255, 255, 0.35);
-            transform: translateY(-5px);
-            cursor: pointer;
-        }
+        
         .movieCard .moviePoster {            
             width: 100%;
             height: 260px;
@@ -59,7 +45,7 @@
 
         #addMovieMenuContainer {
             position: absolute;
-            display: flex;
+            display: none;
             width: 100%;
             height: 100%;
             align-items: center;

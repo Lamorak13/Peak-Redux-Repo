@@ -88,7 +88,7 @@ body {
 }
 
 header {
-    background-color: var(--accent);
+    background-color: #ffffff;
     display: flex;
     justify-content: space-between;
     align-items: center;

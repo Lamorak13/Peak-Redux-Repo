@@ -1,10 +1,15 @@
 <style>
     body {
         font-family: 'Outfit', sans-serif;
-        background: url("movie-background-collage.jpg") no-repeat center center fixed;
-        background-size: cover;
         margin: 0;
     }
+
+    main {            
+        display: flex;
+        color: white;
+        background-color: #122729;
+        height: 100vh;
+    }    
 
     header {        
         background-color: #1C1C1C;
@@ -15,7 +20,6 @@
         position: sticky;
         top: 0;
         z-index: 1000;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         gap: 10px;
         height: 5%;
     }
