@@ -22,6 +22,7 @@
         z-index: 1000;
         gap: 10px;
         height: 5%;
+        border-bottom: 2px solid #f6e8e0;
     }
 
     header a {

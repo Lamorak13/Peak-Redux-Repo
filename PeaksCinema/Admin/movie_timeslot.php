@@ -32,9 +32,6 @@
             width: 40%;
             color: #f6e8e0;
             background-color: #122729;
-        }
-
-        .leftSection {
             gap:30px;
             padding:25px;
         }
@@ -287,7 +284,7 @@
                         exit;
                     } else {
                         while ($row = $result->fetch_assoc()) {
-                            echo '<div class="leftSection">';
+                            echo '<div>';
                             echo '<div class="topDetails">';
                             echo '<img src=../../' . htmlspecialchars($row['MoviePoster']) . ' class="moviePoster">';
                             echo '<div id="rightOfPosterDetails">';
@@ -530,7 +527,7 @@
             }
 
             function editMovie() {
-
+                
             }
             
         </script>

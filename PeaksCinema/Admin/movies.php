@@ -21,6 +21,14 @@
             padding: 25px;
         }
 
+        #availableMovies {
+            font-weight: bold;
+            font-size: 28;
+            border-bottom: 3px solid #f6e8e0;
+            padding: 0 15px 0 0;
+            margin-bottom: 10px;
+        }
+
         #moviesContainer {
             display: flex;
         }
@@ -42,7 +50,23 @@
             justify-content: center;
             line-height: 1.3;
         }
-
+        #addMovieButton {            
+            display: inline-flex;
+            justify-content: center;
+            padding: 7px;
+            background-color: black;
+            color: white;
+            border: 2px solid white;
+            border-radius: 15px;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s, border 0.3s;
+        }
+        #addMovieButton:hover {            
+            background-color: white;
+            color: black;
+            border: 2px solid black;
+            cursor: pointer;
+        }
         #addMovieMenuContainer {
             position: absolute;
             display: none;
@@ -50,22 +74,35 @@
             height: 100%;
             align-items: center;
             justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
         }
+
         #addMovieMenu {
-            display: none;
-            position: absolute;
+            width: auto;
             padding: 20px;
             border-radius: 15px;
             background-color: rgba(0, 0, 0, 0.5);
             color: #F9F9F9;
             font-weight: bold;
+            align-items: center;
+            justify-content: center;
         }
-        #closeMovieMenu {
-            border: 3px solid white;
-            border-radius: 15px;
+        #closeMovieMenu, #movieUpload {
+            display: inline-flex;
+            justify-content: center;
             padding: 7px;
-            margin: 0 0 5px 0;
+            background-color: black;
+            color: white;
+            border: 2px solid white;
+            border-radius: 15px;
             font-weight: bold;
+            transition: background-color 0.3s, color 0.3s, border 0.3s;
+        }
+        #closeMovieMenu:hover, #movieUpload:hover {
+            background-color: white;
+            color: black;
+            border: 2px solid black;
+            cursor: pointer;
         }
         #addMovieForm {
             padding: 8px;
@@ -75,14 +112,15 @@
             border-radius: 7px;
             padding: 3px;
         }
+        
     </style>
     <body onload="getMovies()">
         <?php include("header_admin.php") ?>
         <main>
             <section id="moviesGallery">
+                <div id="availableMovies">Available Movies</div>
                 <span><button type="button" id="addMovieButton" onclick="openMovieMenu(true)">Add New Movie</button></span>
-                <div id="moviesContainer"></div>
-                
+                <div id="moviesContainer"></div>                
             </section>            
             <div id="addMovieMenuContainer" class="">
                 <div id="addMovieMenu">
@@ -138,7 +176,7 @@
                         <br>
 
                         <div>
-                            <button type="submit" name="movieDetails" value="movieDetails">Upload</button>
+                            <button type="submit" id="movieUpload" name="movieDetails" value="movieDetails">Upload</button>
                         </div>
                     </form>
             </div>
@@ -165,21 +203,18 @@
                 };                
                 xmlhttp.open("GET", "queries_admin.php?q=movies", true);
                 xmlhttp.send();
-            }
-
-            
+            }            
 
             addMovieMenu = document.getElementById('addMovieMenu');
+            addMovieMenuContainer = document.getElementById('addMovieMenuContainer');
             addMovieButton = document.getElementById('addMovieButton');
             function openMovieMenu(isOpen) {
                 if (isOpen) {
                     addMovieButton.disabled = true;
-                    body.classList.add("active");
-                    addMovieMenu.style.display = 'block';
+                    addMovieMenuContainer.style.display = 'flex';
                 } else {
                     addMovieButton.disabled = false;
-                    body.classList.remove("active");
-                    addMovieMenu.style.display = 'none'; 
+                    addMovieMenuContainer.style.display = 'none'; 
                 }
             }
         </script>
