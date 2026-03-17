@@ -9,9 +9,6 @@
     // empty variables for later use
     $MovieName = $MovieDescription = $Genre = $Rating = $Runtime = $MoviePoster = $MovieAvailability = $TrailerUrl = "";
 
-
-
-
     //Para lang universal yung pag input sa yt link url since magkakaiba
     function getYoutubeID($url) {
         if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
@@ -22,10 +19,7 @@
         }
         return $url; // fallback if admin pastes just the ID dito
     }
-
     
-
-
     // kung nagsubmit nung admin nung form tapos nandun rin nung poster
     if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["moviePosterUp"])) {
         // input cleanup func for later use   
@@ -213,7 +207,6 @@
                 reader.readAsDataURL(this.files[0]);
             })
 
-            <script>
         const trailerInput = document.getElementById('TrailerURL');
         const trailerPreview = document.getElementById('trailerPreview');
 

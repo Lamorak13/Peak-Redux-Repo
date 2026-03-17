@@ -14,9 +14,9 @@
             echo '<p>No movies are in the system. Please upload a movie to see it here.</p>';
         } else {
             while($row = $result->fetch_assoc()) {
-                echo '<div class="movieCard" id="', htmlspecialchars($row['Movie_ID']), '">';
+                echo '<div class="movieContainer" id="', htmlspecialchars($row['Movie_ID']), '">';
                 echo '<img src=../../', htmlspecialchars($row['MoviePoster']), ' class="moviePoster">';
-                echo '<div class="movieName">', htmlspecialchars($row['MovieName']), '<div>';
+                echo '<div class="movieName">', htmlspecialchars($row['MovieName']), '</div>';
                 echo '</div>';
             }
         }
@@ -26,14 +26,18 @@
 
     if ($q == 'theaterdatetimes') {
         $id = intval($_GET['id']);
+        $movie_id = intval($_GET['movie_id']);
+        
         $stmt = $conn->prepare("
             SELECT DISTINCT daterange.DateRange_ID, daterange.StartDate, daterange.EndDate
             FROM daterange
             INNER JOIN theater
             ON daterange.Theater_ID = theater.Theater_ID
-            WHERE daterange.Theater_ID = ?
+            INNER JOIN movie
+            ON daterange.Movie_ID = movie.Movie_ID
+            WHERE daterange.Theater_ID = ? AND movie.Movie_ID = ?
         ");
-        $stmt->bind_param("i", $id);
+        $stmt->bind_param("ii", $id, $movie_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -148,6 +152,73 @@
             }
         } else {
             echo "No ID provided";
+        }
+    }
+
+    if ($q == 'movieupload') {
+        $posterFolder = dirname(__DIR__) . '/MoviePosters';
+        if (!is_dir($posterFolder)) {
+            mkdir($posterFolder, 0755, true);
+        }
+
+        function input_cleanup($data) {
+            $data = trim($data);
+            $data = stripslashes($data);
+            return $data;
+        }
+
+        // prepared statement for later use
+        $stmt = $conn -> prepare("INSERT INTO movie(MovieName, MovieDescription, Genre, Rating, Runtime, MoviePoster, TrailerURL)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt -> bind_param("ssssiss", $safeMovieName, $MovieDescription, $Genre, $Rating, $Runtime, $MoviePoster, $TrailerURL);
+
+        function getYoutubeID($url) {
+        if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
+            return $matches[1];
+        }
+        if (preg_match('/v=([^&]+)/', $url, $matches)) {
+            return $matches[1];
+        }
+        return $url; // fallback if admin pastes just the ID dito
+    }
+        
+        // more input cleanup
+        $MovieName = input_cleanup($_POST['movieName']);
+        $safeMovieName = preg_replace('/[\\\\\/:\*\?"<>\|]/', '', $MovieName);
+        $safeMovieName = str_replace(' ', '_', $safeMovieName); 
+
+        $MovieDescription = input_cleanup($_POST['movieDesc']);
+        $Genre = input_cleanup($_POST['movieGenre']);
+        $Rating = input_cleanup($_POST['movieRating']);
+        $Runtime = input_cleanup($_POST['movieRuntime']);
+        $TrailerURL = input_cleanup($_POST['TrailerURL']);
+        $TrailerURL = getYoutubeID($TrailerInput);
+
+        // this makes a "path" to the uploaded file
+        $temp = $_FILES['moviePosterUp']['tmp_name'];
+        // this cuts off the file type from the image name
+        $fileType = pathinfo($_FILES['moviePosterUp']['name'], PATHINFO_EXTENSION);
+
+        // FIXED: Remove characters that are invalid in Windows file paths
+        // Colons, slashes, asterisks, quotes, etc. cause upload to fail on Windows/XAMPP
+        $safeMovieName = preg_replace('/[\\\\\/:\*\?"<>\|]/', '', $MovieName);
+        $safeMovieName = trim($safeMovieName);
+
+        // rename the file to match the (sanitized) movie name
+        $fileName = $safeMovieName . "." . $fileType;
+        // create the full path where the file will be saved
+        $endPath = $posterFolder . "/" . $fileName;
+
+        // Move the temporary file to the actual folder
+        if (move_uploaded_file($temp, $endPath)) {
+            $MoviePoster = 'PeaksCinema/MoviePosters/' . $fileName;
+        } else {
+            echo "There was an error with uploading the poster. Please try again. ";
+        }
+
+        // actual execution of the prepared statement
+        if (!$stmt->execute()) {
+            echo "Error: " . $stmt->error;
         }
     }
 ?>

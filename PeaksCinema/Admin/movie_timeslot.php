@@ -28,12 +28,11 @@
 
         #movieDetails {
             display: flex;
-            height: 100%;
             width: 40%;
             color: #f6e8e0;
             background-color: #122729;
             gap:30px;
-            padding:25px;
+            padding: 25px;
         }
 
         .topDetails {
@@ -41,8 +40,9 @@
         }
 
         .topDetails img {
-            width:220px; 
-            border-radius:8px; 
+            width: 220px;
+            height: 260px;
+            border-radius: 15px;
             border: 2px solid #f6e8e0;
         }
 
@@ -135,7 +135,7 @@
             margin: 0 5px 0 5px;
         }
 
-        #addDateMenu input {
+        #addDateMenu input:not([type="submit"]) {
             border: 2px solid black;
             color: black;
             background-color: #f6e8e0;
@@ -267,6 +267,37 @@
             display: none;
         }
 
+        #allTimeslotsAdd {
+            display: flex;
+        }
+
+        #addTimeslotButton, #saveDateButton {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+            background-color: black;
+            color: white;
+            border: 2px solid white;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            transition: background-color 0.3s, color 0.3s, border 0.3s;
+        }
+        #addTimeslotButton:hover, #saveDateButton:hover {
+            background-color: white;
+            color: black;
+            border: 2px solid black;
+            cursor: pointer;
+        }
+        
+
+        #maxNumberForAll {
+            color: #ec273f;
+            margin: 0 0 15px 0;
+            visibility: hidden;
+        }
+
 
     </style>
     <body>
@@ -334,12 +365,15 @@
                         <div id="addDateMenu">
                             <div id="allTimeslotsContainer" class="timeslotContainer">
                                 <form id="timeslotAllForm">
-                                    <p>Start Date: <input type="date" id="startDate"> - End Date: <input type="date" id="endDate"><span style="color: grey;">(optional)</span></p>
+                                    <p>Start Date: <input type="date" id="startDate" required> - End Date: <input type="date" id="endDate"><span style="color: grey;">(optional)</span></p>
                                     <div>Timeslots: </div>
-                                    <span id="allTimeslots"><input type="time" class="timeslotsInput" name="timeslotALL"onchange="addTimeslot()"></span><br>
-                                    <input type="submit" id="saveDateButton" value="Save"></input>
+                                    <div id="allTimeslotsAdd">
+                                        <div id="allTimeslots"><input type="time" class="timeslotsInput" name="timeslotALL" required></div>
+                                        <button type="button" id="addTimeslotButton" onclick="addTimeslot()">+</button>
+                                    </div>
+                                    <div id="maxNumberForAll">Maximum amount of timeslots reached.*</div>
+                                    <input type="submit" id="saveDateButton" value="Save">
                                 </form>
-                                <div id="maxNumberForAll"></div>
                             </div>
                         </div>  
                     </div>
@@ -385,20 +419,9 @@
                 }                
             })
 
-            saveDateButton.addEventListener("click", function() {
-                var startDate = document.getElementById("startDate");
-                if (!startDate.value) {
-                    alert("please type a start date");
-                } else {
-                    addDateMenu.style.visibility = 'hidden';
-                    isDateMenuOpen = false;
-                    addDateButton.innerText = "Add New Date +";
-                    addDateButton.classList.remove('active');
-                }                
-            })
-
             const allTimeslots = document.getElementById('allTimeslots');
             const maxNumberForAll = document.getElementById('maxNumberForAll');
+            const addTimeslotButton = document.getElementById('addTimeslotButton')
             let addedTimes = 0 ;
             function addTimeslot() {
                 if (addedTimes < 4) {
@@ -406,18 +429,22 @@
                     timeslot.type = 'time';
                     timeslot.name = 'timeslotALL';
                     timeslot.classList.add('timeslots');
-                    timeslot.addEventListener("change", addTimeslot);
                     allTimeslots.appendChild(timeslot);
                     addedTimes += 1;
-                } else {
-                    maxNumberForAll.innerHTML = "Maximum amount of timeslots reached.";
-                }                
+                    if (addedTimes == 4) {
+                        addTimeslotButton.style.display = 'none';
+                        maxNumberForAll.style.visibility = 'visible';
+                    }     
+                }            
             }
 
             
             const everythingAboutDates = document.getElementById('everythingAboutDates');
             const warningMessageContainer = document.getElementById('warningMessageContainer');
             function getTheaterInfo(Theater_ID) {
+                const urlParams = new URLSearchParams(window.location.search);
+                var Movie_ID = urlParams.get('id');
+
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {
                     if (this.readyState == 4 && this.status == 200) {
@@ -426,7 +453,7 @@
                         allDatesContainer.innerHTML = this.responseText;
                     }
                 };
-                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + Theater_ID, true);
+                xmlhttp.open("GET", "queries_admin.php?q=theaterdatetimes&id=" + Theater_ID + "&movie_id=" + Movie_ID, true);
                 xmlhttp.send();
             }
 
