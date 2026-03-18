@@ -2,6 +2,7 @@
     include '../peakscinemas_database.php';
 
     $Movie_ID = "";
+    $movieData = "";
 
     if (isset($_GET['id'])) {
         $Movie_ID = $_GET['id'];
@@ -289,8 +290,7 @@
             color: black;
             border: 2px solid black;
             cursor: pointer;
-        }
-        
+        }        
 
         #maxNumberForAll {
             color: #ec273f;
@@ -298,7 +298,76 @@
             visibility: hidden;
         }
 
+        #editMovieMenuContainer {
+            position: absolute;
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
 
+        #editMovieMenu {
+            width: auto;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #122729;
+            color: #F9F9F9;
+            font-weight: bold;
+            align-items: center;
+            justify-content: center;
+        }
+        #closeMovieMenu, #movieUpload {
+            display: inline-flex;
+            justify-content: center;
+            padding: 7px;
+            background-color: black;
+            color: white;
+            border: 2px solid white;
+            border-radius: 15px;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s, border 0.3s;
+        }
+        #closeMovieMenu:hover, #movieUpload:hover {
+            background-color: white;
+            color: black;
+            border: 2px solid black;
+            cursor: pointer;
+        }
+        #editMovieForm {
+            padding: 8px;
+            display: flex;
+        }
+        #editMovieForm #leftSection {
+            border-right: 3px solid #f6e8e0;
+            padding-right: 15px;
+        }
+        #editMovieForm #rightSection {
+            padding-left: 15px;
+        }
+
+        #editMovieForm input:not([type="file"]), #movieDesc, #movieRating {
+            border: 2px solid #ff4d4d;
+            border-radius: 7px;
+            padding: 3px;
+        }
+
+        #posterPreview {
+            width: 220px;
+            height: 260px;
+            border: 3px solid #f6e8e0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #trailerPreview {
+            border: 3px solid #f6e8e0;
+            border-radius: 15px;
+            width: 320px;
+            height: 180px;
+            overflow: hidden;
+        }
     </style>
     <body>
         <?php include("header_admin.php"); ?>
@@ -315,6 +384,7 @@
                         exit;
                     } else {
                         while ($row = $result->fetch_assoc()) {
+                            $movieData = $row;
                             echo '<div>';
                             echo '<div class="topDetails">';
                             echo '<img src=../../' . htmlspecialchars($row['MoviePoster']) . ' class="moviePoster">';
@@ -330,11 +400,11 @@
                             echo '<div><strong>Description:</strong></div>';
                             echo '<div class="desc">'. htmlspecialchars($row['MovieDescription']), '</div>';
                             echo '</div>'; // For the movie details.
-                            $stmt->close();
                         }
                     }
+                    $stmt->close();
                 ?>
-                <div id="movieEdit" onclick="editMovie()">Edit Movie Details</div></div>
+                <div id="movieEdit" onclick="openMovieEdit(true)">Edit Movie Details</div></div>
             </section>
             <section id="dateSection">
                 <div id="theaterSelection">
@@ -377,9 +447,76 @@
                             </div>
                         </div>  
                     </div>
-                </div>                
-                              
+                </div>    
             </section>
+            <div id="editMovieMenuContainer" class="">
+                <div id="editMovieMenu">
+                    <button type="button" id="closeMovieMenu" onclick="openMovieEdit(false)">Back</button>
+                    <form id = "editMovieForm" autocomplete="off">
+                        <div id="leftSection"> 
+                            <div>
+                                <label for="movieName">Movie Name: </label>
+                                <input type="text" id="movieName" name="movieName" placeholder="Movie Name" value="<?= htmlspecialchars($movieData['MovieName']) ?>" required>
+                            </div>
+                            <br>
+
+                            <div>
+                                <label for="movieDesc">Movie Description: </label><br>
+                                <textarea id="movieDesc" name="movieDesc" rows="10" cols="75" placeholder="Movie Description" required><?= htmlspecialchars($movieData['MovieDescription']) ?></textarea>
+                            </div>
+                            <br>
+
+                            <div>
+                                <label for="movieGenre">Movie Genre(s): </label><br>
+                                <input type="text" id="movieGenre" name="movieGenre" placeholder="Movie Genre" value="<?= htmlspecialchars($movieData['Genre']) ?>" required>
+                            </div>
+                            <br>
+
+                            <div>
+                                <label for="movieRating">Movie Rating: </label><br>
+                                <select name="movieRating" id="movieRating">
+                                    <option value="">Select a rating:</option>
+                                    <option value="G" <?= $movieData['Rating']=="G"?"selected":"" ?>>Rated G</option>
+                                    <option value="PG" <?= $movieData['Rating']=="PG"?"selected":"" ?>>Rated PG</option>
+                                    <option value="R-13" <?= $movieData['Rating']=="R-13"?"selected":"" ?>>Rated R-13</option>
+                                    <option value="R-16" <?= $movieData['Rating']=="R-16"?"selected":"" ?>>Rated R-16</option>
+                                    <option value="R-18" <?= $movieData['Rating']=="R-18"?"selected":"" ?>>Rated R-18</option> 
+                                </select>
+                            </div>
+                            <br>
+
+                            <div>
+                                <label for="movieRuntime">Movie Runtime (in minutes): </label>
+                                <input type="number" id="movieRuntime" name="movieRuntime" placeholder="Runtime (in minutes)" min="0" value="<?= htmlspecialchars($movieData['Runtime']) ?>" required>
+                            </div>
+                            <br>
+                            
+                            <div>
+                                <label for="TrailerUrl">Trailer URL: </label><br>
+                                <input type="text" id="TrailerURL" name="TrailerURL" placeholder="Trailer Link" value="<?= htmlspecialchars($movieData['TrailerURL']) ?>" required><br><br>
+                                <div id="trailerPreviewText">Trailer Preview: </div>
+                                <div id="trailerPreview"></div> <!-- Preview container -->
+                            </div>
+                            <br>
+
+                            <div>
+                                <button type="submit" id="movieUpload" name="movieDetails" value="movieDetails">Edit</button>
+                            </div>
+                        </div>
+                        <div>                           
+
+                        <div id="rightSection">
+                            <div>
+                                <label for="moviePosterUp">Movie Poster: </label><br>
+                                <input type="file" id="moviePosterUp" name="moviePosterUp" accept="image/png, image/jpeg, image/jpg" required><br><br>
+                            </div>
+                            <div>Poster Preview:</div>
+                            <img id="posterPreview" src="" alt="Poster Preview">
+                        </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
         <script>
             theaterSelection = document.getElementById('theaterSelection');
@@ -437,7 +574,6 @@
                     }     
                 }            
             }
-
             
             const everythingAboutDates = document.getElementById('everythingAboutDates');
             const warningMessageContainer = document.getElementById('warningMessageContainer');
@@ -457,10 +593,10 @@
                 xmlhttp.send();
             }
 
-            form = document.getElementById('timeslotAllForm');
+            timeslotAllForm = document.getElementById('timeslotAllForm');
             const startDate = document.getElementById('startDate');
             const endDate = document.getElementById('endDate');
-            form.addEventListener("submit", function(e) {
+            timeslotAllForm.addEventListener("submit", function(e) {
                 e.preventDefault();
 
                 const urlParams = new URLSearchParams(window.location.search);
@@ -553,9 +689,92 @@
                 document.getElementById("trailerFrame").src = "";
             }
 
-            function editMovie() {
-                
+            const movieEdit = document.getElementById('movieEdit');
+            const editMovieMenuContainer = document.getElementById('editMovieMenuContainer');
+            function openMovieEdit(isOpen) {
+                if (isOpen) {
+                    getYoutubeID(trailerInput.value.trim());
+                    movieEdit.disabled = true;
+                    editMovieMenuContainer.style.display = 'flex';
+                } else {
+                    movieEdit.disabled = false;
+                    editMovieMenuContainer.style.display = 'none'; 
+                }
             }
+
+            editMovieForm = document.getElementById('editMovieForm');
+            editMovieForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                var Movie_ID = urlParams.get('id');
+                
+                const formData = new FormData(editMovieForm);
+
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        console.log(this.responseText);
+                        // window.location.href = "movie_timeslot.php?id=" + Movie_ID;
+                    }
+                };
+                xmlhttp.open("POST", "queries_admin.php?q=movieedit&id=" + Movie_ID, true);
+                xmlhttp.send(formData);
+            })
+
+            moviePosterUp.addEventListener('change', function() {
+                const reader = new FileReader();
+                reader.addEventListener('load', () => {
+                    uploadedPoster = reader.result;
+                    const posterPreview = document.getElementById('posterPreview');
+                    posterPreview.src = uploadedPoster;
+                    posterPreview.style.display = "block";
+                })
+                reader.readAsDataURL(this.files[0]);
+            })
+
+            function getMovieInfo() {                
+                const urlParams = new URLSearchParams(window.location.search);
+                var Movie_ID = urlParams.get('id');
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        if (this.responseText.includes('id=failed')) {
+                            failed.innerHTML = this.responseText;
+                        } else {
+                            movieDetails.innerHTML = this.responseText;
+                            getTheaterNames();
+                            // window.location.href = 'movies.php';
+                        }                        
+                    }                    
+                };                
+                xmlhttp.open("GET", "queries_admin.php?q=moviedetails&movie_id=" + Movie_ID, true);
+                xmlhttp.send();
+            }
+
+        const trailerInput = document.getElementById('TrailerURL');
+        const trailerPreview = document.getElementById('trailerPreview');
+
+        function getYoutubeID(url) {
+            let id = url.match(/youtu\.be\/([^\?]+)/);
+            if(id) return id[1];
+            id = url.match(/v=([^&]+)/);
+            if(id) return id[1];
+            return url; // fallback if they just paste the ID
+        }
+
+        trailerInput.addEventListener('input', () => {
+            const id = getYoutubeID(trailerInput.value.trim());
+            if(id) {
+                trailerPreview.innerHTML = `
+                    <iframe width="320" height="180" 
+                            src="https://www.youtube.com/embed/${id}" 
+                            frameborder="0" allowfullscreen></iframe>
+                `;
+            } else {
+                trailerPreview.innerHTML = ''; // clear if input empty
+            }
+        });
             
         </script>
 

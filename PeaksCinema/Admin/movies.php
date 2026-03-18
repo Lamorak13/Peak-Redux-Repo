@@ -141,6 +141,14 @@
             border-radius: 15px;
             overflow: hidden;
         }
+
+        #trailerPreview {
+            border: 3px solid #f6e8e0;
+            border-radius: 15px;
+            width: 320px;
+            height: 180px;
+            overflow: hidden;
+        }
         
     </style>
     <body onload="getMovies()">
@@ -195,7 +203,9 @@
                             
                             <div>
                                 <label for="TrailerUrl">Trailer URL: </label><br>
-                                <input type="text" id="TrailerURL" name="TrailerURL" placeholder="Trailer Link" required>
+                                <input type="text" id="TrailerURL" name="TrailerURL" placeholder="Trailer Link" required><br><br>
+                                <div id="trailerPreviewText">Trailer Preview: </div>
+                                <div id="trailerPreview"></div> <!-- Preview container -->
                             </div>
                             <br>
 
@@ -208,14 +218,14 @@
                         <div id="rightSection">
                             <div>
                                 <label for="moviePosterUp">Movie Poster: </label><br>
-                                <input type="file" id="moviePosterUp" name="moviePosterUp" accept="image/png, image/jpeg, image/jpg" required>
+                                <input type="file" id="moviePosterUp" name="moviePosterUp" accept="image/png, image/jpeg, image/jpg" required><br><br>
                             </div>
                             <div>Poster Preview:</div>
                             <img id="posterPreview" src="" alt="Poster Preview">
                         </div>
                         </div>
                     </form>
-            </div>
+                </div>
             </div>
             
         </main>
@@ -288,6 +298,30 @@
                 xmlhttp.open("POST", "queries_admin.php?q=movieupload", true);
                 xmlhttp.send(formData);
             })
+
+        const trailerInput = document.getElementById('TrailerURL');
+        const trailerPreview = document.getElementById('trailerPreview');
+
+        function getYoutubeID(url) {
+            let id = url.match(/youtu\.be\/([^\?]+)/);
+            if(id) return id[1];
+            id = url.match(/v=([^&]+)/);
+            if(id) return id[1];
+            return url; // fallback if they just paste the ID
+        }
+
+        trailerInput.addEventListener('input', () => {
+            const id = getYoutubeID(trailerInput.value.trim());
+            if(id) {
+                trailerPreview.innerHTML = `
+                    <iframe width="320" height="180" 
+                            src="https://www.youtube.com/embed/${id}" 
+                            frameborder="0" allowfullscreen></iframe>
+                `;
+            } else {
+                trailerPreview.innerHTML = ''; // clear if input empty
+            }
+        });
         </script>
     </body>
 </html>

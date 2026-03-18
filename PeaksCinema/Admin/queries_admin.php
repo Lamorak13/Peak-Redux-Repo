@@ -173,14 +173,14 @@
         $stmt -> bind_param("ssssiss", $safeMovieName, $MovieDescription, $Genre, $Rating, $Runtime, $MoviePoster, $TrailerURL);
 
         function getYoutubeID($url) {
-        if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
-            return $matches[1];
+            if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
+                return $matches[1];
+            }
+            if (preg_match('/v=([^&]+)/', $url, $matches)) {
+                return $matches[1];
+            }
+            return $url; // fallback if admin pastes just the ID dito
         }
-        if (preg_match('/v=([^&]+)/', $url, $matches)) {
-            return $matches[1];
-        }
-        return $url; // fallback if admin pastes just the ID dito
-    }
         
         // more input cleanup
         $MovieName = input_cleanup($_POST['movieName']);
@@ -193,6 +193,74 @@
         $Runtime = input_cleanup($_POST['movieRuntime']);
         $TrailerURL = input_cleanup($_POST['TrailerURL']);
         $TrailerURL = getYoutubeID($TrailerInput);
+
+        // this makes a "path" to the uploaded file
+        $temp = $_FILES['moviePosterUp']['tmp_name'];
+        // this cuts off the file type from the image name
+        $fileType = pathinfo($_FILES['moviePosterUp']['name'], PATHINFO_EXTENSION);
+
+        // FIXED: Remove characters that are invalid in Windows file paths
+        // Colons, slashes, asterisks, quotes, etc. cause upload to fail on Windows/XAMPP
+        $safeMovieName = preg_replace('/[\\\\\/:\*\?"<>\|]/', '', $MovieName);
+        $safeMovieName = trim($safeMovieName);
+
+        // rename the file to match the (sanitized) movie name
+        $fileName = $safeMovieName . "." . $fileType;
+        // create the full path where the file will be saved
+        $endPath = $posterFolder . "/" . $fileName;
+
+        // Move the temporary file to the actual folder
+        if (move_uploaded_file($temp, $endPath)) {
+            $MoviePoster = 'PeaksCinema/MoviePosters/' . $fileName;
+        } else {
+            echo "There was an error with uploading the poster. Please try again. ";
+        }
+
+        // actual execution of the prepared statement
+        if (!$stmt->execute()) {
+            echo "Error: " . $stmt->error;
+        }
+    }
+
+    if ($q == 'movieedit') {
+        $Movie_ID = intval($_GET['id']);
+        $posterFolder = dirname(__DIR__) . '/MoviePosters';
+        if (!is_dir($posterFolder)) {
+            mkdir($posterFolder, 0755, true);
+        }
+
+        function input_cleanup($data) {
+            $data = trim($data);
+            $data = stripslashes($data);
+            return $data;
+        }
+
+        // prepared statement for later use
+        $stmt = $conn -> prepare("UPDATE movie
+                                  SET MovieName = ?, MovieDescription = ?, Genre = ?, Rating = ?, Runtime = ?, MoviePoster = ?, TrailerURL = ?
+                                  WHERE Movie_ID = ?");
+        $stmt -> bind_param("ssssissi", $safeMovieName, $MovieDescription, $Genre, $Rating, $Runtime, $MoviePoster, $TrailerURL, $Movie_ID);
+
+        function getYoutubeID($url) {
+            if (preg_match('/youtu\.be\/([^\?]+)/', $url, $matches)) {
+                return $matches[1];
+            }
+            if (preg_match('/v=([^&]+)/', $url, $matches)) {
+                return $matches[1];
+            }
+            return $url; // fallback if admin pastes just the ID dito
+        }
+        
+        // more input cleanup
+        $MovieName = input_cleanup($_POST['movieName']);
+        $safeMovieName = preg_replace('/[\\\\\/:\*\?"<>\|]/', '', $MovieName);
+        $safeMovieName = str_replace(' ', '_', $safeMovieName); 
+
+        $MovieDescription = input_cleanup($_POST['movieDesc']);
+        $Genre = input_cleanup($_POST['movieGenre']);
+        $Rating = input_cleanup($_POST['movieRating']);
+        $Runtime = input_cleanup($_POST['movieRuntime']);
+        $TrailerURL = input_cleanup($_POST['TrailerURL']);
 
         // this makes a "path" to the uploaded file
         $temp = $_FILES['moviePosterUp']['tmp_name'];

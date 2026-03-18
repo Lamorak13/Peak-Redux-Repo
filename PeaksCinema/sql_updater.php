@@ -57,7 +57,7 @@
 
                     INSERT INTO `mall` (`Mall_ID`, `MallName`, `Location`) VALUES
                     (1, 'SM Marikina', 'Marcos Highway, Calumpang, Marikina City, 1801, Marikina, Luzon Philippines');
-
+                    
                     CREATE TABLE `movie` (
                     `Movie_ID` int(11) NOT NULL,
                     `MovieName` text NOT NULL,
@@ -66,9 +66,8 @@
                     `Rating` varchar(10) NOT NULL,
                     `Runtime` int(11) NOT NULL,
                     `MoviePoster` text NOT NULL,
-                    `MovieAvailability` tinytext NOT NULL,
                     `TrailerURL` text NOT NULL,
-                    `Price` int(11) NOT NULL
+                    `MovieAvailability` varchar(100) NOT NULL DEFAULT 'Now Showing'
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
                     INSERT INTO `movie` (`Movie_ID`, `MovieName`, `MovieDescription`, `Genre`, `Rating`, `Runtime`, `MoviePoster`, `MovieAvailability`, `TrailerURL`, `Price`) VALUES
