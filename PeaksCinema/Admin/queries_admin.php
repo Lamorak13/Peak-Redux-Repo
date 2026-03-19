@@ -11,7 +11,7 @@
         $result = $stmt->get_result();
 
         if ($result->num_rows === 0) {
-            echo '<p>No movies are in the system. Please upload a movie to see it here.</p>';
+            echo '<p>No movies are in the system. Please add a movie to see it here.</p>';
         } else {
             while($row = $result->fetch_assoc()) {
                 echo '<div class="movieContainer" id="', htmlspecialchars($row['Movie_ID']), '">';
@@ -289,4 +289,27 @@
             echo "Error: " . $stmt->error;
         }
     }
+
+    if ($q == 'theaters') {
+        $stmt = $conn->prepare("SELECT DISTINCT Theater_ID, TheaterName 
+                                FROM theater 
+                                ORDER BY TheaterName;");
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 0) {
+            echo '<p>No theaters are in the system. Please add a theater to see it here.</p>';
+        } else {
+            while($row = $result->fetch_assoc()) {
+                echo '<div class="theaterContainer" id="', htmlspecialchars($row['Theater_ID']), '" data-id="', htmlspecialchars($row['Theater_ID']), '">';
+                echo '<div class="theaterName">', htmlspecialchars($row['TheaterName']), '</div>';
+                echo '</div>';
+            }
+        }
+
+        $stmt->free_result();
+    }
+
+    // SELECT DISTINCT Theater_ID, TheaterName FROM theater ORDER BY TheaterName;
 ?>
+
