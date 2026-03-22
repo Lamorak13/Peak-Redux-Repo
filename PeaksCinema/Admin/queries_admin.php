@@ -4,7 +4,7 @@
     $q = $_GET['q'] ?? '';
     $Movie_ID = filter_input(INPUT_GET, 'movie_id', FILTER_VALIDATE_INT);
 
-    if ($q == 'movies') {
+    if ($q == 'movies') { // DONE
         $stmt = $conn->prepare("SELECT DISTINCT movie.Movie_ID, movie.MovieName, movie.MoviePoster
                                 FROM movie");
         $stmt->execute();
