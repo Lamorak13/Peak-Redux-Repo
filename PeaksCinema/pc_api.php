@@ -18,8 +18,61 @@
         case 'customer':
             break;
         case 'daterange':
-            if ($method == 'GET') {
-                dateRangeHandler($method, $ID, $subResource, $subID, $subResource2, $subID2);
+            if ($method == 'GET') { 
+                if (!is_numeric($ID)) { // e.g. PeaksCinema/pc_api.php?request=daterange/all/movie/1/theater/11
+                    if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) { 
+                        $stmt = $conn->prepare('SELECT * FROM daterange
+                                                        WHERE Movie_ID = ? AND Theater_ID=?');
+                                $stmt->bind_param('ii', $subID, $subID2);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                if ($result->num_rows === 0) {
+                                    echo json_encode("There are no date ranges for this theater yet.");
+                                } else {
+                                    echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+                                }
+                    } else {
+                        echo json_encode("Error with your request.");
+                    }
+                } else {
+                    // other queries
+                }                           
+            }
+
+            if ($method == 'POST') {
+                // if (!is_numeric($ID)) { // e.g. PeaksCinema/pc_api.php?request=daterange/all/movie/1/theater/11
+                //     if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) { 
+                //         $stmt = $conn->prepare('SELECT * FROM daterange
+                //                                         WHERE Movie_ID = ? AND Theater_ID=?');
+                //                 $stmt->bind_param('ii', $subID, $subID2);
+                //                 $stmt->execute();
+                //                 $result = $stmt->get_result();
+                //                 if ($result->num_rows === 0) {
+                //                     echo json_encode("There are no date ranges for this theater yet.");
+                //                 } else {
+                //                     echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+                //                 }
+                //     } else {
+                //         echo json_encode("Error with your request.");
+                //     }
+                // }                           
+            }
+
+            if ($method == 'PUT') {
+                // future update stuff
+            }
+
+            if ($method == 'DELETE') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare("DELETE FROM daterange WHERE DateRange_ID = ?");
+                    $stmt->bind_param("i", $ID);
+
+                    if ($stmt->execute()) {
+                        echo json_encode("Successfully deleted date range.");
+                    } else {
+                        echo json_encode("Error with your request.");
+                    }
+                }
             }
             break;
         case 'movie':
@@ -98,43 +151,43 @@
             break;
     }
 
-    function dateRangeHandler($method, $ID, $subResource, $subID, $subResource2, $subID2) {
-        global $conn;
-        if ($method == 'GET') {
-            if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) {
-                $stmt = $conn->prepare('SELECT * FROM daterange
-                                                WHERE Movie_ID = ? AND Theater_ID=?');
-                        $stmt->bind_param('ii', $subID, $subID2);
-                        $stmt->execute();
-                        $result = $stmt->get_result();
-                        if ($result->num_rows === 0) {
-                            echo json_encode("There are no date ranges for this theater yet.");
-                        } else {
-                            echo json_encode($result->fetch_all(MYSQLI_ASSOC));
-                        }
+    // function dateRangeHandler($method, $ID, $subResource, $subID, $subResource2, $subID2) {
+    //     global $conn;
+    //     if ($method == 'GET') {
+    //         if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) {
+    //             $stmt = $conn->prepare('SELECT * FROM daterange
+    //                                             WHERE Movie_ID = ? AND Theater_ID=?');
+    //                     $stmt->bind_param('ii', $subID, $subID2);
+    //                     $stmt->execute();
+    //                     $result = $stmt->get_result();
+    //                     if ($result->num_rows === 0) {
+    //                         echo json_encode("There are no date ranges for this theater yet.");
+    //                     } else {
+    //                         echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+    //                     }
                         
-            } else {
-                echo json_encode("Error with your request.");
-            }
-        }
+    //         } else {
+    //             echo json_encode("Error with your request.");
+    //         }
+    //     }
 
-        if ($method == 'POST') {
-            if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) {
-                // $stmt = $conn->prepare('SELECT * FROM daterange
-                //                                 WHERE Movie_ID = ? AND Theater_ID=?');
-                //         $stmt->bind_param('ii', $subID, $subID2);
-                //         $stmt->execute();
-                //         $result = $stmt->get_result();
-                //         if ($result->num_rows === 0) {
-                //             echo json_encode("There are no date ranges for this theater yet.");
-                //         } else {
-                //             echo json_encode($result->fetch_all(MYSQLI_ASSOC));
-                //         }
+    //     if ($method == 'POST') {
+    //         if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) {
+    //             // $stmt = $conn->prepare('SELECT * FROM daterange
+    //             //                                 WHERE Movie_ID = ? AND Theater_ID=?');
+    //             //         $stmt->bind_param('ii', $subID, $subID2);
+    //             //         $stmt->execute();
+    //             //         $result = $stmt->get_result();
+    //             //         if ($result->num_rows === 0) {
+    //             //             echo json_encode("There are no date ranges for this theater yet.");
+    //             //         } else {
+    //             //             echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+    //             //         }
                         
-            } else {
-                echo json_encode("Error with your request.");
-            }
-        }
+    //         } else {
+    //             echo json_encode("Error with your request.");
+    //         }
+    //     }
         
-    }
+    // }
 ?>

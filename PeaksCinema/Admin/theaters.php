@@ -128,23 +128,29 @@
             })
 
             availableTheaters = document.getElementById('availableTheaters');
-            function getTheaters() {
-                var xmlhttp = new XMLHttpRequest();
-                xmlhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        availableTheaters.innerHTML = this.responseText;
+            // function getTheaters() {
+            //     var xmlhttp = new XMLHttpRequest();
+            //     xmlhttp.onreadystatechange = function() {
+            //         if (this.readyState == 4 && this.status == 200) {
+            //             availableTheaters.innerHTML = this.responseText;
 
-                        const theaterContainers = document.querySelectorAll('.theaterContainer');
-                        theaterContainers.forEach(e => {
-                            e.addEventListener("click", function() {
-                                window.location.href = 'theater_individual.php?id=' + e.dataset.id;
-                            })
-                        });
-                    }                    
-                };                
-                xmlhttp.open("GET", "queries_admin.php?q=theaters", true);
-                xmlhttp.send();
-            }   
+            //             const theaterContainers = document.querySelectorAll('.theaterContainer');
+            //             theaterContainers.forEach(e => {
+            //                 e.addEventListener("click", function() {
+            //                     window.location.href = 'theater_individual.php?id=' + e.dataset.id;
+            //                 })
+            //             });
+            //         }                    
+            //     };                
+            //     xmlhttp.open("GET", "queries_admin.php?q=theaters", true);
+            //     xmlhttp.send();
+            // }
+
+            async function getTheaters() {
+                try {
+                    const response = await fetch('')
+                }
+            }
         </script>
     </body>
 </html>
