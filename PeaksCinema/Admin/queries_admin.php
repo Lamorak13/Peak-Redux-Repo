@@ -24,7 +24,7 @@
         $stmt->free_result();
     }
 
-    if ($q == 'theaterdatetimes') {
+    if ($q == 'theaterdatetimes') { // DONE
         $id = intval($_GET['id']);
         $movie_id = intval($_GET['movie_id']);
         
