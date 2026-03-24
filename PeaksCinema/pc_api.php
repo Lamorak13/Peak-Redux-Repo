@@ -40,22 +40,72 @@
             }
 
             if ($method == 'POST') {
-                // if (!is_numeric($ID)) { // e.g. PeaksCinema/pc_api.php?request=daterange/all/movie/1/theater/11
-                //     if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) { 
-                //         $stmt = $conn->prepare('SELECT * FROM daterange
-                //                                         WHERE Movie_ID = ? AND Theater_ID=?');
-                //                 $stmt->bind_param('ii', $subID, $subID2);
-                //                 $stmt->execute();
-                //                 $result = $stmt->get_result();
-                //                 if ($result->num_rows === 0) {
-                //                     echo json_encode("There are no date ranges for this theater yet.");
-                //                 } else {
-                //                     echo json_encode($result->fetch_all(MYSQLI_ASSOC));
-                //                 }
-                //     } else {
-                //         echo json_encode("Error with your request.");
-                //     }
-                // }                           
+                if (!is_numeric($ID)) {
+                    if ($subResource === 'movie' && $subID && $subResource2 === 'theater' && $subID2) {
+                        $data = json_decode(file_get_contents("php://input"), true);
+
+                        if ($data) {
+                            $Theater_ID = $data['Theater_ID'];
+                            $Movie_ID   = $data['Movie_ID'];
+                            $StartDate  = $data['StartDate'];
+                            $EndDate    = $data['EndDate'];
+
+                            $checkTheater = $conn->prepare("SELECT Theater_ID FROM theater WHERE Theater_ID = ?");
+                            $checkTheater->bind_param("i", $Theater_ID);
+                            $checkTheater->execute();
+                            $checkResult = $checkTheater->get_result();
+                            if ($checkResult->num_rows === 0) {
+                                die("Invalid Theater_ID: " . $Theater_ID);
+                            }
+
+                            $checkMovie = $conn->prepare("SELECT Movie_ID FROM movie WHERE Movie_ID = ?");
+                            $checkMovie->bind_param("i", $Movie_ID);
+                            $checkMovie->execute();
+                            $movieResult = $checkMovie->get_result();
+                            if ($movieResult->num_rows === 0) {
+                                die("Invalid Movie_ID: " . $Movie_ID);
+                            }
+
+                            $stmt = $conn->prepare("INSERT INTO daterange (Movie_ID, Theater_ID, StartDate, EndDate)
+                                                    VALUES (?, ?, ?, ?)");
+                            $stmt->bind_param("iiss", $Movie_ID, $Theater_ID, $StartDate, $EndDate);
+                            $stmt->execute();
+
+                            $DateRange_ID = $conn->insert_id;
+
+                            $ScreeningType = "2D"; // TEMP
+
+                            foreach ($data['timeslots'] as $timeslot) {
+                                $date = $timeslot['date'];
+                                $time = $timeslot['timeslot'];
+
+                                $stmt2 = $conn->prepare("INSERT INTO timeslot (StartTime, Date, ScreeningType, Movie_ID, Theater_ID, DateRange_ID)
+                                                        VALUES (?, ?, ?, ?, ?, ?)");
+                                $stmt2->bind_param("sssiii", $time, $date, $ScreeningType, $Movie_ID, $Theater_ID, $DateRange_ID);
+                                if (!$stmt2->execute()) {
+                                    die("Error inserting timeslot: " . $stmt2->error);
+                                }
+
+                                $TimeSlot_ID = $conn->insert_id;
+
+                                $seats_stmt = $conn->prepare("SELECT Seat_ID FROM seats WHERE Theater_ID = ?");
+                                $seats_stmt->bind_param("i", $Theater_ID);
+                                $seats_stmt->execute();
+                                $seatLayout = $seats_stmt->get_result();
+
+                                $SeatPrice = 350; // TEMP
+                                $SeatAvailability = 1;
+
+                                while ($row = $seatLayout->fetch_assoc()) {
+                                    $screeningSeatsToDb_stmt = $conn->prepare("INSERT INTO seat_timeslot (Seat_ID, TimeSlot_ID, SeatPrice, SeatAvailability)
+                                                                            VALUES (?, ?, ?, ?)");
+                                    $screeningSeatsToDb_stmt->bind_param("iiii", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
+                                    $screeningSeatsToDb_stmt->execute();
+                                }
+                            }
+                        }
+                    }
+                }                
             }
 
             if ($method == 'PUT') {
@@ -134,7 +184,6 @@
             }
             
             break;
-
         case 'payment':
             break;
         case 'seats':
