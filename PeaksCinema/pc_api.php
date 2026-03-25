@@ -18,6 +18,24 @@
 
     switch ($resource) {
         case 'customer':
+            if ($method == 'GET') {
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare('SELECT Customer_ID, FirstName, LastName, Email, PhoneNumber, CountryCode, PaymentMethod FROM customer');
+                    
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["error" => "There are no customers yet."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
             break;
         case 'daterange':
             if ($method == 'GET') {
@@ -203,8 +221,27 @@
             
             break;
         case 'payment':
+            if ($method == 'GET') {
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare('SELECT * FROM payment');
+                    
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["error" => "There are no customers yet."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
             break;
         case 'seats':
+            
             break;
         case 'seat_timeslot':
             break;
