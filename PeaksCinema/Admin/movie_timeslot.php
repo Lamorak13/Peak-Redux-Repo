@@ -254,7 +254,7 @@
                 var Movie_ID = urlParams.get('id');
                 var Theater_ID = document.querySelector('input[name="theaterSelection"]:checked').value;
 
-                const formData = new FormData(form);
+                const formData = new FormData(timeslotAllForm);
                 let timeslots = formData.getAll('timeslotALL').filter(t => t !== "");
 
                 let allTimeslots = [];

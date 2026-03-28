@@ -16,6 +16,8 @@
     $subResource2 = $parts[4] ?? null;
     $subID2 = $parts[5] ?? null;
 
+    $date = $_GET['date'] ?? null;
+
     switch ($resource) {
         case 'customer':
             if ($method == 'GET') {
@@ -162,15 +164,90 @@
             break;
         case 'movie':
             if ($method == 'GET') {
-                if ($ID) {
-                    $stmt = $conn->prepare('SELECT * FROM movie
-                                            WHERE Movie_ID = ?');
-                    $stmt->bind_param('i', $ID);
-                    $stmt->execute();
-                    echo json_encode($stmt->get_result()->fetch_assoc());
-                } else {
-                    $result = $conn->query("SELECT * FROM movie");
-                    echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare('SELECT Movie_ID, MovieName FROM movie');
+                    
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["error" => "There are no movies yet."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+                else if ($ID !== null && $subResource === 'theaters' && $subID === null && $subResource2 === null && $subID2 === null && $date !== null) {
+                    try {
+                        $stmt = $conn->prepare('SELECT DISTINCT theater.Theater_ID, theater.TheaterName FROM theater
+                                            INNER JOIN daterange ON daterange.Theater_ID = theater.Theater_ID
+                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
+                                            INNER JOIN timeslot ON timeslot.DateRange_ID = daterange.DateRange_ID
+                                            WHERE movie.Movie_ID = ? AND timeslot.date = ?');
+                        $stmt->bind_param('is', $ID, $date);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => "No Available Theaters."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
+                }
+                else if ($ID !== null && $subResource === 'theater' && $subID !== null && $subResource2 === null && $subID2 === null) {
+                    try {
+                        $stmt = $conn->prepare('SELECT DISTINCT timeslot.TimeSlot_ID, timeslot.StartTime FROM timeslot
+                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
+                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
+                                            INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
+                                            WHERE movie.Movie_ID = ? AND theater.Theater_ID = ? AND date = ?');
+                        $stmt->bind_param('iis', $ID, $subID, $date);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => "No Available Timeslots."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
+                }
+                else if ($ID !== null && $subResource === 'theater' && $subID !== null && $subResource2 === 'timeslot' && $subID2 !== null) {
+                    try {
+                        $stmt = $conn->prepare('SELECT SeatTimeSlot_ID, seats.SeatRow, seats.SeatColumn, seat_timeslot.SeatPrice, seat_timeslot.SeatAvailability FROM seat_timeslot
+                                            INNER JOIN seats ON seats.Seat_ID = seat_timeslot.Seat_ID
+                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                            WHERE timeslot.TimeSlot_ID = ?');
+                        $stmt->bind_param('i', $subID2);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => "No Available Timeslots."]);
+                        } else {
+                            $rows = [];
+                            foreach ($result as $seat) {
+                                $rowIndex = $seat['SeatRow'];
+                                $colIndex = $seat['SeatColumn'];
+                                $rows[$rowIndex][$colIndex] = [
+                                    "SeatTimeSlot_ID" => $seat['SeatTimeSlot_ID'],
+                                    "SeatPrice" => $seat['SeatPrice'],
+                                    "SeatAvailability" => $seat['SeatAvailability']
+                                ];
+                            }
+                            echo json_encode(["data" => $rows]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
                 }
             }
 

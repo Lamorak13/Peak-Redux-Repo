@@ -1,17 +1,20 @@
 html {
+    margin: 0;
     font-size: 16px;
+    height: 100%;
 }
 
 body {
+    height: 100%;
     font-family: 'Outfit', sans-serif;
-    background-size: cover;
     margin: 0;
+    color: white;
+    background-color: #122729;
+    min-height: 100vh;
 }
 
 main {
     display: flex;
-    color: white;
-    background-color: #122729;
 }
 
 header {        
@@ -550,4 +553,48 @@ button#addDateButton.active {
     color: black;
     border: 2px solid black;
     cursor: pointer;
+}
+
+/* staff_cashier.php */
+
+#cashierFundamentalsContainer {
+    display: flex;
+    width: 100%;
+    height: 70vh;
+    justify-content: center;
+    align-items: center;
+}
+
+#cashierFundamentals {
+    display: flex;
+    width: 70%;
+    height: 70%;
+    flex-direction: column;
+    gap: 5%;
+    padding: 15px;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    text-align: center;
+}
+
+#cashierFundamentals select {
+    width: 220px;
+    appearance: base-select;
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+#cashierFundamentals select::picker(select) {
+    width: 220px;
+    appearance: base-select;
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+    padding: 5px;
+    margin-bottom: 5px;
 }
