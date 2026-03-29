@@ -165,8 +165,23 @@
         case 'movie':
             if ($method == 'GET') {
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare('SELECT Movie_ID, MovieName FROM movie');
-                    
+                    $stmt = $conn->prepare('SELECT * FROM movie');                    
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["error" => "There are no movies yet."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+                else if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare('SELECT * FROM movie WHERE Movie_ID = ?');
+                    $stmt->bind_param("i", $ID);
                     try {
                         $stmt->execute();
                         $result = $stmt->get_result();
@@ -237,7 +252,8 @@
                             foreach ($result as $seat) {
                                 $rowIndex = $seat['SeatRow'];
                                 $colIndex = $seat['SeatColumn'];
-                                $rows[$rowIndex][$colIndex] = [
+                                $rows[$rowIndex][] = [
+                                    "SeatColumn" => $colIndex,
                                     "SeatTimeSlot_ID" => $seat['SeatTimeSlot_ID'],
                                     "SeatPrice" => $seat['SeatPrice'],
                                     "SeatAvailability" => $seat['SeatAvailability']
@@ -321,6 +337,28 @@
             
             break;
         case 'seat_timeslot':
+
+            if ($method == 'PUT') {
+                $data = json_decode(file_get_contents("php://input"), true);
+
+                if ($data) {
+                    $seats = $data['seats'];
+                    $SeatAvailability = 0;
+
+                    $stmt = $conn->prepare("UPDATE seat_timeslot SET SeatAvailability = ? WHERE SeatTimeSlot_ID = ?");
+                    
+                    try {
+                        foreach ($seats as $SeatTimeSlot_ID) {
+                            $stmt->bind_param("ii", $SeatAvailability, $SeatTimeSlot_ID);
+                            $stmt->execute();
+                        }
+                        echo json_encode(["status" => "Success!"]);
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+
             break;
         case 'theater':
             break;

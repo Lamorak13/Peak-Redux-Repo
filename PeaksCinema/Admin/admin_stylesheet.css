@@ -14,7 +14,6 @@ body {
 }
 
 main {
-    display: flex;
 }
 
 header {        
@@ -66,476 +65,6 @@ header a.active {
     transform: scale(1.05);
 }
 
-.gallery {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    padding: 25px;
-}
-
-.availableText {
-    font-weight: bold;
-    font-size: 1.8rem;
-    border-bottom: 3px solid #f6e8e0;
-    padding: 0 15px 0 0;
-    margin-bottom: 10px;
-}
-
-#availableMovies, #availableTheaters {
-    display: flex;
-    padding: 25px;
-    gap: 25px;
-}
-
-.movieContainer {
-    display: flex;
-    flex-direction: column;
-    width: 200px;
-    aspect-ratio: 2 / 3;
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    font-size: 1rem;
-    transition: transform 0.3s;
-}
-.movieContainer:hover {
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
-.movieContainer .moviePoster {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 15px;
-}
-
-.movieContainer .movieName {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    font-weight: bold;
-}
-
-#addMovieButton {            
-    display: inline-flex;
-    justify-content: center;
-    padding: 7px;
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    border-radius: 15px;
-    font-weight: bold;
-    transition: background-color 0.3s, color 0.3s, border 0.3s;
-}
-
-#addMovieButton:hover {            
-    background-color: white;
-    color: black;
-    border: 2px solid black;
-    cursor: pointer;
-}
-
-.movieMenuContainer, #addTheaterMenuContainer {
-    position: fixed;
-    display: none;
-    width: 100%;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 500;
-}
-
-.movieMenu, #addTheaterMenu {
-    width: auto;
-    height: 75%;
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    background-color: #122729;
-    color: #F9F9F9;
-    font-weight: bold;
-    overflow: hidden;
-    display: flex;
-}
-
-#addTheaterMenu {
-    width: 75%;
-    height: auto;
-}
-
-.scrollContent {
-    flex: 1;
-    overflow: auto;
-    padding: 15px;
-    box-sizing: border-box;
-}
-
-.movieForm, #theaterForm {
-    padding: 8px;
-    display: flex;
-}
-
-#leftSection {
-    border-right: 3px solid #f6e8e0;
-    padding-right: 15px;
-}
-
-#rightSection {
-    padding-left: 15px;
-}
-
-#theaterForm #leftSection {
-    width: 40%;
-}
-
-#theaterForm #rightSection {
-    width: 60%;
-}
-
-.movieForm input:not([type="file"]), #movieDesc, #movieRating, #theaterForm input:not([type="file"]), #theaterForm select {
-    border: 2px solid #ff4d4d;
-    border-radius: 7px;
-    padding: 3px;
-}
-
-#theaterLayoutSection {
-    display: flex;
-    flex-direction: column;
-}
-
-.scrollContent .generalAdminButton {
-    margin-bottom: 15px;
-}
-
-.theaterSeat {
-    border: 1px solid black;
-    background-color: #be6363ff;
-    width: 25px;
-    height: 25px;
-    text-align: center;
-    vertical-align: middle;
-    border-radius: 20%;
-}
-
-.emptySeat {                
-    width: 25px;
-    height: 25px;
-    background-color: transparent;
-    border: 1px solid transparent;
-}
-
-.screenCSS {
-    border: 3px solid black;
-    background-color: #9eb0ecff;
-    width: 100%;
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 10px;
-    border-radius: 5%;
-}
-
-#posterPreview {
-    width: 180.5px;
-    height: 225.672px;
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-#trailerPreview {
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    width: 320px;
-    height: 180px;
-    overflow: hidden;
-}
-
-#movieDetails {
-    display: flex;
-    width: 40%;
-    color: #f6e8e0;
-    background-color: #122729;
-    gap:30px;
-    padding: 25px;
-}
-
-.topDetails {
-    display: flex;
-}
-
-.topDetails img {
-    width: 30%;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    border-radius: 15px;
-    border: 3px solid #f6e8e0;
-}
-
-.topDetails #rightOfPosterDetails {
-    padding: 0 15px 0 25px;
-}
-
-.topDetails #rightOfPosterDetails #movieTitle {
-    font-weight: bold;
-    font-size: 28px;
-}
-
-.topDetails #rightOfPosterDetails #trailerLink {
-    background-color: #ac2847;
-    border: 2px solid #ec273f;
-    border-radius: 15px;
-    margin-top: 10px;
-    padding: 5px;
-    display: inline-flex;
-    font-weight: bold;
-    margin-bottom: 10px;
-    transition: transform 0.3s;
-}
-.topDetails #rightOfPosterDetails #trailerLink:hover {
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
-.bottomDetails {
-    display: flex;
-    margin-top: 15px;
-    gap: 5px;
-}
-
-#dateSection {    
-    display: flex;
-    flex-direction: column;
-    width: 60%;
-    border-left: 3px solid #f6e8e0;;
-    background-color: #122729;
-}
-
-#theaterSelection {
-    padding: 25px;
-    border-bottom: 3px solid #f6e8e0;
-}
-
-#theaterSelection #theaterSelectionTitle{
-    margin-bottom: 15px;
-}
-
-#everythingAboutDates {
-    height: 100%;
-    padding: 25px;
-    display: none;
-}
-
-button#addDateButton {
-    border: 3px solid #f6e8e0;;
-    border-radius: 25px;
-    margin: 0 5px 0 5px;
-    padding: 5px;
-    font-size: 80%;
-    font-weight: bold;
-    background-color: black;
-    color: #f6e8e0;
-    transition: border 0.5s, color 0.5s;
-}
-
-button#addDateButton:hover {
-    border: 3px solid #f6e8e0;
-    background-color: #f6e8e0;
-    color: black;
-    cursor: pointer;
-}
-
-button#addDateButton.active {
-    border: 3px solid #f6e8e0;
-    background-color: #f6e8e0;
-    color: black;
-    border-radius: 15px 15px 0 0;
-}
-
-#addDateMenu {
-    visibility: hidden;
-    position: relative;
-    border: 3px solid #f6e8e0;
-    border-radius: 0 15px 15px 15px;
-    padding: 5px;
-    margin: 0 5px 0 5px;
-}
-
-#addDateMenu input:not([type="submit"]) {
-    border: 2px solid black;
-    color: black;
-    background-color: #f6e8e0;
-    border-radius: 15px;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
-#warningMessageContainer {
-    display: flex;
-    height: 70%;
-    width: 100%;
-    justify-content: center;
-    align-items: center;
-}
-
-#warningMessage {
-    font-weight: bold;
-    border: 3px solid #f6e8e0;
-    border-radius: 10px;
-    padding: 25px;
-}
-
-.currentDatesContainer {
-    border: 3px solid #f6e8e0;
-    border-radius: 10px;
-    background-color: #122729;
-    margin: 5px;
-    padding: 5px;
-}
-
-.daterange {
-    display: inline-flex;
-    align-items: flex-end;
-    border-bottom: 2px solid #f6e8e0;
-    margin-bottom: 10px;
-    max-width: 280px;
-    min-width: 280px;
-}
-
-.daterangeContainer {
-    display: inline-flex;
-    justify-content: flex-end;
-}
-
-.daterangeOptions {
-    display: inline-flex;
-    margin-bottom: 10px;
-    gap: 8px;
-}
-
-.daterangeOptions div {
-    border: 2px solid black;
-    border-radius: 15px;
-    padding: 5px;
-    font-weight: bold;
-}
-
-.daterangeOptions .daterangeEdit {
-    background-color: white;
-    border-color: black;
-    color: black;
-    transition: transform 0.3s;
-}
-.daterangeOptions .daterangeEdit:hover {
-    transform: scale(1.1);
-    cursor: pointer;
-}
-
-.daterangeOptions .daterangeDelete {
-    border-color: black;
-    background-color: #ad1b07;
-    color: white;
-    transition: transform 0.3s;
-}
-.daterangeOptions .daterangeDelete:hover {
-    transform: scale(1.1);
-    cursor: pointer;
-}
-
-.timeslots {
-    display: inline-block;
-    border: 2px solid black;
-    color: black;
-    background-color: #f6e8e0;
-    border-radius: 15px;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
-#movieEdit {
-    display: inline-flex;
-    width: 100%;
-    justify-content: center;
-    padding: 5px;
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    border-radius: 15px;
-    margin-top: 15px;
-    font-weight: bold;
-    transition: background-color 0.3s, color 0.3s, border 0.3s;
-}
-
-#movieEdit:hover {
-    background-color: white;
-    color: black;
-    border: 2px solid black;
-    cursor: pointer;
-}
-
-#trailerModal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.85);
-    justify-content: center;
-    align-items: center;
-}
-
-#allDatesContainer {
-    font-weight: bold;
-}
-
-#dayTimeslotsContainer {
-    display: none;
-}
-
-#allTimeslotsAdd {
-    display: flex;
-}
-
-#addTimeslotButton, #saveDateButton {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 5px;
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    border-radius: 15px;
-    font-weight: bold;
-    margin-bottom: 5px;
-    transition: background-color 0.3s, color 0.3s, border 0.3s;
-}
-#addTimeslotButton:hover, #saveDateButton:hover {
-    background-color: white;
-    color: black;
-    border: 2px solid black;
-    cursor: pointer;
-}        
-
-#maxNumberForAll {
-    color: #ec273f;
-    margin: 0 0 15px 0;
-    visibility: hidden;
-}
-
-.theaterContainer {
-    padding: 25px;
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    font-weight: bold;
-    transition: transform 0.3s;
-}
-.theaterContainer:hover {
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
 .generalAdminButton {
     display: inline-flex;
     justify-content: center;
@@ -555,6 +84,44 @@ button#addDateButton.active {
     cursor: pointer;
 }
 
+/* admin_movie-gallery.php */
+
+#movieGallerySection {
+
+}
+
+#movieGallery {
+    display: flex;
+    gap: 8px;
+}
+
+.movieContainer {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    height: 16rem;
+    width: 10rem;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+
+.movieContainer:hover {
+    transform: scale(1.03);
+    cursor: pointer;
+}
+
+#movieGallery .moviePoster {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    display: block;
+    height: 14rem;
+    width: 9rem;
+    text-align: center;
+}
+
 /* staff_cashier.php */
 
 #cashierFundamentalsContainer {
@@ -562,22 +129,32 @@ button#addDateButton.active {
     width: 100%;
     height: 70vh;
     justify-content: center;
-    align-items: center;
+    text-align: center;
 }
 
 #cashierFundamentals {
+    position: fixed;
+    top: 15%;
     display: flex;
-    width: 70%;
-    height: 70%;
+    width: 90%;
+    max-width: 1000px;
+    min-height: 30rem;
+    height: auto;
     flex-direction: column;
-    gap: 5%;
+    gap: 0.3rem;
     padding: 15px;
     border: 3px solid #f6e8e0;
     border-radius: 15px;
     text-align: center;
+    align-items: center;
+    overflow: hidden;
 }
 
-#cashierFundamentals select {
+#cashierFlow {
+    display: inline-flex;
+}
+
+#cashierFlow  select {
     width: 220px;
     appearance: base-select;
     border: 2px solid black;
@@ -588,8 +165,9 @@ button#addDateButton.active {
     margin-bottom: 5px;
 }
 
-#cashierFundamentals select::picker(select) {
-    width: 220px;
+#cashierFlow  select::picker(select) {
+    width: 100%;
+    max-width: 220px;
     appearance: base-select;
     border: 2px solid black;
     color: black;
@@ -597,4 +175,72 @@ button#addDateButton.active {
     border-radius: 15px;
     padding: 5px;
     margin-bottom: 5px;
+}
+
+#seatPlanContainer {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    border-bottom: 3px solid #f6e8e0;
+    transition: opacity 1.3s;
+}
+
+.seatRow {
+    display: flex;
+}
+
+.seatLabel input[type="checkbox"] {
+    display: none;
+}
+
+.seatLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 5px;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px; 
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.seatLabel:has(input:checked) {
+    background-color: white;
+    color: black;
+}
+
+.rowLabel, .seatLabel, .unavailableSeat, .aisle {
+    padding: 0.7rem;
+    margin: 0.2rem;
+    width: 1rem;
+    height: 1rem;
+}
+
+.unavailableSeat {
+    border: 3px solid #ad1b07;
+    border-radius: 15px; 
+    background-color: #c0321f;
+}
+
+.properSeat {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;   
+}
+
+.aisle {
+    color: transparent;
+    visibility: hidden;
+}
+
+#seatsCalculator {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.7rem; 
+}
+
+#seatsCalculator, #submitButton {
+    opacity: 0;
+    transition: opacity 1s;
 }
