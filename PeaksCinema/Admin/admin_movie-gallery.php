@@ -1,15 +1,62 @@
 <!DOCTYPE HTML>
 <html>
-    <body>
-        <head>
-            <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
-            <title>Admin - Movie Gallery</title>
-        </head>
+    <head>
+        <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
+        <title>Admin - Movie Gallery</title>
+    </head> 
+    <body>               
+        <?php include("admin_header.php"); ?>
         <main>
-            <section id="movieGallerySection">
-                <button type="button" class="generalAdminButton">Add New Movie</button>
-                <div id="movieGallery"></div>
-            </section>            
+            <section id="movieGallerySection" class="gallerySection">
+                <button type="button" class="generalAdminButton" id="addMovieButton" onclick="movieMenuOpenClose()">Add New Movie</button>
+                <div id="movieGallery" class="gallery"></div>
+            </section>
+            <div id="movieMenuContainer" style="display: none">
+                <form id="movieMenu">
+                    <div id="scrollable">
+                    <button type="button" id="theBackButton" class="generalAdminButton" onclick="movieMenuOpenClose()">Back</button>
+                        <div id="movieEverything">
+                            <div id="movieMenuTop">
+                                <label for="MovieName">Movie Name: </label>
+                                <input type="text" id="MovieName" name="MovieName" placeholder="Movie Name" required>
+
+                                <label for="MovieDescription">Movie Description: </label>
+                                <textarea id="MovieDescription" name="MovieDescription" placeholder="Movie Description" required></textarea>
+
+                                <label for="Genre">Movie Genre: </label>
+                                <input type="text" id="Genre" name="Genre" placeholder="Movie Genre" required>
+
+                                <label for="Rating">Movie Rating: </label>
+                                <select name="Rating" id="Rating" required>
+                                    <option value="">Select a rating:</option>
+                                    <option value="G">Rated G</option>
+                                    <option value="PG">Rated PG</option>
+                                    <option value="R-13">Rated R-13</option>
+                                    <option value="R-16">Rated R-16</option>
+                                    <option value="R-18">Rated R-18</option> 
+                                </select>
+
+                                <label for="Runtime">Movie Runtime (in minutes): </label>
+                                <input type="number" id="Runtime" name="Runtime" placeholder="Runtime (in minutes)" min="0" required>
+                            </div>
+                            <div id="movieMenuBottom">
+                                <div id="posterUploadContainer">
+                                    <div id="posterPreviewText">Movie Poster:</div>
+                                    <label for="MoviePoster" id="posterInput">Movie Poster</label>
+                                    <input type="file" id="MoviePoster" name="MoviePoster" accept="image/png, image/jpeg, image/jpg" required>
+                                </div>
+                                <div id="trailerUploadContainer">
+                                    <label for="TrailerURL">Youtube Trailer Link:</label>
+                                    <input type="text" id="TrailerURL" name="TrailerURL" placeholder="Youtube Trailer Link" required>
+                                    <div id="trailerPreviewText">Trailer Preview: </div>
+                                    <div id="trailerPreview"></div>
+                                </div>                        
+                            </div>
+                        </div>
+                        <button type="submit" id="movieSubmitButton" class="generalAdminButton">Add</button>
+                    </div>
+                </form>
+            </div>
         </main>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
@@ -53,6 +100,30 @@
                 .catch(error => {
                     console.error(error);
                 });
+            })
+
+            const addMovieButton = document.getElementById('addMovieButton');
+            const movieMenuContainer = document.getElementById('movieMenuContainer');
+            let isMovieMenuOpen = false;
+
+            function movieMenuOpenClose() {
+                if (isMovieMenuOpen) {
+                    movieMenuContainer.style.display = "none";
+                } else {
+                    movieMenuContainer.style.display = "flex";
+                }
+                isMovieMenuOpen = !isMovieMenuOpen;
+            }
+
+            let currentText = "";
+            const posterInput = document.getElementById('posterInput');
+            posterInput.addEventListener("mouseenter", function() {
+                currentText = posterInput.textContent;
+                
+                posterInput.textContent = "Insert Poster";
+            })
+            posterInput.addEventListener("mouseleave", function() {                
+                posterInput.textContent = currentText;
             })
         </script>
     </body>

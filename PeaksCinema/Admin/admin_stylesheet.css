@@ -14,6 +14,15 @@ body {
 }
 
 main {
+    display: flex;
+}
+
+main #content{
+    display: flex;
+}
+
+.loader {
+    display: relative;
 }
 
 header {        
@@ -73,7 +82,6 @@ header a.active {
     color: white;
     border: 2px solid white;
     border-radius: 15px;
-    margin-top: 15px;
     font-weight: bold;
     transition: background-color 0.3s, color 0.3s, border 0.3s;
 }
@@ -86,11 +94,19 @@ header a.active {
 
 /* admin_movie-gallery.php */
 
-#movieGallerySection {
-
+.gallerySection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 20px 0 20px;
 }
 
-#movieGallery {
+.gallerySection button{
+    display: inline-flex;
+    width: 10rem;
+}
+
+#movieGallery, .gallery {
     display: flex;
     gap: 8px;
 }
@@ -120,6 +136,347 @@ header a.active {
     height: 14rem;
     width: 9rem;
     text-align: center;
+}
+
+#movieMenuContainer {
+    z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#movieMenu {
+    width: 30%;
+    min-width: fit-content;
+    height: 75%;
+    display: flex;
+    gap: 5px;
+    flex-direction: column;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 1rem;
+    background-color: #0c181a;
+}
+
+#movieMenu label, #trailerPreviewText, #posterPreviewText {
+    font-weight: bold;
+}
+
+#scrollable {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    padding-right: 1rem;
+    gap: 5px;
+}
+
+#scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+#scrollable::-webkit-scrollbar-track {
+    border-radius: 10px;
+}
+
+#scrollable::-webkit-scrollbar-thumb {
+    background: #f6e8e0;
+    border-radius: 15px;
+}
+
+#movieEverything {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+#movieEverything input:not([type='file']), select, textarea {
+    border: 2px solid #ff4d4d;
+    border-radius: 7px;
+    padding: 3px;
+    font-family:'Segoe UI';
+}
+
+#movieMenuTop {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-bottom: 3px solid #f6e8e0;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+
+#movieMenuBottom {
+    flex: 1;
+}
+
+#movieMenuBottom #posterUploadContainer {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 3px solid #f6e8e0;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    gap: 5px;
+}
+
+#movieMenuBottom #posterInput {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    display: flex;
+    height: 14rem;
+    width: 9rem;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+    transition: transform 0.3s;
+}
+
+#movieMenuBottom #posterInput:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+}
+
+#movieMenuBottom input[type="file"] {
+    display: none;
+}
+
+#movieMenuBottom #trailerUploadContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#movieMenuBottom #trailerUploadContainer #trailerPreview {
+    margin: 0 auto;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    width: 320px;
+    height: 180px;
+    overflow: hidden;
+}
+
+#theBackButton {
+    width: fit-content;
+}
+
+#movieSubmitButton{ 
+    display: inline-flex;
+    width: fit-content;
+    margin-left: auto;
+}
+
+/* admin_movie-specific.php */
+
+#movieDetailsContainer, #theaterDaterangeContainer {
+    padding: 10px;
+}
+
+#theaterDaterangeContainer {
+}
+
+#movieDetailsContainer {
+    display: flex;
+    flex-direction: column;
+    width: 35%;
+    min-width: 200px;
+    height: 100vh;
+    border-right: 3px solid #f6e8e0;
+}
+
+.movieTopDetails {
+    display: flex;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #f6e8e0;
+    border-radius: 5px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+@media (max-width: 585px) {
+    .movieTopDetails {
+        justify-content: center;
+    }
+    .movieNameOthers #movieName {
+        text-align: center;
+    }
+}
+
+.moviePosterTrailer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.moviePosterTrailer .moviePoster {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    display: block;
+    height: 16rem;
+    width: 11rem;
+    text-align: center;
+}
+
+.moviePosterTrailer .movieTrailerURL {
+    display: inline-flex;
+    justify-content: center;
+    padding: 7px;
+    background-color: black;
+    color: white;
+    border: 2px solid white;
+    border-radius: 15px;
+    font-weight: bold;
+    transition: background-color 0.3s, color 0.3s, border 0.3s;
+}
+.moviePosterTrailer .movieTrailerURL:hover {    
+    background-color: white;
+    color: black;
+    border: 2px solid black;
+    cursor: pointer;
+}
+
+/* side content */
+
+.movieNameOthers {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#movieName {
+    font-weight: bold;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+#theaterSelection {    
+    width: 15rem;
+    appearance: base-select;
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+#theaterDaterangeContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#daterangeTheaterSelectionContainer {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    font-weight: bold;
+    gap: 5px;
+    border-bottom: 3px solid #f6e8e0;
+}
+
+#theaterDaterangeContainer select::picker(select)  {    
+    width: 100%;
+    max-width: 220px;
+    appearance: base-select;
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+#daterangesGallery {    
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#daterangesGallery .daterangeContainer {    
+    display: flex;
+    flex-direction: column;
+    width: 40rem;
+    gap: 10px;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.5rem;
+}
+
+#daterangesGallery .daterangeTop {
+    display: inline-flex;
+    gap: 5px;
+}
+
+#daterangesGallery .daterangeProper {
+    display: inline-flex;
+    width: fit-content;
+    gap: 5px;
+    border-bottom: 3px solid #f6e8e0;
+    align-items: flex-end;
+}
+
+#daterangesGallery .deleteDaterange {
+    display: inline-flex;
+    justify-content: center;
+    padding: 7px;
+    color: white;
+    border: 2px solid white;
+    border-radius: 15px;
+    font-weight: bold;
+    background-color: #ad1b07;
+    color: white;
+    transition: transform 0.3s;
+}
+#daterangesGallery .deleteDaterange:hover {    
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+#daterangesGallery .timeslotsContainer {
+    display: inline-flex;
+}
+
+#daterangesGallery .timeslotDiv {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.3rem;
+    font-weight: bold;
+}
+
+.errorMessage {
+    font-weight: bold;
+    color: #f14d38ec;
+}
+
+/* admin_theater-gallery.php */
+
+#theaterGallery .theaterContainer {
+    width: 10rem;
+    height: 5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+
+#theaterGallery .theaterContainer:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+#addDateMenu {
+    visibility: hidden;
 }
 
 /* staff_cashier.php */

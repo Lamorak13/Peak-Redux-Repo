@@ -244,7 +244,7 @@
                 });
             })
 
-            // 5. "Submit?", "Um, because you're of type "Submit" and you submit??" "Oh, right." 
+            // 5. "Th-Thank you Submit", "Um, because you're of type "Submit" and you submit??" "Oh, right." 
 
             const cashierSubmitForm = document.getElementById("cashierFundamentals")
             cashierSubmitForm.addEventListener("submit", function(e) {

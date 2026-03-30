@@ -56,9 +56,11 @@
                     } catch (mysqli_sql_exception $e) {
                         echo json_encode(["error" => $e->getMessage()]);
                     }
-                } else if ($subResource === 'movie' && $subID !== null && $subResource2 === 'theater' && $subID2 !== null) { 
-                    $stmt = $conn->prepare('SELECT * FROM daterange
-                                                    WHERE Movie_ID = ? AND Theater_ID=?');
+                } else if ($ID !== null && $subResource === 'movie' && $subID !== null && $subResource2 === 'theater' && $subID2 !== null) { 
+                    $stmt = $conn->prepare('SELECT DISTINCT daterange.DateRange_ID, daterange.StartDate, daterange.EndDate, timeslot.StartTime FROM daterange
+                                            INNER JOIN timeslot
+                                            ON timeslot.DateRange_ID = daterange.DateRange_ID
+                                            WHERE daterange.Movie_ID = ? AND daterange.Theater_ID=?');
                             $stmt->bind_param('ii', $subID, $subID2);
                             
                             try {
@@ -67,7 +69,26 @@
                                 if ($result->num_rows === 0) {
                                     echo json_encode(["error" => "There are no date ranges for this theater yet."]);
                                 } else {
-                                    echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                                    $rows = $result->fetch_all(MYSQLI_ASSOC);
+                                    $grouped = [];
+
+                                    foreach ($rows as $row) {
+                                        $id = $row['DateRange_ID'];
+                                        if (!isset($grouped[$id])) {
+                                            $grouped[$id] = [
+                                                "DateRange_ID" => $row['DateRange_ID'],
+                                                "StartDate" => $row['StartDate'],
+                                                "EndDate" => $row['EndDate'],
+                                                "Timeslots" => []
+                                            ];
+                                        }
+                                        if (isset($row['StartTime']) && $row['StartTime'] !== null) { 
+                                            $grouped[$id]['Timeslots'][] = [
+                                                "StartTime" => $row['StartTime']
+                                            ];
+                                        }
+                                    }
+                                    echo json_encode(["data" => array_values($grouped)]);
                                 }
                             } catch (mysqli_sql_exception $e) {
                                 echo json_encode(["error" => $e->getMessage()]);
@@ -361,6 +382,23 @@
 
             break;
         case 'theater':
+            if ($method == 'GET') {
+                if (($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null)) {
+                    $stmt = $conn->prepare('SELECT * FROM theater');                    
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["error" => "There are no theaters yet."]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
             break;
         case 'ticket':
             break;
