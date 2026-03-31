@@ -253,10 +253,18 @@ header a.active {
     transform: scale(1.05);
 }
 
+
 #posterShow {
     position: absolute;
     z-index: 2000;
 }
+#movieMenuBottom #posterInput.uploaded:hover #posterShow {
+    opacity: 1;
+    background-color: #f6e8e0;
+    padding: 5px;
+    border-radius: 15px; 
+}
+
 
 #posterPreview {
     position: absolute;

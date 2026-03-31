@@ -140,6 +140,7 @@
                         posterPreview.setAttribute("src", this.result);
                         posterPreview.style.display = "block";
                         posterInput.classList.add('uploaded');
+                        posterShow.classList.add('uploaded');
                     })
 
                     reader.readAsDataURL(file);
