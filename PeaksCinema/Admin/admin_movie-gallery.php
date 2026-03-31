@@ -42,8 +42,11 @@
                             <div id="movieMenuBottom">
                                 <div id="posterUploadContainer">
                                     <div id="posterPreviewText">Movie Poster:</div>
-                                    <label for="MoviePoster" id="posterInput">Movie Poster</label>
-                                    <input type="file" id="MoviePoster" name="MoviePoster" accept="image/png, image/jpeg, image/jpg" required>
+                                    <label for="MoviePoster" id="posterInput">
+                                        <span id="posterShow">Upload Poster</span>
+                                        <img id="posterPreview" src="" style="display: none">
+                                    </label>
+                                    <input type="file" id="MoviePoster" name="MoviePoster" accept="image/png, image/jpeg, image/jpg" required>                                 
                                 </div>
                                 <div id="trailerUploadContainer">
                                     <label for="TrailerURL">Youtube Trailer Link:</label>
@@ -117,42 +120,59 @@
 
             let currentText = "";
             const posterInput = document.getElementById('posterInput');
+            const posterInputProper = document.getElementById('MoviePoster');
+            const posterPreview = document.getElementById('posterPreview');
             posterInput.addEventListener("mouseenter", function() {
-                currentText = posterInput.textContent;
+                currentText = posterPreview.alt;
                 
-                posterInput.textContent = "Insert Poster";
+                posterPreview.alt = "Insert Poster";
             })
             posterInput.addEventListener("mouseleave", function() {                
-                posterInput.textContent = currentText;
+                posterPreview.alt = currentText;
+            })
+            MoviePoster.addEventListener("change", function() {
+                const file = this.files[0];
+
+                if (file) {
+                    const reader = new FileReader();
+
+                    reader.addEventListener("load", function() {
+                        posterPreview.setAttribute("src", this.result);
+                        posterPreview.style.display = "block";
+                        posterInput.classList.add('uploaded');
+                    })
+
+                    reader.readAsDataURL(file);
+                }
             })
 
-        const trailerInput = document.getElementById('TrailerURL');
-        const trailerPreview = document.getElementById('trailerPreview');
+            const trailerInput = document.getElementById('TrailerURL');
+            const trailerPreview = document.getElementById('trailerPreview');
 
-        function getYoutubeID(url) {
-            let id = url.match(/youtu\.be\/([^\?]+)/);
-            if(id) {
-                return id[1];
-            } else {
-                console.log("not an id");
+            function getYoutubeID(url) {
+                let id = url.match(/youtu\.be\/([^\?]+)/);
+                if(id) {
+                    return id[1];
+                } else {
+                    console.log("not an id");
+                }
+                id = url.match(/v=([^&]+)/);
+                if(id) return id[1];
+                return url; // fallback if they just paste the ID
             }
-            id = url.match(/v=([^&]+)/);
-            if(id) return id[1];
-            return url; // fallback if they just paste the ID
-        }
 
-        trailerInput.addEventListener('input', () => {
-            const id = getYoutubeID(trailerInput.value.trim());
-            if(id) {
-                trailerPreview.innerHTML = `
-                    <iframe width="320" height="180" 
-                    src="https://www.youtube.com/embed/${id}" 
-                    frameborder="0" allowfullscreen></iframe>
-                `;
-            } else {
-                trailerPreview.innerHTML = ''; // clear if input empty
-            }
-        });
+            trailerInput.addEventListener('input', () => {
+                const id = getYoutubeID(trailerInput.value.trim());
+                if(id) {
+                    trailerPreview.innerHTML = `
+                        <iframe width="320" height="180" 
+                        src="https://www.youtube.com/embed/${id}" 
+                        frameborder="0" allowfullscreen></iframe>
+                    `;
+                } else {
+                    trailerPreview.innerHTML = ''; // clear if input empty
+                }
+            });
         </script>
     </body>
 </html>

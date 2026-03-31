@@ -39,6 +39,8 @@ header {
     gap: 10px;
     height: 50px;
     border-bottom: 2px solid #f6e8e0;
+    flex-wrap: wrap;
+    overflow: hidden;
 }
 
 header a {
@@ -110,6 +112,7 @@ header a.active {
 #movieGallery, .gallery {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .movieContainer {
@@ -139,7 +142,7 @@ header a.active {
     text-align: center;
 }
 
-#movieMenuContainer {
+#movieMenuContainer, #theaterMenuContainer {
     z-index: 2000;
     position: fixed;
     top: 0;
@@ -227,7 +230,7 @@ header a.active {
     gap: 5px;
 }
 
-#movieMenuBottom #posterInput {
+#movieMenuBottom #posterInput, #movieMenuBottom #posterPreview {
     border: 3px solid #f6e8e0;
     border-radius: 15px;
     display: flex;
@@ -237,7 +240,27 @@ header a.active {
     justify-content: center;
     align-items: center;
     margin: 0 auto;
+    position: relative;
     transition: transform 0.3s;
+}
+
+#movieMenuBottom #posterInput.uploaded {
+    color: transparent;
+    transition: color 0.3s, transform 0.3s;
+}
+#movieMenuBottom #posterInput.uploaded:hover {
+    color: black;
+    transform: scale(1.05);
+}
+
+#posterShow {
+    position: absolute;
+    z-index: 2000;
+}
+
+#posterPreview {
+    position: absolute;
+    z-index: 1000;
 }
 
 #movieMenuBottom #posterInput:hover {
@@ -291,6 +314,7 @@ header a.active {
     min-width: 200px;
     height: 100vh;
     border-right: 3px solid #f6e8e0;
+    gap: 15px;
 }
 
 .movieTopDetails {
@@ -382,10 +406,11 @@ header a.active {
     font-weight: bold;
     gap: 5px;
     border-bottom: 3px solid #f6e8e0;
+    flex-wrap: wrap;
 }
 
 #theaterDaterangeContainer select::picker(select)  {    
-    width: 100%;
+    width: 75%;
     max-width: 220px;
     appearance: base-select;
     border: 2px solid black;
@@ -438,7 +463,7 @@ header a.active {
     transition: transform 0.3s;
 }
 .deleteDaterange:hover {    
-    transform: scale(1.1);
+    transform: scale(1.03);
     cursor: pointer;
 }
 
@@ -637,4 +662,49 @@ header a.active {
 #seatsCalculator, #submitButton {
     opacity: 0;
     transition: opacity 1s;
+}
+
+/* admin_login */
+
+#loginFormContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#loginForm {
+    width: 20%;
+    min-width: fit-content;
+    height: fit-content;
+    min-height: 30%;
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.1rem;
+    background-color: #0c181a;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+#loginForm input {
+    border: 2px solid #48666b;
+    border-radius: 7px;
+    padding: 3px;
+    font-family:'Segoe UI';
+}
+
+#loginForm .field {
+    display: flex;
+    flex-direction: column;
+    width: 75%;
+    min-width: 15rem;
 }

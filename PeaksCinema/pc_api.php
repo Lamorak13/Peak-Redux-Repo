@@ -344,7 +344,36 @@
                                     $trailerURL);
                 $stmt->execute();
             }
-            
+
+            if ($method == 'PUT') {
+                return;
+            }
+
+            if ($method == 'DELETE') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare("DELETE FROM movie WHERE Movie_ID = ?");
+                    $stmt->bind_param("i", $ID);
+
+                    $conn->begin_transaction();
+
+                    try {
+                        $stmt->execute();
+                        if ($stmt->affected_rows > 0) {
+                            $conn->commit();
+                            http_response_code(200);
+                            echo json_encode(["status" => "Success !"]);
+                        } else {
+                            $conn->rollback();
+                            http_response_code(404);
+                            echo json_encode(["error" => "That movie does not exist."]);
+                        }                        
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(500);
+                        echo json_encode(["status" => "Failed to delete movie" . $e->getMessage()]);
+                    }
+                }
+            }            
             
             break;
         case 'payment':
@@ -410,7 +439,69 @@
                         echo json_encode(["error" => $e->getMessage()]);
                     }
                 }
+                else if (($ID !== null && $subResource === "seats" && $subID === null && $subResource2 === null && $subID2 === null)) {
+                    try {
+                        $stmt = $conn->prepare('SELECT theater.Theater_ID, theater.TheaterName, theater.TheaterType, seats.SeatRow, seats.SeatColumn FROM theater
+                                            INNER JOIN seats ON seats.Theater_ID= theater.Theater_ID
+                                            WHERE theater.Theater_ID = ?');
+                        $stmt->bind_param('i', $ID);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => "No Theater exists for that"]);
+                        } else {
+                            $theaterInfo = null;
+                            $rows = [];
+                            foreach ($result as $row) {
+                                $theaterInfo = [
+                                    "Theater_ID" => $row['Theater_ID'],
+                                    "TheaterName" => $row['TheaterName'],
+                                    "TheaterType" => $row['TheaterType']
+                                ];
+                                $rowIndex = $row['SeatRow'];
+                                $colIndex = $row['SeatColumn'];
+                                $rows[$rowIndex][] = [
+                                    "SeatColumn" => $colIndex
+                                ];
+                            }
+                            echo json_encode(["data" => ["theater" => $theaterInfo, "seats" => $rows]]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
+                }                
             }
+
+            if ($method == 'DELETE') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare("DELETE FROM theater WHERE Theater_ID = ?");
+                    $stmt->bind_param("i", $ID);
+
+                    $conn->begin_transaction();
+
+                    try {
+                        $stmt->execute();
+                        if ($stmt->affected_rows > 0) {
+                            $conn->commit();
+                            http_response_code(200);
+                            echo json_encode(["status" => "Success !"]);
+                        } else {
+                            $conn->rollback();
+                            http_response_code(404);
+                            echo json_encode(["error" => "That theater does not exist."]);
+                        }                        
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(500);
+                        echo json_encode([
+                            "status" => "Failed to delete theater",
+                            "error" => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+            
             break;
         case 'ticket':
             break;

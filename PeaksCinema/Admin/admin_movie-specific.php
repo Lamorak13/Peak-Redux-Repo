@@ -19,8 +19,8 @@
                         <div id="daterangeTheaterLabel">Date ranges for theater:</div>
                         <select id="theaterSelection"></select>
                     </div>
-                    <div id="daterangeLoader" class="loader"><div>Loading...</div></div>
-                    <div id="daterangeContent" style="display:none">
+                    <!-- <div id="daterangeLoader" class="loader"><div>Loading...</div></div> -->
+                    <div id="daterangeContent">
                         <div id="daterangesGallery"></div>
                         <div id="addDateContainer"></div>
                     </div>
@@ -69,7 +69,7 @@
                     const movieTrailerURL = document.createElement('button');
                     movieTrailerURL.textContent = "Youtube Trailer";
                     movieTrailerURL.addEventListener("click", function() {
-                        window.location.href = movie.TrailerURL;
+                        window.open(movie.TrailerURL);
                     })
                     movieTrailerURL.classList.add('movieTrailerURL');
                     moviePosterTrailer.append(movieTrailerURL);
@@ -110,10 +110,18 @@
                     const movieDescription = document.createElement('div');
                     movieDescription.textContent = movie.MovieDescription;
                     movieDetailsContainer.append(movieDescription);
+
+                    const editMovieButton = document.createElement('button');
+                    editMovieButton.classList.add('generalAdminButton');
+                    editMovieButton.textContent = "Edit Movie Details";
+                    movieDetailsContainer.append(editMovieButton);
+
+                    const deleteMovieButton = document.createElement('button');
+                    deleteMovieButton.classList.add('deleteDaterange');
+                    deleteMovieButton.textContent = "Delete Movie From System";
+                    deleteMovieButton.addEventListener("click", () => areYouSure("movie", movie.Movie_ID, movie.MovieName));
+                    movieDetailsContainer.append(deleteMovieButton);
                 })
-                .catch(error => {
-                    console.error(error);
-                });
 
                 const theaterPromise = fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=theater', {
                     method: 'GET'
@@ -125,21 +133,32 @@
                     return response.json();
                 })
                 .then(data => {
-                    let theaters = data.data;
+                    if (data.error) {
+                        const errorMessage = document.createElement('div');
+                        errorMessage.classList.add('errorMessage');
+                        errorMessage.textContent = data.error;
+                        daterangesGallery.append(errorMessage);
 
-                    theaters.forEach(theater => {
                         const option = document.createElement('option');
-                        option.textContent = theater.TheaterName;
-                        option.value = theater.Theater_ID;
-
+                        option.textContent = "---";
+                        option.value = "";
                         theaterSelection.append(option);
-                    })
-                    
-                    getDateranges(theaterSelection.value);
+
+                        theaterSelection.disabled = true;
+                    } else {
+                        let theaters = data.data;
+
+                        theaters.forEach(theater => {
+                            const option = document.createElement('option');
+                            option.textContent = theater.TheaterName;
+                            option.value = theater.Theater_ID;
+
+                            theaterSelection.append(option);
+                            
+                            getDateranges(theaterSelection.value);
+                        })
+                    }
                 })
-                .catch(error => {
-                    console.error(error);
-                });
 
                 Promise.all([moviePromise, theaterPromise])
                 .catch(error => {
@@ -211,59 +230,60 @@
                             const deleteDaterange = document.createElement('button');
                             deleteDaterange.classList.add('deleteDaterange');
                             deleteDaterange.textContent = "Delete";
-                            deleteDaterange.addEventListener("click", function() {
-                                const areYouSureScreenContainer = document.createElement('div');
-                                areYouSureScreenContainer.id = 'areYouSureScreenContainer';
-                                areYouSureScreenContainer.style.display = "flex";
-                                const areYouSureScreen = document.createElement('div');
-                                areYouSureScreen.id = 'areYouSureScreen';
-                                areYouSureScreen.textContent = "Do you really want to delete this date range?";
+                            deleteDaterange.addEventListener("click", () => areYouSure("daterange", daterange.DateRange_ID, null, daterangeProper, theaterSelection.value));
+                            // {
+                            //     const areYouSureScreenContainer = document.createElement('div');
+                            //     areYouSureScreenContainer.id = 'areYouSureScreenContainer';
+                            //     areYouSureScreenContainer.style.display = "flex";
+                            //     const areYouSureScreen = document.createElement('div');
+                            //     areYouSureScreen.id = 'areYouSureScreen';
+                            //     areYouSureScreen.textContent = "Do you really want to delete this date range?";
 
-                                const cloneDaterangeProper = daterangeProper.cloneNode(true);
-                                cloneDaterangeProper.classList.add('daterangeProper');
+                            //     const cloneDaterangeProper = daterangeProper.cloneNode(true);
+                            //     cloneDaterangeProper.classList.add('daterangeProper');
 
-                                areYouSureScreen.append(cloneDaterangeProper);
+                            //     areYouSureScreen.append(cloneDaterangeProper);
 
-                                const areYouSureScreenButtons = document.createElement('div');
-                                areYouSureScreenButtons.classList.add('areYouSureScreenButtons');
+                            //     const areYouSureScreenButtons = document.createElement('div');
+                            //     areYouSureScreenButtons.classList.add('areYouSureScreenButtons');
 
-                                const theBackButton = document.createElement('button');
-                                theBackButton.classList.add('generalAdminButton');
-                                theBackButton.id = 'theBackButton';
-                                theBackButton.textContent = "Back";
+                            //     const theBackButton = document.createElement('button');
+                            //     theBackButton.classList.add('generalAdminButton');
+                            //     theBackButton.id = 'theBackButton';
+                            //     theBackButton.textContent = "Back";
 
-                                theBackButton.addEventListener("click", function() {
-                                    areYouSureScreenContainer.remove();
-                                })
-                                areYouSureScreenButtons.append(theBackButton);
+                            //     theBackButton.addEventListener("click", function() {
+                            //         areYouSureScreenContainer.remove();
+                            //     })
+                            //     areYouSureScreenButtons.append(theBackButton);
 
-                                const deleteFinalButton = document.createElement('button');
-                                deleteFinalButton.classList.add('deleteDaterange');
-                                deleteFinalButton.textContent = "Delete";
+                            //     const deleteFinalButton = document.createElement('button');
+                            //     deleteFinalButton.classList.add('deleteDaterange');
+                            //     deleteFinalButton.textContent = "Yes, Delete";
 
-                                deleteFinalButton.addEventListener("click", function() {
-                                    fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/${daterange.DateRange_ID}`, {
-                                        method: "DELETE"
-                                    })
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error(`HTTP error! ${response.status}`);
-                                        }
-                                        return response.json();
-                                    })
-                                    .then(data => {
-                                        getDateranges();
-                                        areYouSureScreenContainer.delete();
-                                    })
-                                    .catch(error => {
-                                        console.error(error);
-                                    })
-                                })
-                                areYouSureScreenButtons.append(deleteFinalButton);
-                                areYouSureScreen.append(areYouSureScreenButtons);
-                                areYouSureScreenContainer.append(areYouSureScreen);
-                                document.getElementById('content').append(areYouSureScreenContainer);
-                            })
+                            //     deleteFinalButton.addEventListener("click", function() {
+                            //         fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/${daterange.DateRange_ID}`, {
+                            //             method: "DELETE"
+                            //         })
+                            //         .then(response => {
+                            //             if (!response.ok) {
+                            //                 throw new Error(`HTTP error! ${response.status}`);
+                            //             }
+                            //             return response.json();
+                            //         })
+                            //         .then(data => {
+                            //             getDateranges();
+                            //             areYouSureScreenContainer.delete();
+                            //         })
+                            //         .catch(error => {
+                            //             console.error(error);
+                            //         })
+                            //     })
+                            //     areYouSureScreenButtons.append(deleteFinalButton);
+                            //     areYouSureScreen.append(areYouSureScreenButtons);
+                            //     areYouSureScreenContainer.append(areYouSureScreen);
+                            //     document.getElementById('content').append(areYouSureScreenContainer);
+                            // })
 
                             daterangeTop.append(deleteDaterange);
 
@@ -281,18 +301,14 @@
 
                             daterangesGallery.append(daterangeContainer);
                         })
-                    }    
-                    setTimeout(() => {
-                        daterangeLoader.style.display = 'none';
-                        daterangeContent.style.display = 'flex';
-                    }, 250);
+                    }
                 })                
                 .catch(error => {
                     console.error(error);
                 });                
-            }
-            
+            }           
             
         </script>
+        <script src="admin.js"></script>
     </body>
 </html>

@@ -4,14 +4,30 @@
         <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
         <title>Admin - Theater Gallery</title>
     </head>
-    <body>      
+    <body>
         <?php include("admin_header.php"); ?>  
         <main>
             <section id="theaterGallerySection" class="gallerySection">
-                <button type="button" class="generalAdminButton">Add New Theater</button>
+                <button type="button" class="generalAdminButton" onclick="theaterMenuOpenClose()">Add New Theater</button>
                 <div id="theaterGallery" class="gallery"></div>
             </section>
-            <script>
+            <div id="theaterMenuContainer" style="display: none">
+                <form id="theaterMenu">
+                        <div id="scrollable">
+                        <button type="button" id="theBackButton" class="generalAdminButton" onclick="theaterMenuOpenClose()">Back</button>
+                            
+                        <label for="TheaterName">Theater Name: </label>
+                        <input type="text" id="TheaterName" name="TheaterName">
+
+                        <label for="TheaterType">Theater Type: </label>
+                        <input type="text" id="TheaterType" name="TheaterType">
+
+                        <button type="submit" id="movieSubmitButton" class="generalAdminButton">Add</button>
+                    </div>
+                </form>
+            </div>            
+        </main>
+        <script>
                 document.addEventListener("DOMContentLoaded", function() {
                     fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=theater', {
                         method: "GET"                    
@@ -44,7 +60,17 @@
                         console.error(error);
                     });
                 })
+                
+                const theaterMenuContainer = document.getElementById('theaterMenuContainer');
+                let isTheaterMenuOpen = false
+                function theaterMenuOpenClose() {
+                    if (isTheaterMenuOpen) {
+                        theaterMenuContainer.style.display = "none";
+                    } else {
+                        theaterMenuContainer.style.display = "flex";
+                    }
+                    isTheaterMenuOpen = !isTheaterMenuOpen;
+                }
             </script>
-        </main>
     </body>
 </html>
