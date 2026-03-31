@@ -10,6 +10,9 @@
                 <div>loading..</div>
             </div>
             <section id="content" style="display: none">
+                <!-- <div id="areYouSureScreenContainer" style="display: none">
+                    <div id="areYouSureScreen"></div>
+                </div> -->
                 <div id="movieDetailsContainer"></div>
                 <div id="theaterDaterangeContainer">
                     <div id="daterangeTheaterSelectionContainer">
@@ -208,6 +211,59 @@
                             const deleteDaterange = document.createElement('button');
                             deleteDaterange.classList.add('deleteDaterange');
                             deleteDaterange.textContent = "Delete";
+                            deleteDaterange.addEventListener("click", function() {
+                                const areYouSureScreenContainer = document.createElement('div');
+                                areYouSureScreenContainer.id = 'areYouSureScreenContainer';
+                                areYouSureScreenContainer.style.display = "flex";
+                                const areYouSureScreen = document.createElement('div');
+                                areYouSureScreen.id = 'areYouSureScreen';
+                                areYouSureScreen.textContent = "Do you really want to delete this date range?";
+
+                                const cloneDaterangeProper = daterangeProper.cloneNode(true);
+                                cloneDaterangeProper.classList.add('daterangeProper');
+
+                                areYouSureScreen.append(cloneDaterangeProper);
+
+                                const areYouSureScreenButtons = document.createElement('div');
+                                areYouSureScreenButtons.classList.add('areYouSureScreenButtons');
+
+                                const theBackButton = document.createElement('button');
+                                theBackButton.classList.add('generalAdminButton');
+                                theBackButton.id = 'theBackButton';
+                                theBackButton.textContent = "Back";
+
+                                theBackButton.addEventListener("click", function() {
+                                    areYouSureScreenContainer.remove();
+                                })
+                                areYouSureScreenButtons.append(theBackButton);
+
+                                const deleteFinalButton = document.createElement('button');
+                                deleteFinalButton.classList.add('deleteDaterange');
+                                deleteFinalButton.textContent = "Delete";
+
+                                deleteFinalButton.addEventListener("click", function() {
+                                    fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/${daterange.DateRange_ID}`, {
+                                        method: "DELETE"
+                                    })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`HTTP error! ${response.status}`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        getDateranges();
+                                        areYouSureScreenContainer.delete();
+                                    })
+                                    .catch(error => {
+                                        console.error(error);
+                                    })
+                                })
+                                areYouSureScreenButtons.append(deleteFinalButton);
+                                areYouSureScreen.append(areYouSureScreenButtons);
+                                areYouSureScreenContainer.append(areYouSureScreen);
+                                document.getElementById('content').append(areYouSureScreenContainer);
+                            })
 
                             daterangeTop.append(deleteDaterange);
 
@@ -235,19 +291,8 @@
                     console.error(error);
                 });                
             }
-
-            // const addDateButton = document.getElementById('addDateButton');
-            // const addDateMenu = document.getElementById('addDateMenu');
-
-            // let isOpen = false;
-            // addDateButton.addEventListener("click", function() {
-            //     if (isOpen) {
-            //         addDateMenu.style.visibility = "hidden";
-            //     } else {
-            //         addDateMenu.style.visibility = "visible";
-            //     }                
-            //     isOpen = !isOpen
-            // })
+            
+            
         </script>
     </body>
 </html>

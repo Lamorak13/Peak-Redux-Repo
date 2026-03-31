@@ -19,6 +19,7 @@ main {
 
 main #content{
     display: flex;
+    width: 100%;
 }
 
 .loader {
@@ -280,12 +281,13 @@ header a.active {
 }
 
 #theaterDaterangeContainer {
+    width: auto;
 }
 
 #movieDetailsContainer {
+    width: 30%;
     display: flex;
     flex-direction: column;
-    width: 35%;
     min-width: 200px;
     height: 100vh;
     border-right: 3px solid #f6e8e0;
@@ -415,7 +417,7 @@ header a.active {
     gap: 5px;
 }
 
-#daterangesGallery .daterangeProper {
+.daterangeProper {
     display: inline-flex;
     width: fit-content;
     gap: 5px;
@@ -423,7 +425,7 @@ header a.active {
     align-items: flex-end;
 }
 
-#daterangesGallery .deleteDaterange {
+.deleteDaterange {
     display: inline-flex;
     justify-content: center;
     padding: 7px;
@@ -435,7 +437,7 @@ header a.active {
     color: white;
     transition: transform 0.3s;
 }
-#daterangesGallery .deleteDaterange:hover {    
+.deleteDaterange:hover {    
     transform: scale(1.1);
     cursor: pointer;
 }
@@ -478,6 +480,41 @@ header a.active {
 #addDateMenu {
     visibility: hidden;
 }
+
+ #areYouSureScreenContainer {
+    z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+ }
+
+ #areYouSureScreen {    
+    width: 30%;
+    min-width: fit-content;
+    height: fit-content;
+    min-height: 30%;
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.1rem;
+    background-color: #0c181a;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+ }
+
+ .areYouSureScreenButtons {
+    display: flex;
+    gap: 10px;
+ }
 
 /* staff_cashier.php */
 

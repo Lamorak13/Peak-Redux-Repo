@@ -125,6 +125,34 @@
             posterInput.addEventListener("mouseleave", function() {                
                 posterInput.textContent = currentText;
             })
+
+        const trailerInput = document.getElementById('TrailerURL');
+        const trailerPreview = document.getElementById('trailerPreview');
+
+        function getYoutubeID(url) {
+            let id = url.match(/youtu\.be\/([^\?]+)/);
+            if(id) {
+                return id[1];
+            } else {
+                console.log("not an id");
+            }
+            id = url.match(/v=([^&]+)/);
+            if(id) return id[1];
+            return url; // fallback if they just paste the ID
+        }
+
+        trailerInput.addEventListener('input', () => {
+            const id = getYoutubeID(trailerInput.value.trim());
+            if(id) {
+                trailerPreview.innerHTML = `
+                    <iframe width="320" height="180" 
+                    src="https://www.youtube.com/embed/${id}" 
+                    frameborder="0" allowfullscreen></iframe>
+                `;
+            } else {
+                trailerPreview.innerHTML = ''; // clear if input empty
+            }
+        });
         </script>
     </body>
 </html>

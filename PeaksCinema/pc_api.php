@@ -175,10 +175,23 @@
                     $stmt = $conn->prepare("DELETE FROM daterange WHERE DateRange_ID = ?");
                     $stmt->bind_param("i", $ID);
 
-                    if ($stmt->execute()) {
-                        echo json_encode("Successfully deleted date range.");
-                    } else {
-                        echo json_encode("Error with your request.");
+                    $conn->begin_transaction();
+
+                    try {
+                        $stmt->execute();
+                        if ($stmt->affected_rows > 0) {
+                            $conn->commit();
+                            http_response_code(200);
+                            echo json_encode(["status" => "Success !"]);
+                        } else {
+                            $conn->rollback();
+                            http_response_code(404);
+                            echo json_encode(["error" => "That date range does not exist."]);
+                        }                        
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(500);
+                        echo json_encode(["status" => "Failed to delete daterange" . $e->getMessage()]);
                     }
                 }
             }
@@ -358,7 +371,6 @@
             
             break;
         case 'seat_timeslot':
-
             if ($method == 'PUT') {
                 $data = json_decode(file_get_contents("php://input"), true);
 
