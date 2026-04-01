@@ -155,7 +155,7 @@ header a.active {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-#movieMenu {
+#movieMenu, #theaterMenu {
     width: 30%;
     min-width: fit-content;
     height: 75%;
@@ -200,7 +200,7 @@ header a.active {
     flex-wrap: wrap;
 }
 
-#movieEverything input:not([type='file']), select, textarea {
+#movieEverything input:not([type='file']), select, textarea, #theaterMenu input {
     border: 2px solid #ff4d4d;
     border-radius: 7px;
     padding: 3px;
@@ -514,6 +514,68 @@ header a.active {
     visibility: hidden;
 }
 
+#theaterMenu {
+    display: flex;
+    height: fit-content;
+}
+
+#theaterMenu #scrollable {
+    display: flex;
+    width: fit-content;
+    justify-content: center;
+    padding-right: 0;
+    flex-wrap: wrap;
+}
+
+#theaterMenuTop {
+    display: flex;    
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: auto;
+    flex-wrap: wrap;
+}
+#theaterMenuTop label{
+    font-weight: bold;
+}
+
+#theaterMenuLeft {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+}
+
+#theaterMenuTop #seatPlanInputLabel {
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    width: fit-content;
+    height: 100px;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transition: transform 0.3s;
+}
+#theaterMenuTop #seatPlanInputLabel:hover {
+    transform: scale(1.03);
+    cursor: pointer;
+}
+
+#theaterMenuTop input[type="file"] {
+    display: none;
+}
+
+#theaterMenu #seatPlanContainer {
+    opacity: 1;
+    width: 50rem;
+    height: 20rem;
+    overflow: hidden;
+    border-bottom: transparent;
+    justify-content: center;
+    align-items: center;
+}
+
  #areYouSureScreenContainer {
     z-index: 2000;
     position: fixed;
@@ -636,6 +698,10 @@ header a.active {
 .seatLabel:has(input:checked) {
     background-color: white;
     color: black;
+}
+
+#theaterMenu .seatLabel {
+    cursor: default;
 }
 
 .rowLabel, .seatLabel, .unavailableSeat, .aisle {

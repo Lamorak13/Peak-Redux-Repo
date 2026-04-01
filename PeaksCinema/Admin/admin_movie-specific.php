@@ -46,6 +46,10 @@
                     return response.json();
                 })
                 .then(data => {
+                    if (data.error) {
+                        window.location.href = "admin_movie-gallery.php";
+                        return;
+                    }
                     let movie = data.data[0];
                     
                     document.title = "Admin - " + movie.MovieName;
@@ -61,7 +65,7 @@
                     moviePosterTrailer.classList.add('moviePosterTrailer');
                     
                     const moviePoster = document.createElement('img')
-                    moviePoster.src = movie.MoviePoster;
+                    moviePoster.src = "/" + movie.MoviePoster;
                     moviePoster.alt = movie.MovieName;
                     moviePoster.classList.add('moviePoster');
                     moviePosterTrailer.append(moviePoster);
@@ -155,8 +159,8 @@
 
                             theaterSelection.append(option);
                             
-                            getDateranges(theaterSelection.value);
-                        })
+                        })                        
+                        getDateranges(theaterSelection.value);
                     }
                 })
 

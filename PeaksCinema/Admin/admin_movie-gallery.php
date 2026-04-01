@@ -62,7 +62,10 @@
             </div>
         </main>
         <script>
-            document.addEventListener("DOMContentLoaded", function() {
+            document.addEventListener("DOMContentLoaded", getMovies())
+
+            function getMovies() {
+                document.getElementById('movieGallery').innerHTML = "";
                 fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie', {
                     method: "GET"                    
                 })
@@ -84,7 +87,7 @@
                             })
 
                             const moviePoster = document.createElement('img')
-                            moviePoster.src = movie.MoviePoster;
+                            moviePoster.src = "/" + movie.MoviePoster;
                             moviePoster.alt = movie.MovieName;
                             moviePoster.classList.add('moviePoster');
                             movieContainer.append(moviePoster);
@@ -103,7 +106,7 @@
                 .catch(error => {
                     console.error(error);
                 });
-            })
+            }
 
             const addMovieButton = document.getElementById('addMovieButton');
             const movieMenuContainer = document.getElementById('movieMenuContainer');
@@ -174,6 +177,37 @@
                     trailerPreview.innerHTML = ''; // clear if input empty
                 }
             });
+
+            const movieMenuForm = document.getElementById('movieMenu');
+            movieMenuForm.addEventListener("submit", function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(movieMenuForm);
+
+                fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/', {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data.status);
+                    posterPreview.src = "";
+                    posterInput.classList.remove('uploaded');
+                    posterShow.classList.remove('uploaded');
+                    getMovies();
+                    movieMenuOpenClose();
+                    movieMenuForm.reset();
+
+                })
+                .catch(error => {
+                    console.error(error);
+                })
+            })
         </script>
     </body>
 </html>

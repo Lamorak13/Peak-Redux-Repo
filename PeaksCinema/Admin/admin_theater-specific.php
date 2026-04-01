@@ -28,6 +28,10 @@
                     return response.json();
                 })
                 .then(data => {
+                    if (data.error) {
+                        window.location.href = "admin_theater-gallery.php";
+                        return;
+                    }
                     const theater = data.data.theater;
                     const seats = data.data.seats;
 

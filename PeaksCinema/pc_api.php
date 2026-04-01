@@ -311,11 +311,16 @@
 
                 $uploadPath = null;
                 if (isset($_FILES['MoviePoster']) && $_FILES['MoviePoster']['error'] == 0) {
-                    $uploadDir = __DIR__ . '/MoviePosters/';
+                    $posterFolder = $_SERVER['DOCUMENT_ROOT'] . '/PeaksCinema/MoviePosters';
+                    if (!is_dir($posterFolder)) {
+                        mkdir($posterFolder, 0755, true);
+                    }
                     $fileName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $movieName) . '.' . pathinfo($_FILES['MoviePoster']['name'], PATHINFO_EXTENSION);
-                    $uploadPath = $uploadDir . $fileName;
+                    $uploadPath = $posterFolder . "/" . $fileName;
 
                     move_uploaded_file($_FILES['MoviePoster']['tmp_name'], $uploadPath);
+
+                    $relativePath = 'PeaksCinema/MoviePosters/' . $fileName; 
                 }
 
                 if (empty($movieName) || empty($movieDescription) || empty($genre) || empty($rating) || empty($runtime) || empty($uploadPath)) {
@@ -334,15 +339,27 @@
                                         MoviePoster,
                                         TrailerURL)
                                         VALUES (?, ?, ?, ?, ?, ?, ?)');
-                $stmt->bind_param('ssssiss',
+
+                                        
+                $conn->begin_transaction();
+                try {
+                    $stmt->bind_param('ssssiss',
                                     $movieName,
                                     $movieDescription,
                                     $genre,
                                     $rating,
                                     $runtime,
-                                    $uploadPath,
+                                    $relativePath,
                                     $trailerURL);
-                $stmt->execute();
+                    $stmt->execute();
+                    $conn->commit();
+                    http_response_code(200);
+                    echo json_encode(["status" => "Success !"]);
+                } catch (mysqli_sql_exception $e) {
+                    $conn->rollback();
+                    http_response_code(404);
+                    echo json_encode(["error" => $e->getMessage()]);
+                }                
             }
 
             if ($method == 'PUT') {
@@ -449,7 +466,7 @@
                         $result = $stmt->get_result();
 
                         if ($result->num_rows === 0) {
-                            echo json_encode(["data" => "No Theater exists for that"]);
+                            echo json_encode(["error" => "No Theater exists for that"]);
                         } else {
                             $theaterInfo = null;
                             $rows = [];
@@ -470,6 +487,53 @@
                     } catch (mysqli_sql_exception $e) {
                         echo json_encode(["error" => $e->getMessage()]);
                     }                    
+                }                
+            }
+
+            if ($method == 'POST') {
+                $jsonLocation = file_get_contents($_FILES["theaterLayoutUp"]["tmp_name"]);
+                $seatLayout = json_decode($jsonLocation, true);
+                
+                // input cleanup so that the inputted data will be clean (unless the admin themself spams random letters. cant do anything about that... (i mean you can its just another can of worms))
+                function input_cleanup($data) {
+                    $data = trim($data);
+                    $data = stripslashes($data);
+                    return $data;
+                }
+
+                // prepared statement for the theater table. basically it prepares the insertion of values to the table so that it's safe to upload
+                $theater_to_db_stmt = $conn -> prepare("INSERT INTO theater(TheaterName, TheaterType, TotalSeats)
+                                                        VALUES ( ?, ?, ?)");
+                $theater_to_db_stmt -> bind_param("ssi", $TheaterName, $TheaterType, $TotalSeats);
+                
+                $TheaterName = input_cleanup($_POST['theaterName']);
+                $TheaterType = input_cleanup($_POST['theaterType']);
+                $TotalSeats = 50;
+                
+                $conn->begin_transaction();
+                try {
+                    $theater_to_db_stmt -> execute();
+                    $Theater_ID = $conn -> insert_id;
+
+                    $seats_to_db_stmt = $conn -> prepare("INSERT INTO seats(SeatRow, SeatColumn, Theater_ID)
+                                                        VALUES (?, ?, ?)");
+                    $seats_to_db_stmt -> bind_param("sii", $SeatRow, $SeatColumn, $Theater_ID);
+
+                    // this is where the seats table gets inserted
+                    foreach ($seatLayout['seats'] as $SeatRow => $cols) {
+                        foreach ($cols as $seat) {
+                            $SeatColumn = $seat['SeatColumn'];
+
+                            $seats_to_db_stmt -> execute();
+                        }
+                    }
+                    $conn->commit();
+                    http_response_code(200);
+                    echo json_encode(["status" => "Success !"]);
+                } catch (mysqli_sql_exception $e) {
+                    $conn->rollback();
+                    http_response_code(404);
+                    echo json_encode(["error" => "Failed to add theater."]);
                 }                
             }
 
