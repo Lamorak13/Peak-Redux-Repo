@@ -161,6 +161,7 @@
                             
                         })                        
                         getDateranges(theaterSelection.value);
+                        createDaterangeMenu();
                     }
                 })
 
@@ -176,18 +177,13 @@
                 })
             })
 
+            const addDateContainer = document.getElementById('addDateContainer');
             theaterSelection.addEventListener("change", function() {
                 getDateranges(theaterSelection.value);
-                console.log(theaterSelection.value);
+                createDaterangeMenu();
             })
 
             function getDateranges(Theater_ID) {
-                const daterangeLoader = document.getElementById('daterangeLoader');
-                const daterangeContent = document.getElementById('daterangeContent');
-
-                daterangeLoader.style.display = 'flex';
-                daterangeContent.style.display = 'none';
-
                 const daterangesGallery = document.getElementById('daterangesGallery');
                 daterangesGallery.innerHTML = "";
 
@@ -310,7 +306,138 @@
                 .catch(error => {
                     console.error(error);
                 });                
-            }           
+            }
+            
+            function createDaterangeMenu() {
+                let maxTimeslots = 5;
+                let currentTimeslots = 1;
+
+                addDateContainer.innerHTML = "";
+                const everythingDateranges = document.createElement('div');
+                everythingDateranges.classList.add('everythingDateranges');
+
+                const addDaterangeButton = document.createElement('button');
+                addDaterangeButton.classList.add('addDaterangeButton');
+                addDaterangeButton.classList.add('generalAdminButton');
+                addDaterangeButton.textContent = "Add New Date Range";
+                everythingDateranges.append(addDaterangeButton);
+
+                const addDaterangeMenu = document.createElement('form');
+                addDaterangeMenu.id = 'addDaterangeMenu';
+                addDaterangeMenu.style.display = 'none';
+
+                // daterangeInputSpan (e.g. Start Date: [ ] - End Date: [ ] )
+                const daterangeInputSpan = document.createElement('span');
+                daterangeInputSpan.classList.add('daterangeInputSpan');
+
+                const startDateInputLabel = document.createElement('label');
+                startDateInputLabel.textContent = "Start Date: ";
+                startDateInputLabel.htmlFor = "startDateInput";
+                daterangeInputSpan.append(startDateInputLabel);
+                const startDateInput = document.createElement('input');
+                startDateInput.type = 'date';
+                startDateInput.classList.add('dateInput');
+                startDateInput.id = "startDateInput";
+                daterangeInputSpan.append(startDateInput);
+
+                daterangeInputSpan.innerHTML += " - ";
+
+                const endDateInputLabel = document.createElement('label');
+                endDateInputLabel.textContent = "End Date: ";
+                endDateInputLabel.htmlFor = "endDateInput";
+                daterangeInputSpan.append(endDateInputLabel);
+                const endDateInput = document.createElement('input');
+                endDateInput.type = 'date';
+                endDateInput.classList.add('dateInput');
+                endDateInput.id = "endDateInput";
+                daterangeInputSpan.append(endDateInput);
+                
+                addDaterangeMenu.append(daterangeInputSpan);
+
+                // daterangeTimeslotInputs (e.g. (9:00) (10:30) (11:45) (+) )
+
+                const daterangeTimeslotInputsPlus = document.createElement('span');
+                daterangeTimeslotInputsPlus.classList.add('daterangeTimeslotInputsPlus');
+                
+                const daterangeTimeslotInputs = document.createElement('span');
+                daterangeTimeslotInputs.classList.add('daterangeTimeslotInputs');
+                daterangeTimeslotInputsPlus.append(daterangeTimeslotInputs);
+                
+                function createTimeslot() {
+                    const timeslotInputSpan = document.createElement('span');
+                    timeslotInputSpan.classList.add('timeslotInputSpan');
+
+                    const timeslotInput = document.createElement('input');
+                    timeslotInput.type = 'time';
+                    timeslotInput.classList.add('timeslotInput');
+                    timeslotInputSpan.append(timeslotInput);
+
+                    if (currentTimeslots != 1) {
+                        const timeslotDelete = document.createElement('button');
+                        timeslotDelete.type = 'button';
+                        timeslotDelete.classList.add('timeslotDelete');
+                        timeslotDelete.textContent = "X";
+                        timeslotDelete.addEventListener("click", function() {
+                            this.parentNode.remove();
+                            currentTimeslots -= 1;
+                            timeslotAddButton.style.display = 'block';
+                        })
+                        timeslotInputSpan.append(timeslotDelete);
+                    }                    
+
+                    return timeslotInputSpan;
+                }
+
+                daterangeTimeslotInputs.append(createTimeslot());
+
+                const timeslotAddButton = document.createElement('button');
+                timeslotAddButton.type = 'button';
+                timeslotAddButton.classList.add('timeslotAddButton');
+                timeslotAddButton.classList.add('generalAdminButton');
+                timeslotAddButton.textContent = "+";
+                timeslotAddButton.addEventListener("click", function() {
+                    if (currentTimeslots <= (maxTimeslots - 1)) {
+                        currentTimeslots += 1;
+                        daterangeTimeslotInputs.append(createTimeslot());
+                        if (currentTimeslots == maxTimeslots) {
+                            timeslotAddButton.style.display = 'none';
+                        }
+                    } else {
+                        timeslotAddButton.style.display = 'none';
+                        console.error("Max timeslots reached");
+                    }
+                })
+                daterangeTimeslotInputsPlus.append(timeslotAddButton);
+
+                addDaterangeMenu.append(daterangeTimeslotInputsPlus);
+
+                //
+
+                const addDaterangeMenuSubmit = document.createElement('button');
+                addDaterangeMenuSubmit.type = 'submit';
+                addDaterangeMenuSubmit.textContent = "Add Date Range";
+                addDaterangeMenuSubmit.classList.add('addDateRangeMenuSubmit');
+                addDaterangeMenuSubmit.classList.add('generalAdminButton');
+                addDaterangeMenu.append(addDaterangeMenuSubmit);
+
+                //
+
+                everythingDateranges.append(addDaterangeMenu)
+                addDateContainer.append(everythingDateranges);
+
+                let addDaterangeMenuIsOpen = false;
+                addDaterangeButton.addEventListener("click", function() {
+                    if (addDaterangeMenuIsOpen) {
+                        addDaterangeMenuIsOpen = !addDaterangeMenuIsOpen;
+                        addDaterangeMenu.style.display = 'none';
+                        addDaterangeButton.classList.remove('active');
+                    } else {
+                        addDaterangeMenuIsOpen = !addDaterangeMenuIsOpen;
+                        addDaterangeMenu.style.display = 'flex';
+                        addDaterangeButton.classList.add('active');
+                    }
+                })
+            }
             
         </script>
         <script src="admin.js"></script>

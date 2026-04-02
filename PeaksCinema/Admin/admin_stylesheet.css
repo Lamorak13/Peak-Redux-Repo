@@ -438,7 +438,7 @@ header a.active {
 #daterangesGallery .daterangeContainer {    
     display: flex;
     flex-direction: column;
-    width: 40rem;
+    width: 45rem;
     gap: 10px;
     border: 3px solid #f6e8e0;
     border-radius: 15px;
@@ -484,6 +484,57 @@ header a.active {
     border-radius: 15px;
     padding: 0.3rem;
     font-weight: bold;
+}
+
+.addDaterangeButton.active {
+    border: 3px solid #f6e8e0;
+    background-color: #f6e8e0;
+    color: black;
+    border-radius: 15px 15px 0 0;
+}
+
+#addDaterangeMenu {
+    position: relative;
+    border: 3px solid #f6e8e0;
+    border-radius: 0 15px 15px 15px;
+    display: flex;
+    flex-direction: column;
+    width: 45rem;
+    gap: 10px;
+    padding: 0.5rem;
+}
+
+#addDaterangeMenu input:not([type="time"]) {
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+}
+
+.timeslotInputSpan {
+    border: 3px solid #f14d38ec;
+    border-radius: 15px;
+    display: inline-flex;
+    overflow: hidden;
+    gap: 0px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.daterangeTimeslotInputsPlus {
+    display: inline-flex;
+}
+
+.timeslotAddButton {
+    padding: 0 7px 0 7px;
+    align-items: center;
+}
+
+.timeslotDelete {
+    font-weight: bold;
+}
+.timeslotDelete:hover {
+    cursor: pointer;
 }
 
 .errorMessage {
