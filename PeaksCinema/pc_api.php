@@ -100,69 +100,56 @@
             }
 
             if ($method == 'POST') {
-                if ($subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $data = json_decode(file_get_contents("php://input"), true);
+                if ($ID !== null && $subResource === 'theater' && $subID !== null && $subResource2 === 'movie' && $subID2 !== null) {
+                    $Theater_ID = $subID;
+                    $Movie_ID = $subID2;
+                    $StartDate = $_POST['StartDate'];
+                    $EndDate = $_POST['EndDate'];
+                    $timeslots = $_POST['timeslot'];
+                    
+                    $conn->begin_transaction();
+                    try {
+                        $stmt = $conn->prepare("INSERT INTO daterange (Movie_ID, Theater_ID, StartDate, EndDate)
+                                            VALUES (?, ?, ?, ?)");
+                        $stmt->bind_param("iiss", $Movie_ID, $Theater_ID, $StartDate, $EndDate);
+                        $stmt->execute();
 
-                    if ($data) {
-                        $Theater_ID = $data['Theater_ID'];
-                        $Movie_ID   = $data['Movie_ID'];
-                        $StartDate  = $data['StartDate'];
-                        $EndDate    = $data['EndDate'];
+                        $DateRange_ID = $conn->insert_id;
 
-                        $checkTheater = $conn->prepare("SELECT Theater_ID FROM theater WHERE Theater_ID = ?");
-                        $checkTheater->bind_param("i", $Theater_ID);
-                        $checkTheater->execute();
-                        $checkResult = $checkTheater->get_result();
+                        $ScreeningType = $_POST['ScreeningType'];
 
-                        $checkMovie = $conn->prepare("SELECT Movie_ID FROM movie WHERE Movie_ID = ?");
-                        $checkMovie->bind_param("i", $Movie_ID);
-                        $checkMovie->execute();
-                        $movieResult = $checkMovie->get_result();
-                        
-                        $conn->begin_transaction();
-                        try {
-                            $stmt = $conn->prepare("INSERT INTO daterange (Movie_ID, Theater_ID, StartDate, EndDate)
-                                                VALUES (?, ?, ?, ?)");
-                            $stmt->bind_param("iiss", $Movie_ID, $Theater_ID, $StartDate, $EndDate);
-                            $stmt->execute();
+                        foreach ($timeslots as $timeslot) {
+                            $date = $timeslot['date'];
+                            $time = $timeslot['timeslot'];
 
-                            $DateRange_ID = $conn->insert_id;
+                            $stmt2 = $conn->prepare("INSERT INTO timeslot (StartTime, Date, ScreeningType, Movie_ID, Theater_ID, DateRange_ID)
+                                                    VALUES (?, ?, ?, ?, ?, ?)");
+                            $stmt2->bind_param("sssiii", $time, $date, $ScreeningType, $Movie_ID, $Theater_ID, $DateRange_ID);
 
-                            $ScreeningType = "2D"; // TEMP
+                            $TimeSlot_ID = $conn->insert_id;
 
-                            foreach ($data['timeslots'] as $timeslot) {
-                                $date = $timeslot['date'];
-                                $time = $timeslot['timeslot'];
+                            $seats_stmt = $conn->prepare("SELECT Seat_ID FROM seats WHERE Theater_ID = ?");
+                            $seats_stmt->bind_param("i", $Theater_ID);
+                            $seats_stmt->execute();
+                            $seatLayout = $seats_stmt->get_result();
 
-                                $stmt2 = $conn->prepare("INSERT INTO timeslot (StartTime, Date, ScreeningType, Movie_ID, Theater_ID, DateRange_ID)
-                                                        VALUES (?, ?, ?, ?, ?, ?)");
-                                $stmt2->bind_param("sssiii", $time, $date, $ScreeningType, $Movie_ID, $Theater_ID, $DateRange_ID);
+                            $screeningSeatsToDb_stmt = $conn->prepare("INSERT INTO seat_timeslot (Seat_ID, TimeSlot_ID, SeatPrice, SeatAvailability)
+                                                                        VALUES (?, ?, ?, ?)");
+                            $SeatPrice = $_POST['SeatPrice'];
+                            $SeatAvailability = 1;
 
-                                $TimeSlot_ID = $conn->insert_id;
-
-                                $seats_stmt = $conn->prepare("SELECT Seat_ID FROM seats WHERE Theater_ID = ?");
-                                $seats_stmt->bind_param("i", $Theater_ID);
-                                $seats_stmt->execute();
-                                $seatLayout = $seats_stmt->get_result();
-
-                                $screeningSeatsToDb_stmt = $conn->prepare("INSERT INTO seat_timeslot (Seat_ID, TimeSlot_ID, SeatPrice, SeatAvailability)
-                                                                            VALUES (?, ?, ?, ?)");
-                                $SeatPrice = 350; // TEMP
-                                $SeatAvailability = 1;
-
-                                while ($row = $seatLayout->fetch_assoc()) {
-                                    $screeningSeatsToDb_stmt->bind_param("iiii", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
-                                    $screeningSeatsToDb_stmt->execute();
-                                }
-
-                                $conn->commit();
-                                echo json_encode(["status" => "Success !", "DateRange_ID" => $DateRange_ID]);
-                            }                        
-                        } catch (mysqli_sql_exception $e) {
-                            $conn->rollback();
-                            echo json_encode(["error" => $e->getMessage()]);
-                        }
+                            while ($row = $seatLayout->fetch_assoc()) {
+                                $screeningSeatsToDb_stmt->bind_param("iiii", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
+                                $screeningSeatsToDb_stmt->execute();
+                            }
+                        }                        
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        echo json_encode(["error" => $e->getMessage()]);
                     }
+                    
+                    $conn->commit();
+                    echo json_encode(["status" => "Success !", "DateRange_ID" => $DateRange_ID]);
                 }
             }
 

@@ -336,6 +336,8 @@
                 daterangeInputSpan.append(startDateInputLabel);
                 const startDateInput = document.createElement('input');
                 startDateInput.type = 'date';
+                startDateInput.name = "StartDate";
+                startDateInput.required = true;
                 startDateInput.classList.add('dateInput');
                 startDateInput.id = "startDateInput";
                 daterangeInputSpan.append(startDateInput);
@@ -348,9 +350,12 @@
                 daterangeInputSpan.append(endDateInputLabel);
                 const endDateInput = document.createElement('input');
                 endDateInput.type = 'date';
+                endDateInput.name = "EndDate";
                 endDateInput.classList.add('dateInput');
                 endDateInput.id = "endDateInput";
                 daterangeInputSpan.append(endDateInput);
+
+                daterangeInputSpan.innerHTML += " (optional) ";
                 
                 addDaterangeMenu.append(daterangeInputSpan);
 
@@ -369,6 +374,7 @@
 
                     const timeslotInput = document.createElement('input');
                     timeslotInput.type = 'time';
+                    timeslotInput.name = "timeslot[]";
                     timeslotInput.classList.add('timeslotInput');
                     timeslotInputSpan.append(timeslotInput);
 
@@ -383,8 +389,9 @@
                             timeslotAddButton.style.display = 'block';
                         })
                         timeslotInputSpan.append(timeslotDelete);
-                    }                    
-
+                    } else {
+                        timeslotInput.required = true;
+                    }
                     return timeslotInputSpan;
                 }
 
@@ -413,12 +420,85 @@
 
                 //
 
+                const screeningTypePrice = document.createElement('span');
+
+                const screeningTypeLabel = document.createElement('label');
+                screeningTypeLabel.id = 'screeningType';
+                screeningTypeLabel.textContent = "Screening Type: ";
+                screeningTypePrice.append(screeningTypeLabel);
+                
+                const screeningTypeInput = document.createElement('select');
+                screeningTypeInput.id = 'screeningType';
+                screeningTypeInput.classList.add('screeningTypeInput');
+                screeningTypeInput.name = "ScreeningType";
+                screeningTypeInput.required = true;
+
+                const nullOption = document.createElement('option');
+                nullOption.textContent = "Please select a screening type";
+                nullOption.value = "";
+                screeningTypeInput.append(nullOption);
+                
+                const option2D = document.createElement('option');
+                option2D.textContent = "2D";
+                option2D.value = "2D";
+                screeningTypeInput.append(option2D);
+                const option3D = document.createElement('option');
+                option3D.textContent = "3D";
+                option3D.value = "3D";
+                screeningTypeInput.append(option3D);
+
+                screeningTypePrice.append(screeningTypeInput);
+
+                //
+
+                const seatPriceInputLabel = document.createElement('label');
+                seatPriceInputLabel.id = 'seatPrice';
+                seatPriceInputLabel.textContent = "Seat Price (In Pesos): ";
+                screeningTypePrice.append(seatPriceInputLabel);
+
+                const seatPriceInput = document.createElement('input');
+                seatPriceInput.type = 'number';
+                seatPriceInput.required = true;
+                screeningTypePrice.append(seatPriceInput);
+
+                addDaterangeMenu.append(screeningTypePrice);
+
+                //
+
                 const addDaterangeMenuSubmit = document.createElement('button');
                 addDaterangeMenuSubmit.type = 'submit';
                 addDaterangeMenuSubmit.textContent = "Add Date Range";
                 addDaterangeMenuSubmit.classList.add('addDateRangeMenuSubmit');
                 addDaterangeMenuSubmit.classList.add('generalAdminButton');
                 addDaterangeMenu.append(addDaterangeMenuSubmit);
+
+                //
+                
+                addDaterangeMenu.addEventListener("submit", function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(addDaterangeMenu);
+                    const Theater_ID = theaterSelection.value;
+
+
+                    fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/all/theater/${Theater_ID}/movie/${Movie_ID}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data.status);
+                        getDateranges(Theater_ID);
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    })
+                })
 
                 //
 
