@@ -101,11 +101,13 @@
 
             if ($method == 'POST') {
                 if ($ID !== null && $subResource === 'theater' && $subID !== null && $subResource2 === 'movie' && $subID2 !== null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+
                     $Theater_ID = $subID;
                     $Movie_ID = $subID2;
-                    $StartDate = $_POST['StartDate'];
-                    $EndDate = $_POST['EndDate'];
-                    $timeslots = $_POST['timeslot'];
+                    $StartDate = $data['StartDate'];
+                    $EndDate = $data['EndDate'] ?? null;
+                    $timeslots = $data['timeslots'];
                     
                     $conn->begin_transaction();
                     try {
@@ -116,40 +118,43 @@
 
                         $DateRange_ID = $conn->insert_id;
 
-                        $ScreeningType = $_POST['ScreeningType'];
+                        $ScreeningType = $data['ScreeningType'];
 
-                        foreach ($timeslots as $timeslot) {
+                        $seats_stmt = $conn->prepare("SELECT Seat_ID FROM seats WHERE Theater_ID = ?");
+                        $seats_stmt->bind_param("i", $Theater_ID);
+                        $seats_stmt->execute();
+                        $seatLayout = $seats_stmt->get_result();
+                        $seats = $seatLayout->fetch_all(MYSQLI_ASSOC);
+
+                        $stmt2 = $conn->prepare("INSERT INTO timeslot (StartTime, Date, ScreeningType, Movie_ID, Theater_ID, DateRange_ID)
+                                                 VALUES (?, ?, ?, ?, ?, ?)");
+
+                        $screeningSeatsToDb_stmt = $conn->prepare("INSERT INTO seat_timeslot (Seat_ID, TimeSlot_ID, SeatPrice, SeatAvailability)
+                                                                   VALUES (?, ?, ?, ?)");
+
+                        foreach ($timeslots as $timeslot) {                            
                             $date = $timeslot['date'];
                             $time = $timeslot['timeslot'];
-
-                            $stmt2 = $conn->prepare("INSERT INTO timeslot (StartTime, Date, ScreeningType, Movie_ID, Theater_ID, DateRange_ID)
-                                                    VALUES (?, ?, ?, ?, ?, ?)");
+                            
                             $stmt2->bind_param("sssiii", $time, $date, $ScreeningType, $Movie_ID, $Theater_ID, $DateRange_ID);
+                            $stmt2->execute();
 
                             $TimeSlot_ID = $conn->insert_id;
-
-                            $seats_stmt = $conn->prepare("SELECT Seat_ID FROM seats WHERE Theater_ID = ?");
-                            $seats_stmt->bind_param("i", $Theater_ID);
-                            $seats_stmt->execute();
-                            $seatLayout = $seats_stmt->get_result();
-
-                            $screeningSeatsToDb_stmt = $conn->prepare("INSERT INTO seat_timeslot (Seat_ID, TimeSlot_ID, SeatPrice, SeatAvailability)
-                                                                        VALUES (?, ?, ?, ?)");
-                            $SeatPrice = $_POST['SeatPrice'];
+                            
+                            $SeatPrice = $data['SeatPrice'];
                             $SeatAvailability = 1;
 
-                            while ($row = $seatLayout->fetch_assoc()) {
-                                $screeningSeatsToDb_stmt->bind_param("iiii", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
+                            foreach ($seats as $row) {
+                                $screeningSeatsToDb_stmt->bind_param("iidi", $row['Seat_ID'], $TimeSlot_ID, $SeatPrice, $SeatAvailability);
                                 $screeningSeatsToDb_stmt->execute();
                             }
                         }                        
+                        $conn->commit();
+                        echo json_encode(["status" => "Success !", "DateRange_ID" => $DateRange_ID]);
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
                         echo json_encode(["error" => $e->getMessage()]);
-                    }
-                    
-                    $conn->commit();
-                    echo json_encode(["status" => "Success !", "DateRange_ID" => $DateRange_ID]);
+                    }                    
                 }
             }
 
@@ -289,68 +294,152 @@
             }
 
             if ($method == 'POST') {
-                $movieName = trim($_POST['MovieName'] ?? '');
-                $movieDescription = trim($_POST['MovieDescription'] ?? '');
-                $genre = trim($_POST['Genre'] ?? '');
-                $rating = trim($_POST['Rating'] ?? '');
-                $runtime = trim($_POST['Runtime'] ?? '');
-                $trailerURL = trim($_POST['TrailerURL'] ?? '');
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $movieName = trim($_POST['MovieName'] ?? '');
+                    $movieDescription = trim($_POST['MovieDescription'] ?? '');
+                    $genre = trim($_POST['Genre'] ?? '');
+                    $rating = trim($_POST['Rating'] ?? '');
+                    $runtime = trim($_POST['Runtime'] ?? '');
+                    $trailerURL = trim($_POST['TrailerURL'] ?? '');
 
-                $uploadPath = null;
-                if (isset($_FILES['MoviePoster']) && $_FILES['MoviePoster']['error'] == 0) {
-                    $posterFolder = $_SERVER['DOCUMENT_ROOT'] . '/PeaksCinema/MoviePosters';
-                    if (!is_dir($posterFolder)) {
-                        mkdir($posterFolder, 0755, true);
+                    $uploadPath = null;
+                    if (isset($_FILES['MoviePoster']) && $_FILES['MoviePoster']['error'] == 0) {
+                        $posterFolder = $_SERVER['DOCUMENT_ROOT'] . '/PeaksCinema/MoviePosters';
+                        if (!is_dir($posterFolder)) {
+                            mkdir($posterFolder, 0755, true);
+                        }
+                        $fileName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $movieName) . '.' . pathinfo($_FILES['MoviePoster']['name'], PATHINFO_EXTENSION);
+                        $uploadPath = $posterFolder . "/" . $fileName;
+
+                        move_uploaded_file($_FILES['MoviePoster']['tmp_name'], $uploadPath);
+
+                        $relativePath = 'PeaksCinema/MoviePosters/' . $fileName; 
                     }
-                    $fileName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $movieName) . '.' . pathinfo($_FILES['MoviePoster']['name'], PATHINFO_EXTENSION);
-                    $uploadPath = $posterFolder . "/" . $fileName;
 
-                    move_uploaded_file($_FILES['MoviePoster']['tmp_name'], $uploadPath);
+                    if (empty($movieName) || empty($movieDescription) || empty($genre) || empty($rating) || empty($runtime) || empty($uploadPath)) {
+                        die(json_encode("All fields are required, please input everything correctly."));
+                    }
+                    if (!is_numeric($runtime)) {
+                        die(json_encode("Runtime should be a number."));
+                    }
 
-                    $relativePath = 'PeaksCinema/MoviePosters/' . $fileName; 
+                    $stmt = $conn->prepare('INSERT INTO movie (
+                                            MovieName,
+                                            MovieDescription,
+                                            Genre,
+                                            Rating,
+                                            Runtime,
+                                            MoviePoster,
+                                            TrailerURL)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?)');
+
+                                            
+                    $conn->begin_transaction();
+                    try {
+                        $stmt->bind_param('ssssiss',
+                                        $movieName,
+                                        $movieDescription,
+                                        $genre,
+                                        $rating,
+                                        $runtime,
+                                        $relativePath,
+                                        $trailerURL);
+                        $stmt->execute();
+                        $conn->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Success !"]);
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(404);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
                 }
 
-                if (empty($movieName) || empty($movieDescription) || empty($genre) || empty($rating) || empty($runtime) || empty($uploadPath)) {
-                    die(json_encode("All fields are required, please input everything correctly."));
-                }
-                if (!is_numeric($runtime)) {
-                    die(json_encode("Runtime should be a number."));
-                }
+                if ($ID !== null && $subResource === 'poster' && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $movieName = $_POST['MovieName'];
+                    $uploadPath = null;       
+                    $relativePath = null;             
+                    
+                    if (isset($_FILES['MoviePoster']) && $_FILES['MoviePoster']['error'] == 0) {
+                        $posterFolder = $_SERVER['DOCUMENT_ROOT'] . '/PeaksCinema/MoviePosters';
+                        if (!is_dir($posterFolder)) {
+                            mkdir($posterFolder, 0755, true);
+                        }
+                        $fileName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $movieName) . '.' . pathinfo($_FILES['MoviePoster']['name'], PATHINFO_EXTENSION);
+                        $uploadPath = $posterFolder . "/" . $fileName;
 
-                $stmt = $conn->prepare('INSERT INTO movie (
-                                        MovieName,
-                                        MovieDescription,
-                                        Genre,
-                                        Rating,
-                                        Runtime,
-                                        MoviePoster,
-                                        TrailerURL)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)');
+                        if (file_exists($uploadPath)) {
+                            unlink($uploadPath);                            
+                        }
+                        move_uploaded_file($_FILES['MoviePoster']['tmp_name'], $uploadPath);
+                        $relativePath = 'PeaksCinema/MoviePosters/' . $fileName;
+                    } else {
+                        exit;
+                    }
 
-                                        
-                $conn->begin_transaction();
-                try {
-                    $stmt->bind_param('ssssiss',
-                                    $movieName,
-                                    $movieDescription,
-                                    $genre,
-                                    $rating,
-                                    $runtime,
-                                    $relativePath,
-                                    $trailerURL);
-                    $stmt->execute();
-                    $conn->commit();
-                    http_response_code(200);
-                    echo json_encode(["status" => "Success !"]);
-                } catch (mysqli_sql_exception $e) {
-                    $conn->rollback();
-                    http_response_code(404);
-                    echo json_encode(["error" => $e->getMessage()]);
-                }                
+                    $stmt = $conn->prepare('UPDATE movie
+                                            SET 
+                                            MoviePoster = ?
+                                            WHERE Movie_ID = ?');
+                                            
+                    $conn->begin_transaction();
+                    try {
+                        $stmt->bind_param('si', $relativePath, $ID);
+                        $stmt->execute();
+                        $conn->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Success !"]);
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(404);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
             }
 
             if ($method == 'PUT') {
-                return;
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+
+                    $Movie_ID = $ID;
+                    $movieName = trim($data['MovieName'] ?? '');
+                    $movieDescription = trim($data['MovieDescription'] ?? '');
+                    $genre = trim($data['Genre'] ?? '');
+                    $rating = trim($data['Rating'] ?? '');
+                    $runtime = trim($data['Runtime'] ?? '');
+                    $runtime = (int)$runtime;
+                    $trailerURL = trim($data['TrailerURL'] ?? '');
+
+                    $stmt = $conn->prepare('UPDATE movie
+                                            SET 
+                                            MovieName = ?,
+                                            MovieDescription = ?,
+                                            Genre = ?,
+                                            Rating = ?,
+                                            Runtime = ?,
+                                            TrailerURL = ?
+                                            WHERE Movie_ID = ?');
+                                            
+                    $conn->begin_transaction();
+                    try {
+                        $stmt->bind_param('ssssisi',
+                                        $movieName,
+                                        $movieDescription,
+                                        $genre,
+                                        $rating,
+                                        $runtime,
+                                        $trailerURL,
+                                        $Movie_ID);
+                        $stmt->execute();
+                        $conn->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Success !"]);
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(404);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }                
             }
 
             if ($method == 'DELETE') {

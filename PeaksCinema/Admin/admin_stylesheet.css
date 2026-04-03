@@ -83,15 +83,16 @@ header a.active {
     padding: 7px;
     background-color: black;
     color: white;
-    border: 2px solid white;
+    border: 3px solid white;
     border-radius: 15px;
     font-weight: bold;
+    box-sizing: border-box;
     transition: background-color 0.3s, color 0.3s, border 0.3s;
 }
 .generalAdminButton:hover {    
     background-color: white;
     color: black;
-    border: 2px solid black;
+    border: 3px solid black;
     cursor: pointer;
 }
 
@@ -502,6 +503,12 @@ header a.active {
     width: 45rem;
     gap: 10px;
     padding: 0.5rem;
+}
+
+#daterangeContent {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 #addDaterangeMenu input:not([type="time"]) {
