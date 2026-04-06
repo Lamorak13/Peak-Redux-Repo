@@ -71,7 +71,7 @@
                                 </div>                        
                             </div>
                         </div>
-                        <button type="submit" id="movieSubmitButton" class="generalAdminButton">Add</button>
+                        <button type="submit" id="movieSubmitButton" class="generalAdminButton">Edit</button>
                     </div>
                 </form>
             </div>
@@ -81,6 +81,9 @@
 
             const url = new URL(window.location.href);
             const Movie_ID = url.searchParams.get('movie_id');
+
+            
+            let lastDate = new Date().toDateString();
 
             function getMovieInfo() {
                 console.log(Movie_ID);
@@ -224,7 +227,7 @@
                             
                         })                        
                         getDateranges(theaterSelection.value);
-                        createDaterangeMenu();
+                        createDaterangeMenu(lastDate);
                     }
                 })
 
@@ -245,7 +248,7 @@
             const addDateContainer = document.getElementById('addDateContainer');
             theaterSelection.addEventListener("change", function() {
                 getDateranges(theaterSelection.value);
-                createDaterangeMenu();
+                daterangeMenuOpenClose();
             })
 
             function getDateranges(Theater_ID) {
@@ -267,8 +270,11 @@
                         errorMessage.classList.add('errorMessage');
                         errorMessage.textContent = data.error;
                         daterangesGallery.append(errorMessage);
+                        
+                        lastDate = new Date();
                     } else {
                         let dateranges = data.data;
+                        
 
                         dateranges.forEach(daterange => {
                             const daterangeContainer = document.createElement('div');
@@ -280,15 +286,28 @@
                             const daterangeProper = document.createElement('div');
                             daterangeProper.classList.add('daterangeProper');
 
+                            var startDateFormatted = new Date(daterange.StartDate);
+                            var startDateFormatted = startDateFormatted.toLocaleDateString(undefined, {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+
                             const startDate = document.createElement('div');
                             startDate.classList.add('startDate');
-                            startDate.textContent = daterange.StartDate + " - ";
+                            startDate.textContent = startDateFormatted;
                             daterangeProper.append(startDate);
 
-                            const endDate = document.createElement('div');
-                            endDate.classList.add('endDate');
-                            endDate.textContent = daterange.EndDate;
-                            daterangeProper.append(endDate);
+                            if (daterange.EndDate) {
+                                var endDateFormatted = new Date(daterange.EndDate);
+                                var endDateFormatted = endDateFormatted.toLocaleDateString(undefined, {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+
+                                const endDate = document.createElement('div');
+                                endDate.classList.add('endDate');
+                                endDate.textContent = " - " + daterange.EndDate;
+                                daterangeProper.append(endDate);
+                                
+                                lastDate = daterange.EndDate;
+                            } else {
+                                lastDate = daterange.StartDate;
+                            }                           
+
 
                             daterangeTop.append(daterangeProper);
 
@@ -367,13 +386,14 @@
                             daterangesGallery.append(daterangeContainer);
                         })
                     }
+                    createDaterangeMenu(lastDate);
                 })                
                 .catch(error => {
                     console.error(error);
                 });                
             }
             
-            function createDaterangeMenu() {
+            function createDaterangeMenu(minValueWhole) {
                 let maxTimeslots = 5;
                 let currentTimeslots = 1;
 
@@ -402,6 +422,10 @@
                 const startDateInput = document.createElement('input');
                 startDateInput.type = 'date';
                 startDateInput.name = "StartDate";
+
+                minValueWhole = new Date(minValueWhole);
+                minValueWhole.setDate(minValueWhole.getDate() + 1);
+                startDateInput.setAttribute('min', minValueWhole.toISOString().split('T')[0]);
                 startDateInput.required = true;
                 startDateInput.classList.add('dateInput');
                 startDateInput.id = "startDateInput";
@@ -456,7 +480,7 @@
                     timeslotInput.name = "timeslot";
                     timeslotInput.classList.add('timeslotInput');
                     timeslotInput.addEventListener("change", function() {
-                        console.log("not rn");
+                        console.log("time minimum, to be done");
                     })
                     timeslotInputSpan.append(timeslotInput);
 
@@ -730,8 +754,13 @@
                     .catch(error => {
                         console.error(error);
                     })
+                }                
+            })
+
+            movieMenuForm.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && e.target.tagName === "INPUT") {
+                    e.preventDefault();
                 }
-                
             })
 
             MoviePoster.addEventListener("change", function() {

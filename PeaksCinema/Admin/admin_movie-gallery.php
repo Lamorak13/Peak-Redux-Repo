@@ -208,6 +208,12 @@
                     console.error(error);
                 })
             })
+
+            movieMenuForm.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && e.target.tagName === "INPUT") {
+                    e.preventDefault();
+                }
+            })
         </script>
     </body>
 </html>

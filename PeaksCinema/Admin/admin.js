@@ -90,3 +90,4 @@ function areYouSure(whatToDelete, IDtoDelete, nameToDelete, daterangeProperToDel
     areYouSureScreenContainer.append(areYouSureScreen);
     document.getElementById('content').append(areYouSureScreenContainer);
 }
+
