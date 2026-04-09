@@ -647,6 +647,100 @@
             break;
         case 'timeslot':
             break;
+        case 'monthly_sales':
+            if ($method == 'GET') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $emptyMonths = [
+                        "January" => 0, "February" => 0, "March" => 0, "April" => 0, "May" => 0, "June" => 0, 
+                        "July" => 0, "August" => 0, "September" => 0, "October" => 0, "November" => 0, "December" => 0
+                    ];
+                    $stmt = $conn->prepare('SELECT
+                                                MONTHNAME(timeslot.Date) AS Month_Name,
+                                                SUM(seat_timeslot.SeatPrice) AS Total FROM `seat_timeslot` 
+                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID 
+                                            WHERE seat_timeslot.SeatAvailability = 0 
+                                            AND YEAR(timeslot.Date) = ? 
+                                            GROUP BY Month_Name
+                                            ORDER BY MONTH(timeslot.Date) ASC');
+                    try {
+                        $stmt->bind_param('i', $ID);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        $final_result = [];
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            $emptyMonths[$row["Month_Name"]] = (float)$row["Total"];
+                        }
+
+                        foreach ($emptyMonths as $month => $total) {
+                            $final_result[] = ["month" => $month, "revenue" => $total];
+                        }
+
+                        http_response_code(200);
+                        echo json_encode(["data" => $final_result]);
+
+                    } catch (mysqli_sql_exception $e) {
+                        http_response_code(400);
+                        echo json_encode(["error" => "An error has been made processing your request."]);
+                    }
+
+                }
+            }
+            break;
+        case 'theater_sales':
+            if ($method == 'GET') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $emptyMonths = [
+                        "January" => 0, "February" => 0, "March" => 0, "April" => 0, "May" => 0, "June" => 0, 
+                        "July" => 0, "August" => 0, "September" => 0, "October" => 0, "November" => 0, "December" => 0
+                    ];                
+                    
+                    $theater_final = [];
+
+                    try {
+                        $type_stmt = $conn->prepare('SELECT DISTINCT TheaterType FROM theater');
+                        $type_stmt->execute();
+                        $type_result = $type_stmt->get_result();
+                        $stmt = $conn->prepare('SELECT MONTHNAME(timeslot.Date) AS Month_Name,
+                                                        theater.TheaterType AS TheaterType,
+                                                        SUM(seat_timeslot.SeatPrice) AS Total FROM `seat_timeslot`
+                                                INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                                INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
+                                                INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
+                                                WHERE theater.TheaterType = ? AND seat_timeslot.SeatAvailability = 0
+                                                AND YEAR(timeslot.Date) = ?  
+                                                GROUP BY Month_Name
+                                                ORDER BY MONTH(timeslot.Date) ASC');                            
+
+                        foreach ($type_result as $type) {
+                            $monthlySales = $emptyMonths;
+                            $stmt->bind_param('si', $type['TheaterType'], $ID);
+                            $stmt->execute();
+                            $result = $stmt->get_result();
+
+                            while ($row = $result->fetch_assoc()) {
+                                $monthlySales[$row['Month_Name']] = (float)$row['Total'];
+                            }
+                            
+                            $final_result = [];
+
+                            foreach ($monthlySales as $month => $total) {
+                                $final_result[] = ["month" => $month, "revenue" => $total];
+                            }
+
+                            $theater_final[] = ["type" => $type['TheaterType'], "year" => $final_result];
+                        }
+
+                        http_response_code(200);
+                        echo json_encode(["data" => $theater_final]);
+
+                    } catch (mysqli_sql_exception $e) {
+                        http_response_code(400);
+                        echo json_encode(["error" => "An error has been made processing your request."]);
+                    }
+                }              
+            }            
+            break;
         default:
             break;
     }

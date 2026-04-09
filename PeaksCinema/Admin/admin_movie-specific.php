@@ -81,9 +81,8 @@
 
             const url = new URL(window.location.href);
             const Movie_ID = url.searchParams.get('movie_id');
-
             
-            let lastDate = new Date().toDateString();
+            var lastDate = new Date().toDateString();
 
             function getMovieInfo() {
                 console.log(Movie_ID);
@@ -270,7 +269,7 @@
                         errorMessage.classList.add('errorMessage');
                         errorMessage.textContent = data.error;
                         daterangesGallery.append(errorMessage);
-                        
+
                         lastDate = new Date();
                     } else {
                         let dateranges = data.data;
@@ -470,7 +469,8 @@
                 daterangeTimeslotInputs.classList.add('daterangeTimeslotInputs');
                 daterangeTimeslotInputsPlus.append(daterangeTimeslotInputs);
                 
-                let minTime = "";
+                let minTimeValue = new Date();
+
                 function createTimeslot() {
                     const timeslotInputSpan = document.createElement('span');
                     timeslotInputSpan.classList.add('timeslotInputSpan');
@@ -494,6 +494,9 @@
                             currentTimeslots -= 1;
                             timeslotAddButton.style.display = 'block';
                         })
+                        // latestTimeValue = new Date(inputtedTime);
+                        // latestTimeValue.setMinutes(date.getMinutes() + minutesToAdd);
+                        // timeslotInput.setAttribute('min', latestTimeValue);
                         timeslotInputSpan.append(timeslotDelete);
                     } else {
                         timeslotInput.required = true;
