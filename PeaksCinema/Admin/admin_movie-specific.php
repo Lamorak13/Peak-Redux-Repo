@@ -84,8 +84,10 @@
             
             var lastDate = new Date().toDateString();
 
-            function getMovieInfo() {
+            async function getMovieInfo() {
                 console.log(Movie_ID);
+
+                movieDetailsContainer.innerHTML = "";
 
                 const moviePromise = fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/`, {
                     method: "GET"
@@ -701,14 +703,14 @@
             }
 
             const movieMenuForm = document.getElementById('movieMenu');
-            movieMenuForm.addEventListener("submit", function(e) {
+            movieMenuForm.addEventListener("submit", async function(e) {
                 e.preventDefault();
 
                 const formData = new FormData(movieMenuForm);
 
                 // Anything ASIDE from the Movie Poster !!!
 
-                fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}`, {
+                await fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json"
@@ -733,31 +735,23 @@
                 })
 
                 // THE MOVIE POSTER
-                
-                if (formData.get("MoviePoster").size === 0) {                    
-                    movieDetailsContainer.innerHTML = "";
-                    getMovieInfo();
-                    movieMenuOpenClose();
-                } else {
-                    fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/poster`, {
-                        method: "POST",
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        movieDetailsContainer.innerHTML = "";
-                        getMovieInfo();
-                        movieMenuOpenClose();
-                    })
-                    .catch(error => {
-                        console.error(error);
-                    })
-                }                
+
+                await fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/poster`, {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error(error);
+                })                
+        
+                await getMovieInfo();
+                movieMenuOpenClose();
             })
 
             movieMenuForm.addEventListener("keydown", function(e) {

@@ -5,8 +5,8 @@
     </head>
     <body>
         <?php include("admin_header.php"); ?>
-        <main>
-            <section id="content">
+        <main id="theaterSpecific">
+            <section id="content">              
                 <div id="theaterDetailsContainer"></div>
             </section>
         </main>
@@ -34,6 +34,9 @@
                     const theater = data.data.theater;
                     const seats = data.data.seats;
 
+                    const theaterDetailsPlusDelete = document.createElement('span');
+                    theaterDetailsPlusDelete.classList.add('theaterDetailsPlusDelete');
+
                     const theaterDetailsSpan = document.createElement('span');
                     theaterDetailsSpan.classList.add('theaterDetailsSpan');
 
@@ -48,14 +51,15 @@
                     theaterType.classList.add('theaterType');
                     theaterType.textContent = theater.TheaterType;
                     theaterDetailsSpan.append(theaterType);
-
-                    theaterDetailsContainer.append(theaterDetailsSpan);
+                    theaterDetailsPlusDelete.append(theaterDetailsSpan);
 
                     const deleteTheaterButton = document.createElement('button')
                     deleteTheaterButton.classList.add('deleteDaterange');
                     deleteTheaterButton.textContent = "Delete Theater From System";
                     deleteTheaterButton.addEventListener("click", () => areYouSure("theater", theater.Theater_ID, theater.TheaterName));
-                    theaterDetailsContainer.append(deleteTheaterButton);
+                    theaterDetailsPlusDelete.append(deleteTheaterButton);
+
+                    theaterDetailsContainer.append(theaterDetailsPlusDelete);
 
                     // Theater Layout
 
@@ -105,8 +109,13 @@
                         seatPlanContainer.appendChild(rowDiv);
                     }
 
-                    theaterSeatPlan.append(seatPlanContainer);
-                    theaterDetailsContainer.append(theaterSeatPlan);
+                    theaterSeatPlan.append(seatPlanContainer);                    
+
+                    const seatPlanDiv = document.createElement('div');
+                    seatPlanDiv.classList.add('seatPlanDiv');
+                    seatPlanDiv.append(theaterSeatPlan);
+
+                    theaterDetailsContainer.append(seatPlanDiv);
                 })
                 .catch(error => {
                     console.error(error);

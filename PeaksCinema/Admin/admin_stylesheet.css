@@ -20,6 +20,7 @@ main {
 main #content{
     display: flex;
     width: 100%;
+    height: 100%;
 }
 
 .loader {
@@ -840,3 +841,59 @@ header a.active {
     width: 75%;
     min-width: 15rem;
 }
+
+/* admin_theater-specific */
+
+.theaterDetailsPlusDelete {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.theaterDetailsSpan {
+    display: inline-flex;
+    border-bottom: 3px solid #f6e8e0;
+    font-weight: bold;
+}
+
+.theaterSeatPlan {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.screen {
+    width: 100%;
+    height: 1.5rem;
+    border: 3px solid red;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    font-weight: bold;
+    border-radius: 10px;
+    align-items: center;
+}
+
+.seatPlanDiv {
+    display: flex;
+    justify-content: center;
+}
+
+div#theaterDetailsContainer {
+    width: 100%;
+}
+
+div#theaterDetailsContainer {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 15px;
+}
+
+main#theaterSpecific #content {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    margin: 10px;
+}
+
