@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
+        <script src="admin_gate.js"></script>
         <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
         <title>Admin - Movie Gallery</title>
     </head> 

@@ -2,6 +2,13 @@
     header("Content-Type: application/json");
     include 'peakscinemas_database.php';
 
+    require_once 'vendor/autoload.php';
+
+    use Firebase\JWT\JWT;
+    use Firebase\JWT\Key;
+
+    $jwt_secret = '6bcfd225e5e2a38f3682734905a6984c5b1883abbe56128ef1d8d5729e428dab';
+
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
     $method = $_SERVER['REQUEST_METHOD'];
@@ -18,7 +25,85 @@
 
     $date = $_GET['date'] ?? null;
 
+    function admin_surely($secret) {
+        $headers = apache_request_headers();
+        $auth_header = $headers['Authorization'] ?? '';
+
+        if (!$auth_header) {
+            http_response_code(401);
+            die(json_encode(["error" => "Missing authorization."]));
+        }
+
+        $token = str_replace('Bearer ', '', $auth_header);
+
+        try {
+            $decoded = JWT::decode($token, new Key($secret, 'HS256'));
+
+            $decoded_array = (array)$decoded;
+
+            if ($decoded_array['role'] !== 'admin') {
+                http_response_code(403);
+                die(json_encode(["error" => "You do not have sufficient credentials to perform this task, I'm afraid."]));
+            }
+
+            return $decoded_array;
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            http_response_code(401);
+            die(json_encode(["error" => "Session has expired, please log in again."]));
+        } catch (Exception $e) {
+            http_response_code(401);
+            die(json_encode(["error" => "Insufficient credentials."]));
+        }
+    }
+
     switch ($resource) {
+        case 'customer_login':
+            break;
+        case 'admin_login':
+            if ($method == 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+
+                $email = $data['Email'] ?? '';
+                $password = $data['Password'] ?? '';
+
+                if (empty($email) || empty($password)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Email and password are required."]));
+                }
+
+                $stmt = $conn->prepare("SELECT Admin_ID, Email, AdminPassword FROM admin WHERE Email = ?");
+                $stmt->bind_param('s', $email);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result->num_rows === 1) {
+                    $admin = $result->fetch_assoc();
+
+                    if (password_verify($password, $admin['AdminPassword'])) {
+                        $payload = [
+                            'iss' => 'http://localhost/Peak-Redux-Repo/PeaksCinema',
+                            'iat' => time(),
+                            'exp' => time() + (60 * 60 * 12),
+                            'id' => $admin['Admin_ID'],
+                            'role' => 'admin'
+                        ];
+
+                        $jwt = JWT::encode($payload, $jwt_secret, 'HS256');
+
+                        echo json_encode(["status" => "Success!!!!!", "token" => $jwt]);
+                        exit();
+                    } else {
+                        http_response_code(401);
+                        echo json_encode(["error" => "Wrong Password."]);
+                        exit();
+                    }
+                } else {
+                    http_response_code(404);
+                    echo json_encode(["error" => "Email is not being used."]);
+                    exit();
+                }
+            }
+            break;
         case 'customer':
             if ($method == 'GET') {
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
@@ -294,6 +379,7 @@
             }
 
             if ($method == 'POST') {
+                admin_surely($jwt_secret);
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
                     $movieName = trim($_POST['MovieName'] ?? '');
                     $movieDescription = trim($_POST['MovieDescription'] ?? '');
