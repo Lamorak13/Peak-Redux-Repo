@@ -25,7 +25,7 @@
 
     $date = $_GET['date'] ?? null;
 
-    function admin_surely($secret) {
+    function admin_surely($secret, $level) {
         $headers = apache_request_headers();
         $auth_header = $headers['Authorization'] ?? '';
 
@@ -43,7 +43,12 @@
 
             if ($decoded_array['role'] !== 'admin') {
                 http_response_code(403);
-                die(json_encode(["error" => "You do not have sufficient credentials to perform this task, I'm afraid."]));
+                die(json_encode(["error" => "You are not an admin, I'm afraid."]));
+            } else {
+                if ($decoded_array['access_level'] < $level) {
+                    http_response_code(403);
+                    die(json_encode(["error" => "You do not have sufficient credentials to perform this task, I'm afraid."]));
+                }
             }
 
             return $decoded_array;
@@ -71,7 +76,7 @@
                     die(json_encode(["error" => "Email and password are required."]));
                 }
 
-                $stmt = $conn->prepare("SELECT Admin_ID, Email, AdminPassword FROM admin WHERE Email = ?");
+                $stmt = $conn->prepare("SELECT Admin_ID, Email, AdminPassword, AccessLevel FROM admin WHERE Email = ?");
                 $stmt->bind_param('s', $email);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -85,7 +90,8 @@
                             'iat' => time(),
                             'exp' => time() + (60 * 60 * 12),
                             'id' => $admin['Admin_ID'],
-                            'role' => 'admin'
+                            'role' => 'admin',
+                            'access_level' => $admin['AccessLevel']
                         ];
 
                         $jwt = JWT::encode($payload, $jwt_secret, 'HS256');
@@ -93,13 +99,13 @@
                         echo json_encode(["status" => "Success!!!!!", "token" => $jwt]);
                         exit();
                     } else {
-                        http_response_code(401);
-                        echo json_encode(["error" => "Wrong Password."]);
+                        http_response_code(404);
+                        echo json_encode(["error" => "Wrong Email or Password."]);
                         exit();
                     }
                 } else {
                     http_response_code(404);
-                    echo json_encode(["error" => "Email is not being used."]);
+                    echo json_encode(["error" => "Wrong Email or Password."]);
                     exit();
                 }
             }
@@ -379,7 +385,7 @@
             }
 
             if ($method == 'POST') {
-                admin_surely($jwt_secret);
+                admin_surely($jwt_secret, 1);
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
                     $movieName = trim($_POST['MovieName'] ?? '');
                     $movieDescription = trim($_POST['MovieDescription'] ?? '');

@@ -1,6 +1,8 @@
 <!DOCTYPE HTML>
 <html>
     <head>
+        <script src="admin_gate.js"></script>
+        <script>admin_gate.gatekeep(1); </script>
         <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
     </head>
     <body>

@@ -1,5 +1,14 @@
 <header>
-    <a href="admin_dashboard.php">Dashboard</a>
-    <a href="admin_movie-gallery.php">Movies</a>
-    <a href="admin_theater-gallery.php">Theaters</a>
+    <nav id="navAdmin">
+    </nav>
+    <button id="logoutButton" class="generalAdminButton">Log Out</button>
 </header>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const logoutButton = document.getElementById('logoutButton');
+        logoutButton.addEventListener('click', function() {
+            localStorage.removeItem('jwt_token');
+            window.location.href = 'admin_login.php';
+        })
+    })    
+</script>

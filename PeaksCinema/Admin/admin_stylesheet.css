@@ -33,6 +33,7 @@ header {
     display: flex;
     overflow: hidden;
     align-items: center;
+    justify-content: space-between;
     padding: 10px 30px;
     position: sticky;
     top: 0;
@@ -42,6 +43,13 @@ header {
     border-bottom: 2px solid #f6e8e0;
     flex-wrap: wrap;
     overflow: hidden;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 header a {
