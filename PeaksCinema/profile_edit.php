@@ -2,29 +2,12 @@
 session_start();
 include("peakscinemas_database.php");
 
-if (isset($_GET['logout'])) {
-    $_SESSION = array();
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
-        );
-    }
-    session_destroy();
-    header("Location: personal_info_form.php?logged_out=1");
-    exit;
-}
+$message = "";
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: personal_info_form.php");
-    exit;
-}
 
-$profile_link = isset($_SESSION['user_id']) ? "profile_edit.php" : "personal_info_form.php";
-
-$stmt = $conn->prepare("SELECT Name, Email, PhoneNumber, Password FROM customer WHERE Customer_ID = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
+// ==================== FETCH USER INFO ====================
+$stmt = $conn->prepare("SELECT LastName, FirstName, Email, PhoneNumber, Password FROM customer WHERE Customer_ID = ?");
+$stmt->bind_param("i", $Customer_ID);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($result->num_rows === 0) {
@@ -33,7 +16,8 @@ if ($result->num_rows === 0) {
 }
 $user = $result->fetch_assoc();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// ==================== HANDLE PROFILE UPDATE ====================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['tab'])) {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
@@ -42,198 +26,182 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $hashedPassword = !empty($password) ? password_hash($password, PASSWORD_DEFAULT) : $user['Password'];
 
     $updateStmt = $conn->prepare("UPDATE customer SET Name = ?, Email = ?, PhoneNumber = ?, Password = ? WHERE Customer_ID = ?");
-    $updateStmt->bind_param("ssssi", $name, $email, $phone, $hashedPassword, $_SESSION['user_id']);
+    $updateStmt->bind_param("ssssi", $name, $email, $phone, $hashedPassword, $Customer_ID);
 
     if ($updateStmt->execute()) {
-        $message = "Your profile has been updated! (●'◡'●)";
+        $message = "✅ Your profile has been updated successfully!";
         $user['Name'] = $name;
         $user['Email'] = $email;
         $user['PhoneNumber'] = $phone;
-        $user['Password'] = $hashedPassword;
     } else {
         $message = "❌ Error updating profile. Please try again.";
     }
 }
+
+// ==================== FETCH PURCHASE HISTORY ====================
+$history_stmt = $conn->prepare("SELECT 
+    Purchase_ID, MovieName, MallName, TheaterName, Seats, 
+    TotalPrice, PurchaseDate, Status 
+    FROM purchases 
+    WHERE Customer_ID = ? 
+    ORDER BY PurchaseDate DESC");
+
+$history_stmt->bind_param("i", $Customer_ID);
+$history_stmt->execute();
+$history_result = $history_stmt->get_result();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit Profile - PeaksCinemas</title>
+<title>Profile - PeaksCinemas</title>
 <style>
 :root {
-    --bg-dark: #1f1f1f;
-    --bg-light: #2e2e2e;
-    --accent: #a3c2b1;
+    --bg-dark: #141414;
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --accent: #2dd4bf;
+    --accent-soft: rgba(45,212,191,0.2);
     --text-light: #ffffff;
-    --border-color: #444;
+    --text-muted: #9ca3af;
+    --border-color: rgba(255,255,255,0.1);
+    --success: #00c853;
     --error: #ff4b4b;
 }
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: var(--bg-dark);
+    background: radial-gradient(circle at top, #1f1f1f 0%, #0d0d0d 100%);
     color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     min-height: 100vh;
-    padding-top: 100px;
-    overflow-x: hidden;
+    padding-top: 110px;
 }
 
+/* HEADER */
 header {
-    background-color: #ffffff;
+    backdrop-filter: blur(10px);
+    background: rgba(0,0,0,0.6);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 40px;
-    border-bottom: 2px solid var(--border-color);
+    padding: 14px 50px;
     position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
+    top: 0;
     z-index: 10;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--border-color);
 }
-.logo img {
-    height: 50px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-.logo img:hover {
-    transform: scale(1.05);
-}
-.header-actions {
+.logo img { height: 48px; cursor: pointer; transition: 0.3s ease; }
+.logo img:hover { transform: scale(1.08); }
+
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.profile-btn, .logout-btn { /* styles same as before */ }
+
+/* TABS */
+.tabs {
     display: flex;
-    align-items: center;
+    background: var(--bg-glass);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 30px;
+    border: 1px solid var(--border-color);
 }
-.profile-btn {
-    background-color: var(--bg-dark);
-    color: var(--text-light);
-    border: 1px solid #ffffff50;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-    .profile-btn svg {
-      width: 24px;
-      height: 24px;
-    }
-.profile-btn:hover {
-    background-color: #ffffff;
-    color: var(--bg-dark);
-    transform: scale(1.1);
-    box-shadow: 0 0 8px rgba(255,255,255,0.3);
-}
-.logout-btn {
-    background-color: var(--error);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 14px;
-    margin-left: 12px;
-    font-weight: 600;
+.tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    border-radius: 10px;
     cursor: pointer;
     transition: 0.3s;
-}
-.logout-btn:hover {
-    background-color: white;
-    color: var(--error);
-}
-
-.main-container {
-    background-color: var(--bg-light);
-    padding: 35px;
-    border-radius: 16px;
-    width: 90%;
-    max-width: 550px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    animation: fadeIn 0.7s ease forwards;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 25px;
-    font-weight: 600;
-    color: var(--accent);
-}
-
-label {
-    display: block;
-    margin-bottom: 6px;
     font-weight: 500;
 }
-input[type="text"], input[type="email"], input[type="tel"], input[type="password"] {
-    width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background-color: #3b3b3b;
-    color: white;
-    transition: 0.3s;
-}
-input:focus {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: 0 0 6px var(--accent);
-}
-.password-container {
-    position: relative;
-}
-#togglePassword {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #aaa;
-    cursor: pointer;
+.tab.active {
+    background: var(--accent);
+    color: #071018;
     font-weight: 600;
-    transition: 0.3s;
 }
-#togglePassword:hover {
-    color: var(--accent);
+
+/* MAIN CARD */
+.main-container {
+    max-width: 800px;
+    margin: auto;
+    padding: 40px;
+    border-radius: 20px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
+
+/* Form styles (same as your original) */
+label { font-size:14px; color: var(--text-muted); margin-bottom: 6px; display: block; }
+input[type="text"], input[type="email"], input[type="tel"], input[type="password"] {
+    width: 100%; padding: 12px 14px; margin-bottom: 18px;
+    border-radius: 10px; border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.04); color: white;
+}
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
 
 input[type="submit"] {
-    background-color: var(--accent);
-    color: #1f1f1f;
-    border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    width: 100%;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, #2dd4bf, #06b3a8);
+    font-weight: 600; color: white; cursor: pointer;
 }
-input[type="submit"]:hover {
-    background-color: #bcd8c7;
-    transform: scale(1.03);
+input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
+
+/* History Table */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.history-table th, .history-table td {
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+.history-table th {
+    background: rgba(45, 212, 191, 0.15);
+    color: var(--accent);
+}
+.history-table tr:hover {
+    background: rgba(255,255,255,0.03);
+}
+.status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.status.Paid { background: #2dd4bf; color: #071018; }
+
+.refund-btn {
+    margin-left: 10px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #ff4b4b;
+    color: white;
+    transition: 0.2s;
+}
+.refund-btn:hover {
+    transform: scale(1.05);
 }
 
-.message {
-    margin-bottom: 20px;
+.message { padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 500; }
+.message.success { background: rgba(0,200,83,0.1); border: 1px solid var(--success); color: var(--success); }
+.message.error { background: rgba(255,75,75,0.1); border: 1px solid var(--error); color: var(--error); }
+
+.no-history {
     text-align: center;
-    font-weight: bold;
-    color: var(--accent);
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 1.1rem;
 }
 </style>
 </head>
@@ -241,7 +209,7 @@ input[type="submit"]:hover {
 
 <header>
     <div class="logo">
-        <img src="peakscinematransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
+        <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
     </div>
     <div class="header-actions">
         <button class="profile-btn" onclick="window.location.href='<?= $profile_link ?>'" title="Profile">👤</button>
@@ -249,40 +217,129 @@ input[type="submit"]:hover {
     </div>
 </header>
 
-<main class="main-container">
-    <h2>Edit Your Profile</h2>
-    <?php if (!empty($message)) echo "<div class='message'>{$message}</div>"; ?>
-    <form method="post" action="">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" name="name" value="<?= htmlspecialchars($user['Name']) ?>" required>
+<div class="main-container">
 
-        <label for="email">Email Address</label>
-        <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['Email']) ?>" required>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(0)">Account Settings</div>
+        <div class="tab" onclick="switchTab(1)">Booking History</div>
+    </div>
 
-        <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($user['PhoneNumber']) ?>" required pattern="[0-9]{10}" title="10-digit phone number">
-
-        <label for="password">New Password</label>
-        <div class="password-container">
-            <input type="password" id="password" name="password" placeholder="Leave blank to keep current password">
-            <button type="button" id="togglePassword">Show</button>
+    <!-- ==================== ACCOUNT SETTINGS TAB ==================== -->
+    <div id="tab0" class="tab-content">
+        <div class="profile-header">
+            <h2>Account Settings</h2>
+            <p>Manage your PeaksCinemas profile information</p>
         </div>
 
-        <input type="submit" value="Save Changes">
-    </form>
-</main>
+        <?php if (!empty($message)) : ?>
+            <div class="message <?= strpos($message, 'Error') !== false ? 'error' : 'success' ?>">
+                <?= $message ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post" action="">
+            <input type="hidden" name="tab" value="0">
+
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required value="<?= htmlspecialchars($user['Name']) ?>">
+
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required value="<?= htmlspecialchars($user['Email']) ?>">
+
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" 
+                   value="<?= htmlspecialchars($user['PhoneNumber']) ?>">
+
+            <label for="password">New Password (leave blank to keep current)</label>
+            <div class="password-container" style="position:relative;">
+                <input type="password" id="password" name="password" placeholder="Enter new password">
+                <button type="button" id="togglePassword" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#999;cursor:pointer;">Show</button>
+            </div>
+
+            <input type="submit" value="Save Changes">
+        </form>
+    </div>
+
+    <!-- ==================== BOOKING HISTORY TAB ==================== -->
+    <div id="tab1" class="tab-content" style="display:none;">
+        <h2 style="margin-bottom:25px; text-align:center;">My Booking History</h2>
+
+        <?php if ($history_result->num_rows > 0): ?>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Movie</th>
+                        <th>Mall</th>
+                        <th>Theater</th>
+                        <th>Seats</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $history_result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?= date("M d, Y • h:i A", strtotime($row['PurchaseDate'])) ?></td>
+                            <td><?= htmlspecialchars($row['MovieName']) ?></td>
+                            <td><?= htmlspecialchars($row['MallName']) ?></td>
+                            <td><?= htmlspecialchars($row['TheaterName']) ?></td>
+                            <td><?= htmlspecialchars(str_replace(',', ', ', $row['Seats'])) ?></td>
+                            <td>₱<?= number_format($row['TotalPrice'], 2) ?></td>
+                            <td>
+                                <span class="status <?= htmlspecialchars($row['Status']) ?>">
+                                <?= htmlspecialchars($row['Status']) ?>
+                                </span>
+
+                                <?php if ($row['Status'] === 'Paid'): ?>
+                                <button class="refund-btn" onclick="window.location.href='home.php'">
+                                Refund
+                            </button>
+                            <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <div class="no-history">
+                <p>You don't have any booking history yet.</p>
+                <button onclick="window.location.href='movie.php'" style="margin-top:20px; padding:12px 24px; background:var(--accent); color:#071018; border:none; border-radius:30px; cursor:pointer;">
+                    Browse Movies Now
+                </button>
+            </div>
+        <?php endif; ?>
+    </div>
+
+</div>
 
 <script>
-const passwordInput = document.getElementById('password');
-const toggleBtn = document.getElementById('togglePassword');
+// Tab switching
+function switchTab(tabIndex) {
+    document.querySelectorAll('.tab').forEach((tab, index) => {
+        tab.classList.toggle('active', index === tabIndex);
+    });
+    
+    document.querySelectorAll('.tab-content').forEach((content, index) => {
+        content.style.display = (index === tabIndex) ? 'block' : 'none';
+    });
+}
 
-toggleBtn.addEventListener('click', () => {
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        toggleBtn.textContent = 'Hide';
-    } else {
-        passwordInput.type = 'password';
-        toggleBtn.textContent = 'Show';
+// Password toggle (for Account Settings tab)
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    
+    if (toggleBtn && passwordInput) {
+        toggleBtn.addEventListener('click', () => {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.textContent = 'Hide';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.textContent = 'Show';
+            }
+        });
     }
 });
 </script>

@@ -62,7 +62,146 @@
     }
 
     switch ($resource) {
+        case 'customer_signup':
+            if ($method == 'POST') {            
+                function input_cleanup($data) {
+                    return stripslashes(trim($data));
+                }
+
+                $lastName      = input_cleanup($_POST["lastName"] ?? "");
+                $firstName     = input_cleanup($_POST["firstName"] ?? "");
+                $email         = input_cleanup($_POST["email"] ?? "");
+                $passwordPlain = input_cleanup($_POST["password"] ?? "");
+                $confirmPassword = input_cleanup($_POST["confirmPassword"] ?? "");
+                $countryCode   = input_cleanup($_POST["countryCode"] ?? "");
+                $phoneNumber   = input_cleanup($_POST["phoneNumber"] ?? "");
+
+                // Name validation
+                if (!preg_match("/^[a-zA-Z-' ]+$/", $lastName)) {
+                    echo json_encode(["error" => "Invalid last name"]);
+                    exit();
+                }
+                if (!preg_match("/^[a-zA-Z-' ]+$/", $firstName)) {
+                    echo json_encode(["error" => "Invalid first name"]);
+                    exit();
+                }
+
+                // Email validation
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {                    
+                    echo json_encode(["error" => "Invalid email."]);
+                    exit();
+                }
+
+                // Password match check
+                if ($passwordPlain !== $confirmPassword) {                
+                    var_dump($passwordPlain);
+                    var_dump($confirmPassword);    
+                    echo json_encode(["error" => "Passwords do not match."]);
+                    exit();
+                }
+
+                // ==================== PASSWORD VALIDATION (FIXED) ====================
+                if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$/', $passwordPlain)) {                    
+                    echo json_encode(["error" => "Password must be 8-64 characters long and include at least one uppercase letter, one lowercase letter, one number (0-9), and one symbol from: @$!%*?&"]);
+                    exit();
+                }
+                // ===================================================================
+
+                $password = password_hash($passwordPlain, PASSWORD_DEFAULT);
+
+                if (!empty($phoneNumber)) {
+                    if (!preg_match("/^\+[0-9]{1,4}$/", $countryCode)) {
+                        echo json_encode(["error" => "Invalid country code."]);
+                        exit();
+                    }
+                    // Phone number validation
+                    if (!preg_match("/^9[0-9]{9}$/", $phoneNumber)) {
+                        echo json_encode(["error" => "Invalid phone number. Must start with 9 and be exactly 10 digits."]);
+                        exit();
+                    }
+                } else {
+                    $countryCode = "";
+                }            
+
+                // Check if email already exists
+                $check = $conn->prepare("SELECT Customer_ID FROM customer WHERE Email = ?");
+                $check->bind_param("s", $email);
+                $check->execute();
+                $checkResult = $check->get_result();
+
+                if ($checkResult->num_rows > 0) {
+                    http_response_code(409);
+                    echo json_encode(["error" => "Email already exists. Please log in instead using that email."]);
+                } else {
+                    begin_transaction();       
+                    $sql = $conn->prepare("
+                        INSERT INTO customer (LastName, FirstName, Email, Password, CountryCode, PhoneNumber)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ");
+
+                    $sql->bind_param("ssssss", $lastName, $firstName, $email, $password, $countryCode, $phoneNumber);
+
+                    if ($sql->execute()) {
+                        $sql->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Sign up successful! Please log in."]);
+                        // echo "<script>
+                        //     document.getElementById('signupForm').style.display = 'none';
+                        //     document.getElementById('loginForm').style.display = 'block';
+                        // </script>";
+                    } else {
+                        $sql->rollback();
+                        http_response_code(400);
+                        echo json_encode(["error" => "An error occurred. Please try again."]);
+                    }
+
+                }
+            }
+            break;
         case 'customer_login':
+            if ($method == 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+
+                $email = $data['loginEmail'] ?? '';
+                $password = $data['loginPassword'] ?? '';
+
+                if (empty($email) || empty($password)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Email and password are required."]));
+                }
+
+                $stmt = $conn->prepare("SELECT Customer_ID, Password FROM customer WHERE Email = ?");
+                $stmt->bind_param("s", $email);
+                $stmt->execute(); 
+                $result = $stmt->get_result();
+
+                if ($result->num_rows === 1) {
+                    $customer = $result->fetch_assoc();
+
+                    if (password_verify($password, $customer['Password'])) {
+                        $payload = [
+                            'iss' => 'http://localhost/Peak-Redux-Repo/PeaksCinema',
+                            'iat' => time(),
+                            'exp' => time() + (60 * 60 * 12),
+                            'id' => $customer['Customer_ID'],
+                            'role' => 'customer'
+                        ];
+
+                        $jwt = JWT::encode($payload, $jwt_secret, 'HS256');
+
+                        echo json_encode(["status" => "Success!!!!!", "token" => $jwt]);
+                        exit();
+                    } else {
+                        http_response_code(404);
+                        echo json_encode(["error" => "Wrong Email or Password."]);
+                        exit();
+                    }
+                } else {
+                    http_response_code(404);
+                    echo json_encode(["error" => "Wrong Email or Password."]);
+                    exit();
+                }
+            }
             break;
         case 'admin_login':
             if ($method == 'POST') {
@@ -282,7 +421,15 @@
         case 'movie':
             if ($method == 'GET') {
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare('SELECT * FROM movie');                    
+                    $stmt = $conn->prepare("SELECT movie.*, MIN(timeslot.Date) AS EarliestDate,
+                                            CASE 
+                                                WHEN MIN(timeslot.Date) <= CURRENT_DATE THEN 'Now Showing'
+                                                ELSE 'Coming Soon'
+                                            END AS MovieAvailability
+                                            FROM `movie`
+                                            INNER JOIN daterange ON daterange.Movie_ID = movie.Movie_ID
+                                            INNER JOIN timeslot ON timeslot.DateRange_ID = daterange.DateRange_ID
+                                            GROUP BY movie.Movie_ID");                    
                     try {
                         $stmt->execute();
                         $result = $stmt->get_result();

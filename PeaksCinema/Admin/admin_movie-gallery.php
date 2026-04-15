@@ -16,7 +16,7 @@
             <div id="movieMenuContainer" style="display: none">
                 <form id="movieMenu">
                     <div id="scrollable">
-                    <button type="button" id="theBackButton" class="generalAdminButton" onclick="movieMenuOpenClose()">Back</button>
+                        <button type="button" id="theBackButton" class="generalAdminButton" onclick="movieMenuOpenClose()">Back</button>
                         <div id="movieEverything">
                             <div id="movieMenuTop">
                                 <label for="MovieName">Movie Name: </label>

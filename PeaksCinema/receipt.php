@@ -28,6 +28,12 @@ if (empty($paymentMethod)) {
 
 include("peakscinemas_database.php");
 
+$email_stmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
+$email_stmt->bind_param("i", $Customer_ID);
+$email_stmt->execute();
+$emailResult = $email_stmt->get_result()->fetch_assoc();
+$customerEmail = $emailResult['Email'];
+
 $movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
 $movie_stmt->bind_param("i", $Movie_ID);
 $movie_stmt->execute();
@@ -37,7 +43,6 @@ $mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
 $mall_stmt->bind_param("i", $Mall_ID);
 $mall_stmt->execute();
 $mallDetails = ($mall_stmt->get_result())->fetch_assoc();
-
 
 $timeslot_stmt = $conn->prepare("SELECT * FROM timeslot WHERE TimeSlot_ID = ?");
 $timeslot_stmt->bind_param("i", $TimeSlot_ID);
@@ -51,11 +56,9 @@ $theaterDetails = ($theater_stmt->get_result())->fetch_assoc();
 
 $seatPositions = [];
 if (!empty($selectedSeats)) {
-    // Create placeholders for the prepared statement
     $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
     $seat_stmt = $conn->prepare("SELECT Seat_ID, SeatRow, SeatColumn FROM seats WHERE Seat_ID IN ($placeholders)");
     
-    // Bind parameters
     $types = str_repeat('i', count($selectedSeats));
     $seat_stmt->bind_param($types, ...$selectedSeats);
     $seat_stmt->execute();
@@ -65,24 +68,25 @@ if (!empty($selectedSeats)) {
         $seatPositions[] = $seat['SeatRow'] . $seat['SeatColumn'];
     }
     
-    // Sort the seat positions for better display (A1, A2, B1, B2, etc.)
     sort($seatPositions);
 }
 
 $bookingRef = 'PC-' . date('Ymd') . '-' . rand(1000, 9999);
 
+if (empty($selectedSeats)) {
+    die("No seats selected.");
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn -> begin_transaction();
 
     try {
-        $seatUpdate_stmt = $conn->prepare("UPDATE seat_timeslot 
-                                   SET SeatAvailability = 0 
-                                   WHERE Seat_ID = ? AND TimeSlot_ID = ?");
-        foreach ($selectedSeats as $Seat_ID) {
-            $seatUpdate_stmt->bind_param("ii", $Seat_ID, $TimeSlot_ID);
-            $seatUpdate_stmt->execute();
-        }
+        $seatUpdate_stmt = $conn -> prepare("UPDATE seats SET SeatAvailability = 0 WHERE Seat_ID = ?");
 
+        foreach ($selectedSeats as $Seat_ID) {
+            $seatUpdate_stmt -> bind_param("i", $Seat_ID);
+            $seatUpdate_stmt -> execute();
+        }
 
         $ticketIDs = [];
         $ticket_stmt = $conn -> prepare("INSERT INTO ticket(Seat_ID, Customer_ID, Movie_ID, TimeSlot_ID, Price, Status, DateTime)
@@ -90,22 +94,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $Status = 1;
         $dateTime = date('Y-m-d H:i:s');    
-        $price_stmt = $conn->prepare("SELECT SeatPrice 
-                              FROM seat_timeslot 
-                              WHERE Seat_ID = ? AND TimeSlot_ID = ?");
+        $price = $totalPrice / count($selectedSeats);
+
         foreach ($selectedSeats as $Seat_ID) {
-            // Get the actual seat price for this timeslot
-            $price_stmt->bind_param("ii", $Seat_ID, $TimeSlot_ID);
-            $price_stmt->execute();
-            $priceResult = $price_stmt->get_result()->fetch_assoc();
-            $price = $priceResult['SeatPrice'];
-
-            // Insert ticket with the correct seat price
-            $ticket_stmt->bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
-            $ticket_stmt->execute();
-            $ticketIDs[] = $conn->insert_id;
+            $ticket_stmt -> bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
+            $ticket_stmt -> execute();
+            $ticketIDs[] = $conn -> insert_id;
         }
-
 
         $payment_stmt = $conn -> prepare("INSERT INTO payment(Ticket_ID, PaymentMethod, AmountPaid, PaymentDate, PaymentStatus)
                                         VALUES (?, ?, ?, ?, ?)");    
@@ -134,208 +129,284 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html>
 <head>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:'Segoe UI',sans-serif;
         }
 
-        header {
-            background-color: #a3c2b1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 30px;
-            border-bottom: 3px solid #4b4b4b;
+        body{
+            background:linear-gradient(to bottom,#071018,#0d1b2a);
+            color:white;
+            min-height:100vh;
+            overflow-x:hidden;
         }
 
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #2b2b2b;
-            color: white;
+        header{
+            position:fixed;
+            width:100%;
+            top:0;
+            padding:20px 60px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            z-index:1000;
+            background:linear-gradient(to bottom,rgba(7,16,24,0.95),transparent);
+            transition:0.3s;
         }
 
-        .logo img {
-            height: 45px;
-            width: auto;
+        header.scrolled{
+            background:#071018;
+            box-shadow:0 4px 25px rgba(0,0,0,0.6);
         }
 
-        nav {
-            display: flex;
-            gap: 10px;
+        .logo img{
+            height:45px;
         }
 
-        nav a {
-            background-color: #4b4b4b;
-            color: white;
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 10px;
-            border: 1px solid #a3c2b1;
-            transition: 0.3s;
+        nav{
+            display:flex;
+            gap:10px;
+        }
+
+        nav a{
+            background:rgba(255,255,255,0.08);
+            padding:8px 15px;
+            border-radius:20px;
+            text-decoration:none;
+            color:white;
+            transition:0.3s;
         }
 
         nav a:hover,
-        nav a.active {
-            background-color: #a3c2b1;
-            color: #2b2b2b;
-        }
-       
-        #topLinkSection {
-            width: 50%;
-            margin: 10px auto;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            border-radius: 10px;
+        nav a.active{
+            background:#2dd4bf;
+            color:#071018;
         }
 
-        .topLink {
-            border-radius: 10px;
-            width: auto;
-            align-items: center;
-            text-align: center;
+        main{
+            margin-top:130px;
+            padding:0 60px;
         }
 
-        .topLink a {
-            background-color: #4b4b4b;
-            color: white;
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 10px;
-            border: 1px solid #a3c2b1;
-            transition: 0.3s;
+        #topLinkSection{
+            margin-bottom:30px;
         }
 
-        .topLink a#active {
-            background-color: #a3c2b1;
-            color: white;
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 10px;
-            border: 1px solid #a3c2b1;
-            font-weight: bold;
-            color: #2b2b2b;
+        .topLink{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
+        }
+
+        .topLink a{
+            background:rgba(255,255,255,0.08);
+            padding:8px 15px;
+            border-radius:20px;
+            text-decoration:none;
+            color:white;
+            transition:0.3s;
         }
 
         .topLink a:hover,
-        .topLink a.active {
-            background-color: #a3c2b1;
-            color: #2b2b2b;
-        }
-       
-        #receiptSection {
-            background-color: #a3c2b1;
-            padding: 20px;
-            border: 5px solid black;
-            width: 50%;
-            margin: 5px auto;
-            border-radius: 10px;
-            color: #363635;
+        .topLink a#active{
+            background:#2dd4bf;
+            color:#071018;
         }
 
-        .receipt-header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #4b4b4b;
-            padding-bottom: 10px;
+        #receiptSection{
+            background:rgba(255,255,255,0.06);
+            backdrop-filter:blur(10px);
+            border-radius:15px;
+            padding:30px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.4);
+            margin-bottom:40px;
         }
 
-        .receipt-details {
-            margin-bottom: 20px;
+        .receipt-header{
+            text-align:center;
+            margin-bottom:20px;
         }
 
-        .receipt-row {
+        .receipt-header h2{
+            font-size:2.6rem;
+            color:#2dd4bf;
+            letter-spacing:1px;
+        }
+
+        .thank-you{
+            font-size:1.15rem;
+            color:#9ca3af;
+            margin-top:8px;
+        }
+
+        .receipt-details{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .receipt-row{
+            display:flex;
+            justify-content:space-between;
+            padding:14px 18px;
+            border-radius:12px;
+            background:rgba(255,255,255,0.05);
+        }
+
+        .receipt-row span:first-child{
+            color:#8a9bad;
+            font-weight:500;
+        }
+
+        .receipt-row span:last-child{
+            font-weight:bold;
+            color:white;
+        }
+
+        .receipt-total{
+            background:rgba(45,212,191,0.15);
+            border:1px solid #2dd4bf;
+            font-size:18px;
+            padding:16px 20px;
+            border-radius:12px;
+        }
+
+        .booking-box{
+            text-align:center;
+            padding:20px;
+            border-radius:15px;
+            background:rgba(255,255,255,0.06);
+            margin-top:18px;
+        }
+
+        .booking-box p{
+            opacity:0.7;
+            margin-bottom:8px;
+        }
+
+        #bookingReference{
+            font-size:1.5rem;
+            color:#2dd4bf;
+            font-weight:bold;
+            letter-spacing:2px;
+        }
+
+        .receipt-footer{
+            text-align:center;
+            margin-top:18px;
+            font-size:0.9rem;
+            color:#64748b;
+            opacity:0.75;
+        }
+
+        .button-container{
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            margin-top:25px;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            background:rgba(255,255,255,0.08);
+            color:white;
+            border:none;
+            padding:10px 20px;
+            border-radius:20px;
+            cursor:pointer;
+            transition:0.3s;
+        }
+
+        .btn:hover{
+            background:#2dd4bf;
+            color:#071018;
+        }
+
+        .btn-primary{
+            background:#2dd4bf;
+            color:#071018;
+            font-weight:bold;
+        }
+
+        .pdf-mode {
+            background: #071018 !important;
+            color: white !important;
+            backdrop-filter: none !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+            padding: 35px !important;
+            border-radius: 15px !important;
+            width: 100% !important;
+            max-width: 800px !important;
+            margin: 0 auto !important;
+        }
+
+        .pdf-mode * {
+            color: white !important;
+        }
+
+        .pdf-mode .receipt-row {
+            background: rgba(255,255,255,0.08) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+        }
+
+        .pdf-mode .receipt-total {
+            background: rgba(45,212,191,0.18) !important;
+            border: 1px solid #2dd4bf !important;
+            font-size: 20px !important;
+        }
+
+        .pdf-mode .receipt-header h2 {
+            color: #2dd4bf !important;
+            font-size: 2.8rem !important;
+        }
+
+        .pdf-mode .thank-you {
+            color: #9ca3af !important;
+        }
+
+        .pdf-mode #bookingReference {
+            color: #2dd4bf !important;
+            font-size: 1.8rem !important;
+        }
+
+        .pdf-mode .booking-box {
+            background: rgba(255,255,255,0.08) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+        }
+
+        .receipt-logo {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px dashed #4b4b4b;
-        }
-
-        .receipt-total {
-            font-weight: bold;
-            font-size: 18px;
-            border-top: 2px solid #4b4b4b;
-            padding-top: 10px;
-            margin-top: 10px;
-        }
-
-        .qr-code {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .qr-code img {
-            width: 150px;
-            height: 150px;
-            border: 2px solid #4b4b4b;
-            border-radius: 10px;
-        }
-
-        .btn {
-            background-color: #4b4b4b;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin-top: 10px;
-            margin-right: 10px;
-        }
-
-        .btn:hover {
-            background-color: #5c5c5c;
-        }
-
-        .btn-primary {
-            background-color: #2b2b2b;
-            width: 100%;
-        }
-
-        .btn-primary:hover {
-            background-color: #3c3c3c;
-        }
-
-        .button-container {
-            display: flex;
-            gap: 10px;
+            align-items: center;
             justify-content: center;
-            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .receipt-logo img {
+            height: 52px;
+        }
+        .logo-text {
+            font-size: 2.1rem;
+            font-weight: bold;
+            color: #2dd4bf;
+            letter-spacing: 3px;
         }
 
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #receiptSection, #receiptSection * {
-                visibility: visible;
-            }
-            #receiptSection {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                border: none;
-                box-shadow: none;
-            }
-            .btn, .button-container {
-                display: none !important;
-            }
+        .pdf-mode .receipt-footer {
+            margin-top: 15px !important;
         }
     </style>
 </head>
 <body>
     <header>
         <div class="logo">
-            <img src="peakscinema transparent.png" alt="PeaksCinemas Logo">
+            <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo">
         </div>
         <nav>
-            <a href="home.php" class="Active">Home</a>
-            <a href="about.php">About Us</a>
+            <a href="home.php">Home</a>
+            <a href="home.php">Back to Home</a>
         </nav>
     </header>
 
@@ -352,9 +423,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <section id="receiptSection">
+            <div class="receipt-logo">
+                <img src="peakscinemastransparent.png" alt="PeaksCinemas">
+            </div>
+
             <div class="receipt-header">
                 <h2>Booking Confirmation</h2>
-                <p>Thank you for your purchase!</p>
+                <p class="thank-you">Thank you for your purchase!</p>
             </div>
             
             <div class="receipt-details">
@@ -371,7 +446,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <span id="receiptDateTime">
                         <?= htmlspecialchars($Date) ?> - 
                         <?php 
-                        // FIXED: Use the same format as in mall.php - ScreeningType and StartTime
                         if (isset($timeslotDetails['ScreeningType']) && isset($timeslotDetails['StartTime'])) {
                             echo htmlspecialchars($timeslotDetails['ScreeningType'] . ' - ' . date("g:i A", strtotime($timeslotDetails['StartTime'])));
                         } else {
@@ -420,14 +494,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
             </div>
             
-            <!-- Qr code dito, qrcode.png -->
-            <div class="qr-code">
-                <img src="qrcode.png" alt="QR Code">
+            <div class="booking-box">
+                <p>Booking Reference</p>
+                <div id="bookingReference"><?= htmlspecialchars($bookingRef) ?></div>
             </div>
-            
-            <div class="receipt-header">
-                <h3>Booking Reference</h3>
-                <p id="bookingReference"><?= htmlspecialchars($bookingRef) ?></p>
+
+            <div class="receipt-footer">
+                Valid for one-time use only • PeaksCinemas © 2026
             </div>
             
             <div class="button-container">
@@ -438,41 +511,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </main>
 
     <script>
-        // Download receipt as PDF using html2pdf library
         function downloadReceipt() {
-          
-            if (typeof html2pdf !== 'undefined') {
-                const element = document.getElementById('receiptSection');
-                const bookingRef = document.getElementById('bookingReference').textContent;
-                
-                const opt = {
-                    margin: 10,
-                    filename: `receipt_${bookingRef}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                
-                html2pdf().set(opt).from(element).save();
-            } else {
-                // Fallback to print if html2pdf is not available
-                alert('PDF download feature requires html2pdf library. Printing instead.');
-                printReceipt();
-            }
+            const receipt = document.getElementById('receiptSection');
+            const headerEl = document.querySelector('header');
+            const topLinkEl = document.getElementById('topLinkSection');
+            const buttons = document.querySelector('.button-container');
+
+            const originalBodyBg = document.body.style.background;
+            const originalHeaderDisplay = headerEl.style.display;
+            const originalTopDisplay = topLinkEl.style.display;
+            const originalBtnDisplay = buttons.style.display;
+
+            headerEl.style.display = 'none';
+            topLinkEl.style.display = 'none';
+            buttons.style.display = 'none';
+            document.body.style.background = '#071018';
+            receipt.classList.add('pdf-mode');
+
+            receipt.offsetHeight;
+
+            const bookingRef = document.getElementById('bookingReference').textContent.trim();
+
+            const opt = {
+                margin: [25, 25, 25, 25],
+                filename: `receipt_${bookingRef}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 3.5,
+                    useCORS: true,
+                    backgroundColor: '#071018',
+                    allowTaint: true,
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                }
+            };
+
+            setTimeout(() => {
+                html2pdf()
+                    .set(opt)
+                    .from(receipt)
+                    .save()
+                    .then(() => {
+                        receipt.classList.remove('pdf-mode');
+                        headerEl.style.display = originalHeaderDisplay;
+                        topLinkEl.style.display = originalTopDisplay;
+                        buttons.style.display = originalBtnDisplay;
+                        document.body.style.background = originalBodyBg;
+                    });
+            }, 500);
         }
-        
-        // Print receipt
-        function printReceipt() {
-            window.print();
-        }
-        
-        // Go back to home
+
         function goHome() {
             window.location.href = 'home.php';
         }
     </script>
     
-    <!-- Include html2pdf library for PDF download functionality -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </body>
 </html>

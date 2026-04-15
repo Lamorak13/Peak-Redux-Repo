@@ -1,602 +1,619 @@
-<?php
-include("peakscinemas_database.php");
-session_start();
-
-$profile_link = "personal_info_form.php";
-
-if (isset($_SESSION['user_id'])) {
-  $profile_link = "profile_edit.php";
-
-  $stmt = $conn->prepare("SELECT Name, PhoneNumber, Email FROM customer WHERE Customer_ID = ?");
-  $stmt->bind_param("i", $_SESSION['user_id']);
-  $stmt->execute();
-  $user_result = $stmt->get_result();
-  if ($user_result->num_rows > 0) {
-    $user = $user_result->fetch_assoc();
-  }
-}
-
-if (isset($_GET['ajax_search']) && !empty($_GET['ajax_search'])) {
-  $term = "%{$_GET['ajax_search']}%";
-  $stmt = $conn->prepare("SELECT Movie_ID, MovieName, MoviePoster FROM movie WHERE MovieName LIKE ?");
-  $stmt->bind_param("s", $term);
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-  $movies = [];
-  while ($row = $result->fetch_assoc()) {
-    $movies[] = $row;
-  }
-
-  echo json_encode($movies);
-  exit;
-}
-
-function getAvailableMovies($conn, $availability)
-{
-  $stmt = $conn->prepare("SELECT * FROM movie WHERE MovieAvailability = ?");
-  $stmt->bind_param("s", $availability);
-  $stmt->execute();
-  return $stmt->get_result();
-}
-
-$now_showing_results = getAvailableMovies($conn, 'Now Showing');
-$coming_soon_results = getAvailableMovies($conn, 'Coming Soon');
-?>
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PeaksCinemas</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      scroll-behavior: smooth;
-    }
+  <script src="customer_gate.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeaksCinemas</title>
 
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      background: #000000;
-      /* background: linear-gradient(360deg, rgb(7, 7, 7) 0%, rgb(105, 104, 103) 100%); */
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
 
-    }
+body{
+background:linear-gradient(to bottom,#071018,#0d1b2a);
+color:white;
+overflow-x:hidden;
+}
 
-    body::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 11%, transparent 100%);
-      pointer-events: none;
-    }
+header{
+position:fixed;
+width:100%;
+top:0;
+padding:20px 60px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+z-index:1000;
+background:linear-gradient(to bottom,rgba(7,16,24,0.95),transparent);
+transition:0.3s;
+}
 
-    header {
-      background-color: #ffffff;
-      /* background: linear-gradient(90deg, rgba(106, 127, 63, 1) 0%, rgba(74, 106, 90, 1) 100%); */
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 30px;
-      border-bottom: 1px solid #ffffffff;
-    }
+header.scrolled{
+background:#071018;
+box-shadow:0 4px 25px rgba(0,0,0,0.6);
+}
 
-    .logo img {
-      height: 50px;
-      width: auto;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
+.logo img{
+height:45px;
+cursor:pointer;
+}
 
-    .logo img:hover {
-      transform: scale(1.05);
-    }
+.profile-btn{
+background:linear-gradient(135deg,#2dd4bf,#14b8a6);
+border:none;
+padding:8px 20px;
+border-radius:30px;
+font-weight:bold;
+cursor:pointer;
+color:#071018;
+transition:0.3s;
+}
 
-    .search-container {
-      display: block;
-      margin-left: 15px;
-      margin-right: 15px;
+.profile-btn:hover{
+transform:scale(1.05);
+}
 
-    }
+.hero-slider{
+position:relative;
+height:100vh;
+overflow:hidden;
+opacity: 0;
+transition: opacity 0.5s ease-out;
+}
 
-    .search-container input {
-      width: 300px;
-      padding: 8px 40px 8px 15px;
-      border-radius: 25px;
-      border: 1px solid #4b4b4b;
-      background: #ffffff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-      font-family: 'Segoe UI', Arial, sans-serif;
-      font-size: 0.95rem;
-      padding-top: 10px;
-      padding-bottom: 10px;
-      padding-left: 20px;
-      padding-right: 20px;
-      outline: none;
-      transition: all 0.3s ease;
-    }
+.hero-slider.shown {
+  opacity: 1;
+}
 
-    .search-container input:focus {
-      border-color: #2b2b2b;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
-    }
+.slide{
+position:absolute;
+width:100%;
+height:100%;
+opacity:0;
+transition:opacity 1s ease-in-out;
+}
 
-    .search-container button {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #2b2b2b;
-      font-size: 18px;
-      transition: transform 0.2s ease;
-    }
+.slide.active{
+opacity:1;
+}
 
-    .search-container button:hover {
-      transform: translateY(-50%) scale(1.1);
-    }
+.slide img{
+width:100%;
+height:100%;
+object-fit:cover;
+filter:brightness(0.65);
+}
 
-    .glassbox {
-      background-image: url("img/bg-pic.jpg ");
-      background-repeat: no-repeat;
-      background-size: 2000px 700px;
-      /* background: rgb(159, 223, 9);  */
-      margin: 40px auto;
-      width: 85%;
-      padding: 30px;
-      backdrop-filter: blur(12px);
-      /* frosted blur */
-      /* -webkit-backdrop-filter: blur(12px); */
-      /* Safari support */
-      border: 2px solid #ffffffff;
-      /* subtle border */
-      border-radius: 10px;
-      color: #ffffffff;
-      /* light text for contrast */
-    }
+.hero-slider::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:45%;
+background:linear-gradient(to top,#071018 15%,transparent);
+}
 
-    .tabs {
-      display: flex;
-      justify-content: center;
-      position: relative;
-      margin-bottom: 0;
-      gap: 15px;
-    }
+.slide-content{
+position:absolute;
+top:40%;
+left:60px;
+max-width:600px;
+z-index:2;
+}
 
-    .tab {
-      background: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-      padding: 8px 20px;
-      border-radius: 10px 10px 0 0;
-      margin: 0 3px;
-      cursor: pointer;
-      font-weight: 900;
-      font-family: 'Poppins', sans-serif;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      border: 1px solid #ffffffff;
-      border-bottom: none;
-      position: relative;
-      z-index: 2;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-      transition: transform 0.2s ease;
-    }
+.slide-content h1{
+font-size:2.5rem;
+font-weight:800;
+margin-bottom:20px;
+}
 
-    .tab.active {
-      background-color: #4b4b4b;
-      background: linear-gradient(90deg, rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-      border-top: 1px solid #ffffffff;
-      border-left: 1px solid #ffffffff;
-      border-right: 1px solid #ffffffff;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-      font-family: 'Poppins', sans-serif;
-    }
+.slide-content button{
+background:linear-gradient(135deg,#2dd4bf,#14b8a6);
+color:#071018;
+border:none;
+padding:12px 30px;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
+}
 
-    .tab:hover {
-      background: #ffffff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-      border-top: 1px solid #4b4b4b;
-      border-left: 1px solid #4b4b4b;
-      border-right: 1px solid #4b4b4b;
-      color: #4b4b4b;
-      font-family: 'Poppins', sans-serif;
-      transition: 0.3s;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+.slide-content button:hover{
+transform:scale(1.05);
+}
 
-    }
+.dots{
+position:absolute;
+bottom:30px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:10px;
+}
 
-    .movies-container {
-      border: 1px solid #ffffffff;
-      border-radius: 10px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-      padding: 20px;
-      backdrop-filter: blur(12px);
+.dot{
+width:10px;
+height:10px;
+background:rgba(255,255,255,0.3);
+border-radius:50%;
+cursor:pointer;
+}
 
-    }
+.dot.active{
+background:#2dd4bf;
+}
 
-    .movie-card {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-      border: 1px solid #ffffff;
-      padding: 15px;
-      text-align: center;
-      color: white;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+.movie-section{
+padding:0 60px;
+position:relative;
+z-index:3;
+margin-top:80px;
+}
 
-    }
+#nowShowing{
+margin-top:-120px;
+}
 
-    .movie-card img {
-      width: 100%;
-      height: 280px;
-      object-fit: cover;
-      border-radius: 6px;
-      background-color: #fff;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      cursor: pointer;
-    }
+.movie-section h2{
+font-size:1.9rem;
+margin-bottom:25px;
+font-weight:700;
+letter-spacing:1px;
+}
 
-    .movie-card img:hover {
-      transform: scale(1.08);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
-    }
+.movies-row{
+display:flex;
+gap:25px;
+overflow-x:auto;
+padding-bottom:20px;
+scrollbar-width:none;
+}
 
-    .movie-title {
-      margin: 15px 0 10px;
-      font-weight: 500;
-      font-size: 22px;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
-    }
+.movies-row::-webkit-scrollbar{
+display:none;
+}
 
-    .buy-btn {
-      color: #ffffff;
-      background-color: #4b4b4b;
-      background: linear-gradient(90deg, rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-      border: 1px solid #ffffff;
-      padding: 6px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      transition: 0.3s;
-    }
+.movie-card{
+min-width:340px;
+height:200px;
+border-radius:16px;
+overflow:hidden;
+cursor:pointer;
+position:relative;
+box-shadow:0 4px 15px rgba(0,0,0,0.4);
+opacity: 0;
+transition: opacity 0.5s ease-out, transform 0.4s ease, box-shadow 0.4s ease;
+}
 
-    .buy-btn:hover {
-      background: #ffffff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-      transition: 0.3s ease;
-      border: 1px solid #4b4b4b;
-      color: #4b4b4b;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+.movie-card.shown {
+  opacity: 1;
+}
 
-    }
+.movie-card:not(.noMoviesMessage):hover{
+transform:scale(1.15);
+box-shadow:0 25px 50px rgba(0,0,0,0.7);
+z-index:10;
+}
 
-    .tab-content {
-      display: none;
-    }
+.movie-card img{
+width:100%;
+height:100%;
+object-fit:cover;
+transition:opacity 0.4s ease;
+}
 
-    .tab-content.active {
-      display: block;
-    }
+.movie-card:hover img{
+opacity:0.12;
+}
 
-    footer {
-      background-color: #676864;
-      /* background: linear-gradient(90deg, rgba(106, 127, 63, 1) 0%, rgba(74, 106, 90, 1) 100%); */
-      width: 100%;
-      padding: 20px 0;
-      border-top: 3px solid #ffffffff;
-      text-align: center;
-      margin-top: auto;
+.noMoviesMessage {
+  display: flex;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 15px;
+  width: 340px;
+  text-align: center;
+  cursor: default;
+  font-weight: bold;
+}
 
-    }
+.trailer-preview{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+opacity:0;
+transition:opacity 0.4s ease;
+overflow:hidden;
+border-radius:16px;
+}
 
-    footer h2 {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      font-size: 1.5rem;
-      margin-bottom: 10px;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+.movie-card:hover .trailer-preview{
+opacity:1;
+}
 
+.trailer-preview video{
+width:100%;
+height:100%;
+object-fit:cover;
+}
 
-    }
+.volume-btn{
+position:absolute;
+top:14px;
+right:14px;
+width:38px;
+height:38px;
+background:rgba(0,0,0,0.75);
+color:white;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+cursor:pointer;
+opacity:0;
+transition:all 0.3s ease;
+z-index:15;
+box-shadow:0 4px 12px rgba(0,0,0,0.5);
+}
 
-    footer p {
-      width: 75%;
-      margin: 0 auto;
-      text-align: center;
-      line-height: 1.5;
-      font-size: 0.95rem;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
+.movie-card:hover .volume-btn{
+opacity:1;
+}
 
-    .header-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      flex: 1;
-    }
+.volume-btn:hover{
+background:rgba(45,212,191,0.9);
+transform:scale(1.15);
+}
 
-    .profile-btn {
-      background-color: #4b4b4b;
-      background: linear-gradient(90deg, rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-      border: 1px solid #CCCCCC;
-      border-radius: 50%;
-      width: 45px;
-      height: 45px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-left: auto;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
+.movie-title{
+position:absolute;
+bottom:14px;
+left:18px;
+color:white;
+font-size:1.15rem;
+font-weight:bold;
+text-shadow:0 2px 10px rgba(0,0,0,0.9);
+z-index:2;
+pointer-events:none;
+transition:opacity 0.3s;
+}
 
-    .profile-btn svg {
-      width: 24px;
-      height: 24px;
-      transition: transform 0.3s ease;
-    }
+.movie-card:hover .movie-title{
+opacity:0;
+}
 
-    .profile-btn:hover {
-      background: #ffffff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-      transform: scale(1.1);
-      border: 1px solid #4b4b4b;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-    }
+footer{
+margin-top:120px;
+padding:50px;
+background:#050c14;
+text-align:center;
+color:#aaa;
+}
 
-    .profile-btn:hover svg {
-      transform: scale(1.05);
-    }
+@keyframes shimmer {
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+}
 
-    .poster-container {
-      position: relative;
-      cursor: pointer;
-      width: 100%;
-      height: 280px;
-      border-radius: 8px;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
+.movie-card-loader {        
+    min-width:340px;
+    height:200px;
+    border-radius:16px;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 4px 15px rgba(0,0,0,0.4);
+    background-image: linear-gradient(
+        to right, 
+        #1a2631 0%, 
+        #253341 20%, 
+        #1a2631 40%, 
+        #1a2631 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 800px 200px; 
+    display: inline-block;
+    animation: shimmer 1.5s linear infinite forwards;
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
 
-    .poster-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.4s ease;
-    }
+.hero-loader {
+  width:100%;
+  height:100vh;
+  background-color: #1a2631;
+  background-image: linear-gradient(
+      to right, 
+      #1a2631 0%, 
+      #253341 20%, 
+      #1a2631 40%, 
+      #1a2631 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%; 
+  animation: shimmer 2s linear infinite forwards;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+}
 
-    .poster-container:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.7);
-    }
-
-    .poster-container:hover img {
-      transform: scale(1.12);
-    }
-
-    .poster-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.35));
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      font-size: 18px;
-      letter-spacing: 1px;
-      opacity: 0;
-      transition: opacity 0.35s ease;
-    }
-
-    .poster-overlay span {
-      background: rgba(255, 255, 255, 0.15);
-      padding: 8px 16px;
-      border-radius: 20px;
-      backdrop-filter: blur(5px);
-      transition: transform 0.3s ease, background 0.3s ease;
-    }
-
-    .poster-container:hover .poster-overlay {
-      opacity: 1;
-    }
-
-    .poster-container:hover .poster-overlay span {
-      transform: scale(1.08);
-      background: rgba(255, 255, 255, 0.25);
-    }
-  </style>
+.hero-loader.fade-out, .movie-card-loader.fade-out {
+  opacity: 0;
+}
+</style>
 </head>
 
-<body>
+  <body>
+    <header>
+      <div class="logo">
+        <img src="peakscinemastransparent.png" onclick="window.location.href='home.php'">
+      </div>
 
-  <header>
-    <div class="logo">
-      <img src="peakscinematransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
+      <button class="profile-btn" onclick="window.location.href='profile_edit.php'">👤</button>
+    </header>
+
+    <div class="hero-slider">
+      <div class="hero-loader"></div>
+      <div class="dots"></div>
     </div>
 
-    <div class="search-container">
-      <form id="searchForm" action="javascript:void(0);" method="get">
-        <input type="text" id="searchInput" name="search" placeholder="Movie Search" autocomplete="off">
-      </form>
-      <div id="searchResults"
-        style="position:absolute; top:40px; width:320px; background:#fff; color:#000; border-radius:5px; max-height:200px; overflow-y:auto; display:none; z-index:1000;">
+    <div id="nowShowing" class="movie-section">
+      <h2>Now Showing</h2>
+      <div id="nowShowingRow" class="movies-row">
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
       </div>
     </div>
 
-    <div class="header-actions">
-      <button class="profile-btn" onclick="window.location.href='<?= $profile_link ?>'" title="Profile">👤</button>
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M5.121 17.804A8 8 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-      </button>
+    <div id="comingSoon" class="movie-section">
+      <h2>Coming Soon</h2>
+      <div id="comingSoonRow" class="movies-row">
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+        <div class="movie-card-loader"></div>
+      </div>
     </div>
-  </header>
 
-  <div class="glassbox">
-    <main id="home" class="main-container">
-      <div class="tabs">
-        <div class="tab active" onclick="showTab('now-showing')">Now Showing</div>
-        <div class="tab" onclick="showTab('coming-soon')">Coming Soon</div>
-      </div>
+    <footer>
+      <h2>About Us</h2>
+      <p>Welcome to <strong>PeaksCinemas</strong>, where Peak Movies meet Peak Experiences.</p>
+    </footer>
 
-      <div id="now-showing" class="tab-content active">
-        <div class="movies-container">
+    <script>
 
-          <?php while ($row = $now_showing_results->fetch_assoc()): ?>
-            <div class='movie-card'>
-              <div class="poster-container" onclick="openTrailer('<?= htmlspecialchars($row['TrailerURL']) ?>')">
-                <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
-                <div class="poster-overlay">
-                  <span>▶ Watch Trailer</span>
-                </div>
-              </div>
-              <div class='movie-title'><?= htmlspecialchars($row['MovieName']) ?></div>
-              <button class='buy-btn' data-id='<?= htmlspecialchars($row['Movie_ID']) ?>'>Buy Tickets</button>
-            </div>
-          <?php endwhile; ?>
+      const nowShowingRow = document.getElementById('nowShowingRow');
+      const comingSoonRow = document.getElementById('comingSoonRow');
 
-        </div>
-      </div>
-      <div id="coming-soon" class="tab-content">
-        <div class="movies-container">
+      let nowShowingTotal = 0;
+      let comingSoonTotal = 0;
 
-          <?php while ($row = $coming_soon_results->fetch_assoc()): ?>
-            <div class='movie-card'>
-              <img src='/<?= htmlspecialchars($row['MoviePoster']) ?>' alt="<?= htmlspecialchars($row['MovieName']) ?>">
-              <div class='movie-title'><?= htmlspecialchars($row['MovieName']) ?></div>
-              <button class='buy-btn' data-id='<?= htmlspecialchars($row['Movie_ID']) ?>'>Buy Tickets</button>
-            </div>
-          <?php endwhile; ?>
-        </div>
-      </div>
-  </div>
-  </main>
-
-  <footer>
-    <h2>About Us</h2>
-    <p>
-      Welcome to <strong>PeaksCinemas</strong>, where Peak Movies meet Peak Experiences.
-    </p>
-  </footer>
-
-  <script>
-
-
-
-
-    //allows the embed to work basically I hope
-    function openTrailer(url) {
-
-      let videoId = "";
-
-      if (url.includes("watch?v=")) {
-        videoId = url.split("watch?v=")[1];
-      }
-      else if (url.includes("youtu.be/")) {
-        videoId = url.split("youtu.be/")[1];
-      }
-
-      const embedURL = "https://www.youtube.com/embed/" + videoId + "?autoplay=1";
-
-      document.getElementById("trailerFrame").src = embedURL;
-      document.getElementById("trailerModal").style.display = "flex";
-    }
-
-    function closeTrailer() {
-      document.getElementById("trailerModal").style.display = "none";
-      document.getElementById("trailerFrame").src = "";
-    }
-
-
-    function showTab(tabId) {
-      const tabs = document.querySelectorAll('.tab');
-      const contents = document.querySelectorAll('.tab-content');
-      tabs.forEach(tab => tab.classList.remove('active'));
-      contents.forEach(content => content.classList.remove('active'));
-      document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
-      document.getElementById(tabId).classList.add('active');
-    }
-
-    function attachBuyButtons() {
-      document.querySelectorAll('.buy-btn').forEach(button => {
-        button.onclick = () => {
-          const movieId = button.getAttribute('data-id');
-          window.location.href = `movie.php?movie_id=${movieId}`;
-        };
-      });
-    }
-
-    attachBuyButtons();
-
-    const searchInput = document.getElementById("searchInput");
-    const searchResults = document.getElementById("searchResults");
-
-    searchInput.addEventListener("input", function () {
-      const query = searchInput.value.trim();
-      if (query.length === 0) {
-        searchResults.style.display = "none";
-        searchResults.innerHTML = "";
-        return;
-      }
-
-      fetch(`home.php?ajax_search=${encodeURIComponent(query)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.length === 0) {
-            searchResults.innerHTML = "<div style='padding:10px;'>No movies found</div>";
-          } else {
-            searchResults.innerHTML = data.map(movie =>
-              `<div class='result-item' style='display:flex; align-items:center; padding:5px; cursor:pointer; border-bottom:1px solid #ddd;' 
-                         onclick="window.location.href='movie.php?movie_id=${movie.Movie_ID}'">
-                         <img src='/${movie.MoviePoster}' alt='${movie.MovieName}' style='width:50px; height:70px; object-fit:cover; margin-right:10px; border-radius:4px;'>
-                         <span>${movie.MovieName}</span>
-                    </div>`
-            ).join("");
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie', {
+          method: 'GET'
+        })
+        .then(response => {
+          if (!response.ok) {
+              console.log(response.error);
           }
-          searchResults.style.display = "block";
-        });
-    });
+          return response.json();
+        })
+        .then(data => {
+          const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+          return Promise.all([data, minDelay]);
+        })
+        .then(([data]) => {
+          const movies = data.data;
+      
 
-    document.addEventListener("click", function (e) {
-      if (!searchResults.contains(e.target) && e.target !== searchInput) {
-        searchResults.style.display = "none";
-      }
-    });
-  </script>
+          const movieCardLoader = document.querySelectorAll('.movie-card-loader');
+          
+          const heroLoader = document.querySelector('.hero-loader')
+          if (heroLoader) {
+            movieCardLoader.forEach(indiv => indiv.classList.add('fade-out'));
+            heroLoader.classList.add('fade-out');
+            
+            setTimeout(() => {
+              nowShowingRow.innerHTML = "";
+              comingSoonRow.innerHTML = "";
+              heroLoader.remove();
+              movieCardLoader.forEach(indiv => indiv.remove());          
 
+              let index = 0;
+              movies.forEach(movie => {
+                // Hero Slider
+                const slide = document.createElement('div');
+                slide.classList.add('slide');
 
-  <div id="trailerModal"
-    style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
+                if (index == 0) {
+                  slide.classList.add('active');
+                }
 
-    <div style="position:relative; width:80%; max-width:900px;">
+                const slidePoster = document.createElement('img');
+                slidePoster.src = "/" + movie.MoviePoster;
+                slide.append(slidePoster);
 
-      <span onclick="closeTrailer()"
-        style="position:absolute; top:-40px; right:0; font-size:30px; cursor:pointer; color:white;">✖</span>
+                const slideContent = document.createElement('div');
+                slideContent.classList.add('slide-content');
 
-      <iframe id="trailerFrame" width="100%" height="500" src="" frameborder="0" allow="autoplay; encrypted-media"
-        allowfullscreen>
-      </iframe>
+                const movieName = document.createElement('h1');
+                movieName.textContent = movie.MovieName;
+                slideContent.append(movieName);
 
-    </div>
+                const bookNowButton = document.createElement('button');
+                bookNowButton.textContent = "Book Now";
+                bookNowButton.addEventListener("click", function() {
+                  window.location.href = 'movie.php?movie_id=' + movie.Movie_ID;
+                })
+                slideContent.append(bookNowButton);
 
-  </div>
-</body>
+                slide.append(slideContent);
+                document.querySelector('.hero-slider').append(slide);
 
+                index++;
+                // Now Showing / Coming Soon
+                const movieCard = document.createElement('div');
+                movieCard.classList.add('movie-card');
+
+                const moviePoster = document.createElement('img');
+                moviePoster.src = "/" + movie.MoviePoster;
+                movieCard.append(moviePoster);
+
+                const movieTitle = document.createElement('div');
+                movieTitle.textContent = movie.MovieName;
+                movieTitle.classList.add('movie-title');
+                movieCard.append(movieTitle);
+
+                movieCard.addEventListener("click", function() {
+                window.location.href = 'movie.php?movie_id=' + movie.Movie_ID; 
+                })
+
+                if (movie.MovieAvailability === 'Now Showing') {
+                  nowShowingRow.append(movieCard);
+                  nowShowingTotal++;
+                } else if (movie.MovieAvailability === 'Coming Soon') {
+                  comingSoonRow.append(movieCard);
+                  comingSoonTotal++;
+                }            
+              })
+
+              const noMoviesMessage = document.createElement('div');
+              noMoviesMessage.classList.add('movie-card');
+              noMoviesMessage.classList.remove('movie-card:hover');
+              noMoviesMessage.classList.add('noMoviesMessage');
+              noMoviesMessage.textContent = "Seems there are no movies here. Please come again soon!";
+              if (nowShowingTotal == 0) {
+                nowShowingRow.append(noMoviesMessage);
+              }
+              if (comingSoonTotal == 0) {
+                comingSoonRow.append(noMoviesMessage);
+              }
+              
+              const slides = document.querySelectorAll(".slide");
+              const dotsContainer = document.querySelector(".dots");
+              let current = 0;
+
+              slides.forEach((_,i)=>{
+                const dot=document.createElement("div");
+                dot.classList.add("dot");
+                if(i===0) dot.classList.add("active");
+                dot.addEventListener("click",()=>showSlide(i));
+                dotsContainer.appendChild(dot);
+              });
+
+              const dots=document.querySelectorAll(".dot");
+
+              function showSlide(index){
+                slides[current].classList.remove("active");
+                dots[current].classList.remove("active");
+                current=index;
+                slides[current].classList.add("active");
+                dots[current].classList.add("active");
+              }
+
+              setInterval(()=>{
+                let next=(current+1)%slides.length;
+                showSlide(next);
+              },5000);
+
+              document.querySelector('.hero-slider').classList.add('shown');
+              document.querySelectorAll('.movie-card').forEach((indiv, i) => {
+                setTimeout(() => {
+                  indiv.classList.add('shown');
+                }, i * 100);
+              });
+            }, 500)  
+            
+          }       
+        })        
+      })
+
+      window.addEventListener("scroll",()=>{
+        document.querySelector("header")
+        .classList.toggle("scrolled",window.scrollY>50);
+      });
+
+      document.querySelectorAll('.movie-card').forEach(card => {
+        console.log("test");
+          const video = card.querySelector('video');
+          const volumeBtn = card.querySelector('.volume-btn');
+          if (!video || !volumeBtn) return;
+
+          let isMuted = true;
+
+          card.addEventListener('mouseenter', () => {
+              console.log("test");
+              video.play().catch(() => {});
+              volumeBtn.style.opacity = '1';
+          });
+
+          card.addEventListener('mouseleave', () => {
+              video.pause();
+              video.currentTime = 0;
+              video.muted = true;
+              isMuted = true;
+              volumeBtn.textContent = '🔇';
+              volumeBtn.style.opacity = '0';
+          });
+
+          volumeBtn.addEventListener('click', (e) => {
+              e.stopImmediatePropagation();
+              isMuted = !isMuted;
+              video.muted = isMuted;
+              volumeBtn.textContent = isMuted ? '🔇' : '🔊';
+          });
+      });
+    </script>
+  </body>
 </html>
+
+<!-- <?php while ($row = $now_showing_results->fetch_assoc()): ?>
+      <div class="movie-card"
+           onclick="window.location.href='movie.php?movie_id=<?= $row['Movie_ID']?>'">
+        
+        <img src="/<?= htmlspecialchars($row['MoviePoster']) ?>">
+        
+        <?php if(!empty($row['MovieTrailer'])): ?>
+        <div class="trailer-preview">
+          <video src="trailers/<?= htmlspecialchars($row['TrailerURL']) ?>" 
+                 muted loop playsinline preload="none"></video>
+          
+          <div class="volume-btn" title="Toggle sound">🔇</div>
+        </div>
+        <?php endif; ?>
+        
+        <div class="movie-title"><?= htmlspecialchars($row['MovieName']) ?></div>
+      </div>
+    <?php endwhile; ?> -->
+
+    <!-- <?php while ($row = $coming_soon_results->fetch_assoc()): ?>
+          <div class="movie-card"
+              onclick="window.location.href='cs-movie.php?movie_id=<?= $row['Movie_ID']?>'">
+            
+            <img src="/<?= htmlspecialchars($row['MoviePoster']) ?>">
+            
+            <?php if(!empty($row['MovieTrailer'])): ?>
+            <div class="trailer-preview">
+              <video src="trailers/<?= htmlspecialchars($row['MovieTrailer']) ?>" 
+                    muted loop playsinline preload="none"></video>
+              
+              <div class="volume-btn" title="Toggle sound">🔇</div>
+            </div>
+            <?php endif; ?>
+            
+            <div class="movie-title"><?= htmlspecialchars($row['MovieName']) ?></div>
+          </div>
+        <?php endwhile; ?> -->

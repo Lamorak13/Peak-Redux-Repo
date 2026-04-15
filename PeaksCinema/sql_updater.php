@@ -7,739 +7,625 @@
 
     if($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = <<<SQL
-                    SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-                    START TRANSACTION;
-                    SET time_zone = "+00:00";
-                    DROP DATABASE IF EXISTS `peakscinemadb`;
-                    CREATE DATABASE IF NOT EXISTS `peakscinemadb` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-                    USE `peakscinemadb`;
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        SET time_zone = "+00:00";
 
-                    CREATE TABLE `customer` (
-                    `Customer_ID` int(11) NOT NULL,
-                    `Name` varchar(100) NOT NULL,
-                    `Email` varchar(100) NOT NULL,
-                    `Password` varchar(255) NOT NULL,
-                    `PhoneNumber` varchar(10) NOT NULL,
-                    `CountryCode` varchar(4) NOT NULL,
-                    `PaymentMethod` tinytext NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+        /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+        /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+        /*!40101 SET NAMES utf8mb4 */;
 
-                    CREATE TABLE `daterange` (
-                    `DateRange_ID` int(11) NOT NULL,
-                    `Movie_ID` int(11) NOT NULL,
-                    `Theater_ID` int(11) NOT NULL,
-                    `StartDate` date NOT NULL,
-                    `EndDate` date NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        DROP DATABASE IF EXISTS `peakscinemadb`;
+        CREATE DATABASE IF NOT EXISTS `peakscinemadb` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+        USE `peakscinemadb`;
 
-                    INSERT INTO `daterange` (`DateRange_ID`, `Movie_ID`, `Theater_ID`, `StartDate`, `EndDate`) VALUES
-                    (9, 1, 11, '2026-03-25', '2026-03-30');
+        CREATE TABLE `customer` (
+        `Customer_ID` int(11) NOT NULL,
+        `Name` varchar(100) NOT NULL,
+        `Email` varchar(100) NOT NULL,
+        `PhoneNumber` varchar(10) NOT NULL,
+        `CountryCode` varchar(4) NOT NULL,
+        `PaymentMethod` tinytext NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    CREATE TABLE `e-receipt` (
-                    `Receipt_ID` int(11) NOT NULL,
-                    `Payment_ID` int(11) NOT NULL,
-                    `DateIssued` date NOT NULL,
-                    `SentToEmail` varchar(100) NOT NULL,
-                    `ReceiptStatus` int(11) NOT NULL,
-                    `Status` int(11) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        CREATE TABLE `e-receipt` (
+        `Receipt_ID` int(11) NOT NULL,
+        `PaymentID` int(11) NOT NULL,
+        `DateIssued` date NOT NULL,
+        `SentToEmail` varchar(100) NOT NULL,
+        `ReceiptStatus` int(11) NOT NULL,
+        `Status` int(11) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    INSERT INTO `e-receipt` (`Receipt_ID`, `Payment_ID`, `DateIssued`, `SentToEmail`, `ReceiptStatus`, `Status`) VALUES
-                    (1, 1, '2026-03-13', '', 1, 1),
-                    (2, 2, '2026-03-13', '', 1, 1),
-                    (3, 3, '2026-03-13', '', 1, 1);
+        CREATE TABLE `mall` (
+        `Mall_ID` int(11) NOT NULL,
+        `MallName` tinytext NOT NULL,
+        `Location` tinytext NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    CREATE TABLE `mall` (
-                    `Mall_ID` int(11) NOT NULL,
-                    `MallName` tinytext NOT NULL,
-                    `Location` tinytext NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        INSERT INTO `mall` (`Mall_ID`, `MallName`, `Location`) VALUES
+        (1, 'SM Marikina', 'Marcos Highway, Calumpang, Marikina City, 1801, Marikina, Luzon Philippines');
 
-                    INSERT INTO `mall` (`Mall_ID`, `MallName`, `Location`) VALUES
-                    (1, 'SM Marikina', 'Marcos Highway, Calumpang, Marikina City, 1801, Marikina, Luzon Philippines');
-                    
-                    CREATE TABLE `movie` (
-                    `Movie_ID` int(11) NOT NULL,
-                    `MovieName` text NOT NULL,
-                    `MovieDescription` mediumtext NOT NULL,
-                    `Genre` tinytext NOT NULL,
-                    `Rating` varchar(10) NOT NULL,
-                    `Runtime` int(11) NOT NULL,
-                    `MoviePoster` text NOT NULL,
-                    `TrailerURL` text NOT NULL,
-                    `MovieAvailability` varchar(100) NOT NULL DEFAULT 'Now Showing'
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        CREATE TABLE `movie` (
+        `Movie_ID` int(11) NOT NULL,
+        `MovieName` text NOT NULL,
+        `MovieDescription` mediumtext NOT NULL,
+        `Genre` tinytext NOT NULL,
+        `Rating` varchar(10) NOT NULL,
+        `Runtime` int(11) NOT NULL,
+        `MoviePoster` text NOT NULL,
+        `MovieAvailability` tinytext NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    INSERT INTO `movie` (`Movie_ID`, `MovieName`, `MovieDescription`, `Genre`, `Rating`, `Runtime`, `MoviePoster`, `MovieAvailability`, `TrailerURL`, `Price`) VALUES
-                    (1, 'Superman', 'Superman must reconcile his alien Kryptonian heritage with his human upbringing as reporter Clark Kent. As the embodiment of truth, justice and the human way he soon finds himself in a world that views these as old-fashioned.\n\n', 'Superhero, Action', 'PG', 129, 'PeaksCinema/MoviePosters/Superman.png', 'Now Showing', 'https://www.youtube.com/watch?v=Ox8ZLF6cGM0', 350);
+        INSERT INTO `movie` (`Movie_ID`, `MovieName`, `MovieDescription`, `Genre`, `Rating`, `Runtime`, `MoviePoster`, `MovieAvailability`) VALUES
+        (1, 'Superman', 'Superman must reconcile his alien Kryptonian heritage with his human upbringing as reporter Clark Kent. As the embodiment of truth, justice and the human way he soon finds himself in a world that views these as old-fashioned.\r\n\r\n', 'Superhero, Action', 'PG', 129, 'PeaksCinema/MoviePosters/Superman.png', 'Now Showing');
 
-                    CREATE TABLE `payment` (
-                    `Payment_ID` int(11) NOT NULL,
-                    `Ticket_ID` int(11) NOT NULL,
-                    `PaymentMethod` varchar(50) NOT NULL,
-                    `AmountPaid` decimal(10,2) NOT NULL,
-                    `PaymentDate` date NOT NULL,
-                    `PaymentStatus` int(11) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        CREATE TABLE `payment` (
+        `Payment_ID` int(11) NOT NULL,
+        `Ticket_ID` int(11) NOT NULL,
+        `PaymentMethod` varchar(50) NOT NULL,
+        `AmountPaid` decimal(10,2) NOT NULL,
+        `PaymentDate` date NOT NULL,
+        `PaymentStatus` int(11) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    INSERT INTO `payment` (`Payment_ID`, `Ticket_ID`, `PaymentMethod`, `AmountPaid`, `PaymentDate`, `PaymentStatus`) VALUES
-                    (1, 4, 'paymaya', 350.00, '2026-03-13', 1),
-                    (2, 5, 'paymaya', 350.00, '2026-03-13', 1),
-                    (3, 6, 'paymaya', 350.00, '2026-03-13', 1);
+        CREATE TABLE `seats` (
+        `Seat_ID` int(11) NOT NULL,
+        `SeatRow` varchar(10) NOT NULL,
+        `SeatColumn` varchar(10) NOT NULL,
+        `SeatType` varchar(50) NOT NULL,
+        `SeatAvailability` int(1) DEFAULT NULL,
+        `SeatPrice` tinytext DEFAULT NULL,
+        `Theater_ID` int(11) NOT NULL,
+        `TimeSlot_ID` int(11) DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    CREATE TABLE `seats` (
-                    `Seat_ID` int(11) NOT NULL, 
-                    `Theater_ID` int(11) NOT NULL,
-                    `SeatRow` varchar(10) NOT NULL,
-                    `SeatColumn` varchar(10) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        INSERT INTO `seats` (`Seat_ID`, `SeatRow`, `SeatColumn`, `SeatType`, `SeatAvailability`, `SeatPrice`, `Theater_ID`, `TimeSlot_ID`) VALUES
+        (353, 'A', '10', 'Regular', 0, NULL, 13, NULL),
+        (354, 'A', '9', 'Regular', 0, NULL, 13, NULL),
+        (355, 'A', '0', 'Empty', 0, NULL, 13, NULL),
+        (356, 'A', '0', 'Empty', 0, NULL, 13, NULL),
+        (357, 'A', '8', 'Regular', 0, NULL, 13, NULL),
+        (358, 'A', '7', 'Regular', 0, NULL, 13, NULL),
+        (359, 'A', '6', 'Regular', 0, NULL, 13, NULL),
+        (360, 'A', '5', 'Regular', 0, NULL, 13, NULL),
+        (361, 'A', '4', 'Regular', 0, NULL, 13, NULL),
+        (362, 'A', '3', 'Regular', 0, NULL, 13, NULL),
+        (363, 'A', '0', 'Empty', 0, NULL, 13, NULL),
+        (364, 'A', '0', 'Empty', 0, NULL, 13, NULL),
+        (365, 'A', '2', 'Regular', 0, NULL, 13, NULL),
+        (366, 'A', '1', 'Regular', 0, NULL, 13, NULL),
+        (367, 'B', '10', 'Regular', 0, NULL, 13, NULL),
+        (368, 'B', '9', 'Regular', 0, NULL, 13, NULL),
+        (369, 'B', '0', 'Empty', 0, NULL, 13, NULL),
+        (370, 'B', '0', 'Empty', 0, NULL, 13, NULL),
+        (371, 'B', '8', 'Regular', 0, NULL, 13, NULL),
+        (372, 'B', '7', 'Regular', 0, NULL, 13, NULL),
+        (373, 'B', '6', 'Regular', 0, NULL, 13, NULL),
+        (374, 'B', '5', 'Regular', 0, NULL, 13, NULL),
+        (375, 'B', '4', 'Regular', 0, NULL, 13, NULL),
+        (376, 'B', '3', 'Regular', 0, NULL, 13, NULL),
+        (377, 'B', '0', 'Empty', 0, NULL, 13, NULL),
+        (378, 'B', '0', 'Empty', 0, NULL, 13, NULL),
+        (379, 'B', '2', 'Regular', 0, NULL, 13, NULL),
+        (380, 'B', '1', 'Regular', 0, NULL, 13, NULL),
+        (381, 'C', '10', 'Regular', 0, NULL, 13, NULL),
+        (382, 'C', '9', 'Regular', 0, NULL, 13, NULL),
+        (383, 'C', '0', 'Empty', 0, NULL, 13, NULL),
+        (384, 'C', '0', 'Empty', 0, NULL, 13, NULL),
+        (385, 'C', '8', 'Regular', 0, NULL, 13, NULL),
+        (386, 'C', '7', 'Regular', 0, NULL, 13, NULL),
+        (387, 'C', '6', 'Regular', 0, NULL, 13, NULL),
+        (388, 'C', '5', 'Regular', 0, NULL, 13, NULL),
+        (389, 'C', '4', 'Regular', 0, NULL, 13, NULL),
+        (390, 'C', '3', 'Regular', 0, NULL, 13, NULL),
+        (391, 'C', '0', 'Empty', 0, NULL, 13, NULL),
+        (392, 'C', '0', 'Empty', 0, NULL, 13, NULL),
+        (393, 'C', '2', 'Regular', 0, NULL, 13, NULL),
+        (394, 'C', '1', 'Regular', 0, NULL, 13, NULL),
+        (395, 'D', '10', 'Regular', 0, NULL, 13, NULL),
+        (396, 'D', '9', 'Regular', 0, NULL, 13, NULL),
+        (397, 'D', '0', 'Empty', 0, NULL, 13, NULL),
+        (398, 'D', '0', 'Empty', 0, NULL, 13, NULL),
+        (399, 'D', '8', 'Regular', 0, NULL, 13, NULL),
+        (400, 'D', '7', 'Regular', 0, NULL, 13, NULL),
+        (401, 'D', '6', 'Regular', 0, NULL, 13, NULL),
+        (402, 'D', '5', 'Regular', 0, NULL, 13, NULL),
+        (403, 'D', '4', 'Regular', 0, NULL, 13, NULL),
+        (404, 'D', '3', 'Regular', 0, NULL, 13, NULL),
+        (405, 'D', '0', 'Empty', 0, NULL, 13, NULL),
+        (406, 'D', '0', 'Empty', 0, NULL, 13, NULL),
+        (407, 'D', '2', 'Regular', 0, NULL, 13, NULL),
+        (408, 'D', '1', 'Regular', 0, NULL, 13, NULL),
+        (409, 'E', '10', 'Regular', 0, NULL, 13, NULL),
+        (410, 'E', '9', 'Regular', 0, NULL, 13, NULL),
+        (411, 'E', '0', 'Empty', 0, NULL, 13, NULL),
+        (412, 'E', '0', 'Empty', 0, NULL, 13, NULL),
+        (413, 'E', '8', 'Regular', 0, NULL, 13, NULL),
+        (414, 'E', '7', 'Regular', 0, NULL, 13, NULL),
+        (415, 'E', '6', 'Regular', 0, NULL, 13, NULL),
+        (416, 'E', '5', 'Regular', 0, NULL, 13, NULL),
+        (417, 'E', '4', 'Regular', 0, NULL, 13, NULL),
+        (418, 'E', '3', 'Regular', 0, NULL, 13, NULL),
+        (419, 'E', '0', 'Empty', 0, NULL, 13, NULL),
+        (420, 'E', '0', 'Empty', 0, NULL, 13, NULL),
+        (421, 'E', '2', 'Regular', 0, NULL, 13, NULL),
+        (422, 'E', '1', 'Regular', 0, NULL, 13, NULL),
+        (493, 'A', '10', 'Regular', 1, '350', 13, 14),
+        (494, 'A', '9', 'Regular', 1, '350', 13, 14),
+        (495, 'A', '0', 'Empty', 0, '350', 13, 14),
+        (496, 'A', '0', 'Empty', 1, '350', 13, 14),
+        (497, 'A', '8', 'Regular', 1, '350', 13, 14),
+        (498, 'A', '7', 'Regular', 1, '350', 13, 14),
+        (499, 'A', '6', 'Regular', 1, '350', 13, 14),
+        (500, 'A', '5', 'Regular', 1, '350', 13, 14),
+        (501, 'A', '4', 'Regular', 1, '350', 13, 14),
+        (502, 'A', '3', 'Regular', 1, '350', 13, 14),
+        (503, 'A', '0', 'Empty', 1, '350', 13, 14),
+        (504, 'A', '0', 'Empty', 1, '350', 13, 14),
+        (505, 'A', '2', 'Regular', 1, '350', 13, 14),
+        (506, 'A', '1', 'Regular', 0, '350', 13, 14),
+        (507, 'B', '10', 'Regular', 1, '350', 13, 14),
+        (508, 'B', '9', 'Regular', 1, '350', 13, 14),
+        (509, 'B', '0', 'Empty', 1, '350', 13, 14),
+        (510, 'B', '0', 'Empty', 1, '350', 13, 14),
+        (511, 'B', '8', 'Regular', 1, '350', 13, 14),
+        (512, 'B', '7', 'Regular', 1, '350', 13, 14),
+        (513, 'B', '6', 'Regular', 1, '350', 13, 14),
+        (514, 'B', '5', 'Regular', 1, '350', 13, 14),
+        (515, 'B', '4', 'Regular', 1, '350', 13, 14),
+        (516, 'B', '3', 'Regular', 1, '350', 13, 14),
+        (517, 'B', '0', 'Empty', 1, '350', 13, 14),
+        (518, 'B', '0', 'Empty', 1, '350', 13, 14),
+        (519, 'B', '2', 'Regular', 1, '350', 13, 14),
+        (520, 'B', '1', 'Regular', 1, '350', 13, 14),
+        (521, 'C', '10', 'Regular', 1, '350', 13, 14),
+        (522, 'C', '9', 'Regular', 1, '350', 13, 14),
+        (523, 'C', '0', 'Empty', 1, '350', 13, 14),
+        (524, 'C', '0', 'Empty', 1, '350', 13, 14),
+        (525, 'C', '8', 'Regular', 1, '350', 13, 14),
+        (526, 'C', '7', 'Regular', 1, '350', 13, 14),
+        (527, 'C', '6', 'Regular', 1, '350', 13, 14),
+        (528, 'C', '5', 'Regular', 1, '350', 13, 14),
+        (529, 'C', '4', 'Regular', 1, '350', 13, 14),
+        (530, 'C', '3', 'Regular', 1, '350', 13, 14),
+        (531, 'C', '0', 'Empty', 1, '350', 13, 14),
+        (532, 'C', '0', 'Empty', 1, '350', 13, 14),
+        (533, 'C', '2', 'Regular', 1, '350', 13, 14),
+        (534, 'C', '1', 'Regular', 1, '350', 13, 14),
+        (535, 'D', '10', 'Regular', 1, '350', 13, 14),
+        (536, 'D', '9', 'Regular', 1, '350', 13, 14),
+        (537, 'D', '0', 'Empty', 1, '350', 13, 14),
+        (538, 'D', '0', 'Empty', 1, '350', 13, 14),
+        (539, 'D', '8', 'Regular', 1, '350', 13, 14),
+        (540, 'D', '7', 'Regular', 1, '350', 13, 14),
+        (541, 'D', '6', 'Regular', 1, '350', 13, 14),
+        (542, 'D', '5', 'Regular', 1, '350', 13, 14),
+        (543, 'D', '4', 'Regular', 1, '350', 13, 14),
+        (544, 'D', '3', 'Regular', 1, '350', 13, 14),
+        (545, 'D', '0', 'Empty', 1, '350', 13, 14),
+        (546, 'D', '0', 'Empty', 1, '350', 13, 14),
+        (547, 'D', '2', 'Regular', 1, '350', 13, 14),
+        (548, 'D', '1', 'Regular', 1, '350', 13, 14),
+        (549, 'E', '10', 'Regular', 1, '350', 13, 14),
+        (550, 'E', '9', 'Regular', 1, '350', 13, 14),
+        (551, 'E', '0', 'Empty', 1, '350', 13, 14),
+        (552, 'E', '0', 'Empty', 1, '350', 13, 14),
+        (553, 'E', '8', 'Regular', 1, '350', 13, 14),
+        (554, 'E', '7', 'Regular', 1, '350', 13, 14),
+        (555, 'E', '6', 'Regular', 1, '350', 13, 14),
+        (556, 'E', '5', 'Regular', 1, '350', 13, 14),
+        (557, 'E', '4', 'Regular', 1, '350', 13, 14),
+        (558, 'E', '3', 'Regular', 1, '350', 13, 14),
+        (559, 'E', '0', 'Empty', 1, '350', 13, 14),
+        (560, 'E', '0', 'Empty', 1, '350', 13, 14),
+        (561, 'E', '2', 'Regular', 1, '350', 13, 14),
+        (562, 'E', '1', 'Regular', 1, '350', 13, 14),
+        (563, 'A', '10', 'Regular', 1, '390', 13, 15),
+        (564, 'A', '9', 'Regular', 1, '390', 13, 15),
+        (565, 'A', '0', 'Empty', 1, '390', 13, 15),
+        (566, 'A', '0', 'Empty', 1, '390', 13, 15),
+        (567, 'A', '8', 'Regular', 1, '390', 13, 15),
+        (568, 'A', '7', 'Regular', 1, '390', 13, 15),
+        (569, 'A', '6', 'Regular', 1, '390', 13, 15),
+        (570, 'A', '5', 'Regular', 1, '390', 13, 15),
+        (571, 'A', '4', 'Regular', 1, '390', 13, 15),
+        (572, 'A', '3', 'Regular', 1, '390', 13, 15),
+        (573, 'A', '0', 'Empty', 1, '390', 13, 15),
+        (574, 'A', '0', 'Empty', 1, '390', 13, 15),
+        (575, 'A', '2', 'Regular', 1, '390', 13, 15),
+        (576, 'A', '1', 'Regular', 1, '390', 13, 15),
+        (577, 'B', '10', 'Regular', 1, '390', 13, 15),
+        (578, 'B', '9', 'Regular', 1, '390', 13, 15),
+        (579, 'B', '0', 'Empty', 1, '390', 13, 15),
+        (580, 'B', '0', 'Empty', 1, '390', 13, 15),
+        (581, 'B', '8', 'Regular', 1, '390', 13, 15),
+        (582, 'B', '7', 'Regular', 1, '390', 13, 15),
+        (583, 'B', '6', 'Regular', 1, '390', 13, 15),
+        (584, 'B', '5', 'Regular', 1, '390', 13, 15),
+        (585, 'B', '4', 'Regular', 1, '390', 13, 15),
+        (586, 'B', '3', 'Regular', 1, '390', 13, 15),
+        (587, 'B', '0', 'Empty', 1, '390', 13, 15),
+        (588, 'B', '0', 'Empty', 1, '390', 13, 15),
+        (589, 'B', '2', 'Regular', 1, '390', 13, 15),
+        (590, 'B', '1', 'Regular', 1, '390', 13, 15),
+        (591, 'C', '10', 'Regular', 1, '390', 13, 15),
+        (592, 'C', '9', 'Regular', 1, '390', 13, 15),
+        (593, 'C', '0', 'Empty', 1, '390', 13, 15),
+        (594, 'C', '0', 'Empty', 1, '390', 13, 15),
+        (595, 'C', '8', 'Regular', 1, '390', 13, 15),
+        (596, 'C', '7', 'Regular', 1, '390', 13, 15),
+        (597, 'C', '6', 'Regular', 1, '390', 13, 15),
+        (598, 'C', '5', 'Regular', 1, '390', 13, 15),
+        (599, 'C', '4', 'Regular', 1, '390', 13, 15),
+        (600, 'C', '3', 'Regular', 1, '390', 13, 15),
+        (601, 'C', '0', 'Empty', 1, '390', 13, 15),
+        (602, 'C', '0', 'Empty', 1, '390', 13, 15),
+        (603, 'C', '2', 'Regular', 1, '390', 13, 15),
+        (604, 'C', '1', 'Regular', 1, '390', 13, 15),
+        (605, 'D', '10', 'Regular', 1, '390', 13, 15),
+        (606, 'D', '9', 'Regular', 1, '390', 13, 15),
+        (607, 'D', '0', 'Empty', 1, '390', 13, 15),
+        (608, 'D', '0', 'Empty', 1, '390', 13, 15),
+        (609, 'D', '8', 'Regular', 1, '390', 13, 15),
+        (610, 'D', '7', 'Regular', 1, '390', 13, 15),
+        (611, 'D', '6', 'Regular', 1, '390', 13, 15),
+        (612, 'D', '5', 'Regular', 1, '390', 13, 15),
+        (613, 'D', '4', 'Regular', 1, '390', 13, 15),
+        (614, 'D', '3', 'Regular', 1, '390', 13, 15),
+        (615, 'D', '0', 'Empty', 1, '390', 13, 15),
+        (616, 'D', '0', 'Empty', 1, '390', 13, 15),
+        (617, 'D', '2', 'Regular', 1, '390', 13, 15),
+        (618, 'D', '1', 'Regular', 1, '390', 13, 15),
+        (619, 'E', '10', 'Regular', 1, '390', 13, 15),
+        (620, 'E', '9', 'Regular', 1, '390', 13, 15),
+        (621, 'E', '0', 'Empty', 1, '390', 13, 15),
+        (622, 'E', '0', 'Empty', 1, '390', 13, 15),
+        (623, 'E', '8', 'Regular', 1, '390', 13, 15),
+        (624, 'E', '7', 'Regular', 1, '390', 13, 15),
+        (625, 'E', '6', 'Regular', 1, '390', 13, 15),
+        (626, 'E', '5', 'Regular', 1, '390', 13, 15),
+        (627, 'E', '4', 'Regular', 1, '390', 13, 15),
+        (628, 'E', '3', 'Regular', 1, '390', 13, 15),
+        (629, 'E', '0', 'Empty', 1, '390', 13, 15),
+        (630, 'E', '0', 'Empty', 1, '390', 13, 15),
+        (631, 'E', '2', 'Regular', 1, '390', 13, 15),
+        (632, 'E', '1', 'Regular', 1, '390', 13, 15),
+        (633, 'A', '10', 'Regular', 1, '290', 13, 16),
+        (634, 'A', '9', 'Regular', 1, '290', 13, 16),
+        (635, 'A', '0', 'Empty', 1, '290', 13, 16),
+        (636, 'A', '0', 'Empty', 1, '290', 13, 16),
+        (637, 'A', '8', 'Regular', 1, '290', 13, 16),
+        (638, 'A', '7', 'Regular', 1, '290', 13, 16),
+        (639, 'A', '6', 'Regular', 1, '290', 13, 16),
+        (640, 'A', '5', 'Regular', 1, '290', 13, 16),
+        (641, 'A', '4', 'Regular', 1, '290', 13, 16),
+        (642, 'A', '3', 'Regular', 1, '290', 13, 16),
+        (643, 'A', '0', 'Empty', 1, '290', 13, 16),
+        (644, 'A', '0', 'Empty', 1, '290', 13, 16),
+        (645, 'A', '2', 'Regular', 1, '290', 13, 16),
+        (646, 'A', '1', 'Regular', 1, '290', 13, 16),
+        (647, 'B', '10', 'Regular', 1, '290', 13, 16),
+        (648, 'B', '9', 'Regular', 1, '290', 13, 16),
+        (649, 'B', '0', 'Empty', 1, '290', 13, 16),
+        (650, 'B', '0', 'Empty', 1, '290', 13, 16),
+        (651, 'B', '8', 'Regular', 1, '290', 13, 16),
+        (652, 'B', '7', 'Regular', 1, '290', 13, 16),
+        (653, 'B', '6', 'Regular', 1, '290', 13, 16),
+        (654, 'B', '5', 'Regular', 1, '290', 13, 16),
+        (655, 'B', '4', 'Regular', 1, '290', 13, 16),
+        (656, 'B', '3', 'Regular', 1, '290', 13, 16),
+        (657, 'B', '0', 'Empty', 1, '290', 13, 16),
+        (658, 'B', '0', 'Empty', 1, '290', 13, 16),
+        (659, 'B', '2', 'Regular', 1, '290', 13, 16),
+        (660, 'B', '1', 'Regular', 1, '290', 13, 16),
+        (661, 'C', '10', 'Regular', 1, '290', 13, 16),
+        (662, 'C', '9', 'Regular', 1, '290', 13, 16),
+        (663, 'C', '0', 'Empty', 1, '290', 13, 16),
+        (664, 'C', '0', 'Empty', 1, '290', 13, 16),
+        (665, 'C', '8', 'Regular', 1, '290', 13, 16),
+        (666, 'C', '7', 'Regular', 1, '290', 13, 16),
+        (667, 'C', '6', 'Regular', 1, '290', 13, 16),
+        (668, 'C', '5', 'Regular', 1, '290', 13, 16),
+        (669, 'C', '4', 'Regular', 1, '290', 13, 16),
+        (670, 'A', '10', 'Regular', 1, '290', 13, 17),
+        (671, 'C', '3', 'Regular', 1, '290', 13, 16),
+        (672, 'A', '9', 'Regular', 1, '290', 13, 17),
+        (673, 'C', '0', 'Empty', 1, '290', 13, 16),
+        (674, 'A', '0', 'Empty', 1, '290', 13, 17),
+        (675, 'C', '0', 'Empty', 1, '290', 13, 16),
+        (676, 'A', '0', 'Empty', 1, '290', 13, 17),
+        (677, 'C', '2', 'Regular', 1, '290', 13, 16),
+        (678, 'A', '8', 'Regular', 1, '290', 13, 17),
+        (679, 'C', '1', 'Regular', 1, '290', 13, 16),
+        (680, 'A', '7', 'Regular', 1, '290', 13, 17),
+        (681, 'D', '10', 'Regular', 1, '290', 13, 16),
+        (682, 'A', '6', 'Regular', 1, '290', 13, 17),
+        (683, 'D', '9', 'Regular', 1, '290', 13, 16),
+        (684, 'A', '5', 'Regular', 1, '290', 13, 17),
+        (685, 'D', '0', 'Empty', 1, '290', 13, 16),
+        (686, 'A', '4', 'Regular', 1, '290', 13, 17),
+        (687, 'D', '0', 'Empty', 1, '290', 13, 16),
+        (688, 'A', '3', 'Regular', 1, '290', 13, 17),
+        (689, 'D', '8', 'Regular', 1, '290', 13, 16),
+        (690, 'A', '0', 'Empty', 1, '290', 13, 17),
+        (691, 'D', '7', 'Regular', 1, '290', 13, 16),
+        (692, 'A', '0', 'Empty', 1, '290', 13, 17),
+        (693, 'D', '6', 'Regular', 1, '290', 13, 16),
+        (694, 'A', '2', 'Regular', 1, '290', 13, 17),
+        (695, 'D', '5', 'Regular', 1, '290', 13, 16),
+        (696, 'A', '1', 'Regular', 1, '290', 13, 17),
+        (697, 'D', '4', 'Regular', 1, '290', 13, 16),
+        (698, 'B', '10', 'Regular', 1, '290', 13, 17),
+        (699, 'D', '3', 'Regular', 1, '290', 13, 16),
+        (700, 'B', '9', 'Regular', 1, '290', 13, 17),
+        (701, 'D', '0', 'Empty', 1, '290', 13, 16),
+        (702, 'B', '0', 'Empty', 1, '290', 13, 17),
+        (703, 'D', '0', 'Empty', 1, '290', 13, 16),
+        (704, 'B', '0', 'Empty', 1, '290', 13, 17),
+        (705, 'D', '2', 'Regular', 1, '290', 13, 16),
+        (706, 'B', '8', 'Regular', 1, '290', 13, 17),
+        (707, 'D', '1', 'Regular', 1, '290', 13, 16),
+        (708, 'B', '7', 'Regular', 1, '290', 13, 17),
+        (709, 'E', '10', 'Regular', 1, '290', 13, 16),
+        (710, 'B', '6', 'Regular', 1, '290', 13, 17),
+        (711, 'E', '9', 'Regular', 1, '290', 13, 16),
+        (712, 'B', '5', 'Regular', 1, '290', 13, 17),
+        (713, 'E', '0', 'Empty', 1, '290', 13, 16),
+        (714, 'B', '4', 'Regular', 1, '290', 13, 17),
+        (715, 'E', '0', 'Empty', 1, '290', 13, 16),
+        (716, 'B', '3', 'Regular', 1, '290', 13, 17),
+        (717, 'E', '8', 'Regular', 1, '290', 13, 16),
+        (718, 'B', '0', 'Empty', 1, '290', 13, 17),
+        (719, 'E', '7', 'Regular', 1, '290', 13, 16),
+        (720, 'B', '0', 'Empty', 1, '290', 13, 17),
+        (721, 'E', '6', 'Regular', 1, '290', 13, 16),
+        (722, 'B', '2', 'Regular', 1, '290', 13, 17),
+        (723, 'E', '5', 'Regular', 1, '290', 13, 16),
+        (724, 'B', '1', 'Regular', 1, '290', 13, 17),
+        (725, 'E', '4', 'Regular', 1, '290', 13, 16),
+        (726, 'C', '10', 'Regular', 1, '290', 13, 17),
+        (727, 'E', '3', 'Regular', 1, '290', 13, 16),
+        (728, 'C', '9', 'Regular', 1, '290', 13, 17),
+        (729, 'E', '0', 'Empty', 1, '290', 13, 16),
+        (730, 'C', '0', 'Empty', 1, '290', 13, 17),
+        (731, 'E', '0', 'Empty', 1, '290', 13, 16),
+        (732, 'C', '0', 'Empty', 1, '290', 13, 17),
+        (733, 'E', '2', 'Regular', 1, '290', 13, 16),
+        (734, 'C', '8', 'Regular', 1, '290', 13, 17),
+        (735, 'E', '1', 'Regular', 1, '290', 13, 16),
+        (736, 'C', '7', 'Regular', 1, '290', 13, 17),
+        (737, 'C', '6', 'Regular', 1, '290', 13, 17),
+        (738, 'C', '5', 'Regular', 1, '290', 13, 17),
+        (739, 'C', '4', 'Regular', 1, '290', 13, 17),
+        (740, 'C', '3', 'Regular', 1, '290', 13, 17),
+        (741, 'C', '0', 'Empty', 1, '290', 13, 17),
+        (742, 'C', '0', 'Empty', 1, '290', 13, 17),
+        (743, 'C', '2', 'Regular', 1, '290', 13, 17),
+        (744, 'C', '1', 'Regular', 1, '290', 13, 17),
+        (745, 'D', '10', 'Regular', 1, '290', 13, 17),
+        (746, 'D', '9', 'Regular', 1, '290', 13, 17),
+        (747, 'D', '0', 'Empty', 1, '290', 13, 17),
+        (748, 'D', '0', 'Empty', 1, '290', 13, 17),
+        (749, 'D', '8', 'Regular', 1, '290', 13, 17),
+        (750, 'D', '7', 'Regular', 1, '290', 13, 17),
+        (751, 'D', '6', 'Regular', 1, '290', 13, 17),
+        (752, 'D', '5', 'Regular', 1, '290', 13, 17),
+        (753, 'D', '4', 'Regular', 1, '290', 13, 17),
+        (754, 'D', '3', 'Regular', 1, '290', 13, 17),
+        (755, 'D', '0', 'Empty', 1, '290', 13, 17),
+        (756, 'D', '0', 'Empty', 1, '290', 13, 17),
+        (757, 'D', '2', 'Regular', 1, '290', 13, 17),
+        (758, 'D', '1', 'Regular', 1, '290', 13, 17),
+        (759, 'E', '10', 'Regular', 1, '290', 13, 17),
+        (760, 'E', '9', 'Regular', 1, '290', 13, 17),
+        (761, 'E', '0', 'Empty', 1, '290', 13, 17),
+        (762, 'E', '0', 'Empty', 1, '290', 13, 17),
+        (763, 'E', '8', 'Regular', 1, '290', 13, 17),
+        (764, 'E', '7', 'Regular', 1, '290', 13, 17),
+        (765, 'E', '6', 'Regular', 1, '290', 13, 17),
+        (766, 'E', '5', 'Regular', 1, '290', 13, 17),
+        (767, 'E', '4', 'Regular', 1, '290', 13, 17),
+        (768, 'E', '3', 'Regular', 1, '290', 13, 17),
+        (769, 'E', '0', 'Empty', 1, '290', 13, 17),
+        (770, 'E', '0', 'Empty', 1, '290', 13, 17),
+        (771, 'E', '2', 'Regular', 1, '290', 13, 17),
+        (772, 'E', '1', 'Regular', 1, '290', 13, 17),
+        (773, 'A', '10', 'Regular', 1, '250', 13, 18),
+        (774, 'A', '9', 'Regular', 1, '250', 13, 18),
+        (775, 'A', '0', 'Empty', 1, '250', 13, 18),
+        (776, 'A', '0', 'Empty', 1, '250', 13, 18),
+        (777, 'A', '8', 'Regular', 1, '250', 13, 18),
+        (778, 'A', '7', 'Regular', 1, '250', 13, 18),
+        (779, 'A', '6', 'Regular', 1, '250', 13, 18),
+        (780, 'A', '5', 'Regular', 1, '250', 13, 18),
+        (781, 'A', '4', 'Regular', 1, '250', 13, 18),
+        (782, 'A', '3', 'Regular', 1, '250', 13, 18),
+        (783, 'A', '0', 'Empty', 1, '250', 13, 18),
+        (784, 'A', '0', 'Empty', 1, '250', 13, 18),
+        (785, 'A', '2', 'Regular', 1, '250', 13, 18),
+        (786, 'A', '1', 'Regular', 1, '250', 13, 18),
+        (787, 'B', '10', 'Regular', 1, '250', 13, 18),
+        (788, 'B', '9', 'Regular', 1, '250', 13, 18),
+        (789, 'B', '0', 'Empty', 1, '250', 13, 18),
+        (790, 'B', '0', 'Empty', 1, '250', 13, 18),
+        (791, 'B', '8', 'Regular', 1, '250', 13, 18),
+        (792, 'B', '7', 'Regular', 1, '250', 13, 18),
+        (793, 'B', '6', 'Regular', 1, '250', 13, 18),
+        (794, 'B', '5', 'Regular', 1, '250', 13, 18),
+        (795, 'B', '4', 'Regular', 1, '250', 13, 18),
+        (796, 'B', '3', 'Regular', 1, '250', 13, 18),
+        (797, 'B', '0', 'Empty', 1, '250', 13, 18),
+        (798, 'B', '0', 'Empty', 1, '250', 13, 18),
+        (799, 'B', '2', 'Regular', 1, '250', 13, 18),
+        (800, 'B', '1', 'Regular', 1, '250', 13, 18),
+        (801, 'C', '10', 'Regular', 1, '250', 13, 18),
+        (802, 'C', '9', 'Regular', 1, '250', 13, 18),
+        (803, 'C', '0', 'Empty', 1, '250', 13, 18),
+        (804, 'C', '0', 'Empty', 1, '250', 13, 18),
+        (805, 'C', '8', 'Regular', 1, '250', 13, 18),
+        (806, 'C', '7', 'Regular', 1, '250', 13, 18),
+        (807, 'C', '6', 'Regular', 1, '250', 13, 18),
+        (808, 'C', '5', 'Regular', 1, '250', 13, 18),
+        (809, 'C', '4', 'Regular', 1, '250', 13, 18),
+        (810, 'C', '3', 'Regular', 1, '250', 13, 18),
+        (811, 'C', '0', 'Empty', 1, '250', 13, 18),
+        (812, 'C', '0', 'Empty', 1, '250', 13, 18),
+        (813, 'C', '2', 'Regular', 1, '250', 13, 18),
+        (814, 'C', '1', 'Regular', 1, '250', 13, 18),
+        (815, 'D', '10', 'Regular', 1, '250', 13, 18),
+        (816, 'D', '9', 'Regular', 1, '250', 13, 18),
+        (817, 'D', '0', 'Empty', 1, '250', 13, 18),
+        (818, 'D', '0', 'Empty', 1, '250', 13, 18),
+        (819, 'D', '8', 'Regular', 1, '250', 13, 18),
+        (820, 'D', '7', 'Regular', 1, '250', 13, 18),
+        (821, 'D', '6', 'Regular', 1, '250', 13, 18),
+        (822, 'D', '5', 'Regular', 1, '250', 13, 18),
+        (823, 'D', '4', 'Regular', 1, '250', 13, 18),
+        (824, 'D', '3', 'Regular', 1, '250', 13, 18),
+        (825, 'D', '0', 'Empty', 1, '250', 13, 18),
+        (826, 'D', '0', 'Empty', 1, '250', 13, 18),
+        (827, 'D', '2', 'Regular', 1, '250', 13, 18),
+        (828, 'D', '1', 'Regular', 1, '250', 13, 18),
+        (829, 'E', '10', 'Regular', 1, '250', 13, 18),
+        (830, 'E', '9', 'Regular', 1, '250', 13, 18),
+        (831, 'E', '0', 'Empty', 1, '250', 13, 18),
+        (832, 'E', '0', 'Empty', 1, '250', 13, 18),
+        (833, 'E', '8', 'Regular', 1, '250', 13, 18),
+        (834, 'E', '7', 'Regular', 1, '250', 13, 18),
+        (835, 'E', '6', 'Regular', 1, '250', 13, 18),
+        (836, 'E', '5', 'Regular', 1, '250', 13, 18),
+        (837, 'E', '4', 'Regular', 1, '250', 13, 18),
+        (838, 'E', '3', 'Regular', 1, '250', 13, 18),
+        (839, 'E', '0', 'Empty', 1, '250', 13, 18),
+        (840, 'E', '0', 'Empty', 1, '250', 13, 18),
+        (841, 'E', '2', 'Regular', 1, '250', 13, 18),
+        (842, 'E', '1', 'Regular', 1, '250', 13, 18);
 
-                    INSERT INTO `seats` (`Seat_ID`, `Theater_ID`, `SeatRow`, `SeatColumn`) VALUES
-                    (161, 11, 'A', '10'),
-                    (162, 11, 'A', '9'),
-                    (163, 11, 'A', '0'),
-                    (164, 11, 'A', '0'),
-                    (165, 11, 'A', '8'),
-                    (166, 11, 'A', '7'),
-                    (167, 11, 'A', '6'),
-                    (168, 11, 'A', '5'),
-                    (169, 11, 'A', '4'),
-                    (170, 11, 'A', '3'),
-                    (171, 11, 'A', '0'),
-                    (172, 11, 'A', '0'),
-                    (173, 11, 'A', '2'),
-                    (174, 11, 'A', '1'),
-                    (175, 11, 'B', '10'),
-                    (176, 11, 'B', '9'),
-                    (177, 11, 'B', '0'),
-                    (178, 11, 'B', '0'),
-                    (179, 11, 'B', '8'),
-                    (180, 11, 'B', '7'),
-                    (181, 11, 'B', '6'),
-                    (182, 11, 'B', '5'),
-                    (183, 11, 'B', '4'),
-                    (184, 11, 'B', '3'),
-                    (185, 11, 'B', '0'),
-                    (186, 11, 'B', '0'),
-                    (187, 11, 'B', '2'),
-                    (188, 11, 'B', '1'),
-                    (189, 11, 'C', '10'),
-                    (190, 11, 'C', '9'),
-                    (191, 11, 'C', '0'),
-                    (192, 11, 'C', '0'),
-                    (193, 11, 'C', '8'),
-                    (194, 11, 'C', '7'),
-                    (195, 11, 'C', '6'),
-                    (196, 11, 'C', '5'),
-                    (197, 11, 'C', '4'),
-                    (198, 11, 'C', '3'),
-                    (199, 11, 'C', '0'),
-                    (200, 11, 'C', '0'),
-                    (201, 11, 'C', '2'),
-                    (202, 11, 'C', '1'),
-                    (203, 11, 'D', '10'),
-                    (204, 11, 'D', '9'),
-                    (205, 11, 'D', '0'),
-                    (206, 11, 'D', '0'),
-                    (207, 11, 'D', '8'),
-                    (208, 11, 'D', '7'),
-                    (209, 11, 'D', '6'),
-                    (210, 11, 'D', '5'),
-                    (211, 11, 'D', '4'),
-                    (212, 11, 'D', '3'),
-                    (213, 11, 'D', '0'),
-                    (214, 11, 'D', '0'),
-                    (215, 11, 'D', '2'),
-                    (216, 11, 'D', '1'),
-                    (217, 11, 'E', '10'),
-                    (218, 11, 'E', '9'),
-                    (219, 11, 'E', '0'),
-                    (220, 11, 'E', '0'),
-                    (221, 11, 'E', '8'),
-                    (222, 11, 'E', '7'),
-                    (223, 11, 'E', '6'),
-                    (224, 11, 'E', '5'),
-                    (225, 11, 'E', '4'),
-                    (226, 11, 'E', '3'),
-                    (227, 11, 'E', '0'),
-                    (228, 11, 'E', '0'),
-                    (229, 11, 'E', '2'),
-                    (230, 11, 'E', '1');
+        CREATE TABLE `theater` (
+        `Theater_ID` int(11) NOT NULL,
+        `Mall_ID` int(11) NOT NULL,
+        `TheaterName` varchar(100) NOT NULL,
+        `TotalSeats` int(11) NOT NULL,
+        `TheaterType` varchar(50) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    CREATE TABLE `seat_timeslot` (
-                    `SeatTimeSlot_ID` int(11) NOT NULL,
-                    `Seat_ID` int(11) NOT NULL,
-                    `TimeSlot_ID` int(11) NOT NULL,
-                    `SeatPrice` decimal(10,2) NOT NULL,
-                    `SeatAvailability` tinyint(1) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        INSERT INTO `theater` (`Theater_ID`, `Mall_ID`, `TheaterName`, `TotalSeats`, `TheaterType`) VALUES
+        (13, 1, 'Director\'s Club 1', 50, 'Director\'s Club');
 
-                    INSERT INTO `seat_timeslot` (`SeatTimeSlot_ID`, `Seat_ID`, `TimeSlot_ID`, `SeatPrice`, `SeatAvailability`) VALUES
-                    (1121, 161, 17, 350.00, 1),
-                    (1122, 162, 17, 350.00, 1),
-                    (1123, 163, 17, 350.00, 1),
-                    (1124, 164, 17, 350.00, 1),
-                    (1125, 165, 17, 350.00, 1),
-                    (1126, 166, 17, 350.00, 1),
-                    (1127, 167, 17, 350.00, 1),
-                    (1128, 168, 17, 350.00, 1),
-                    (1129, 169, 17, 350.00, 1),
-                    (1130, 170, 17, 350.00, 1),
-                    (1131, 171, 17, 350.00, 1),
-                    (1132, 172, 17, 350.00, 1),
-                    (1133, 173, 17, 350.00, 1),
-                    (1134, 174, 17, 350.00, 1),
-                    (1135, 175, 17, 350.00, 1),
-                    (1136, 176, 17, 350.00, 1),
-                    (1137, 177, 17, 350.00, 1),
-                    (1138, 178, 17, 350.00, 1),
-                    (1139, 179, 17, 350.00, 1),
-                    (1140, 180, 17, 350.00, 1),
-                    (1141, 181, 17, 350.00, 1),
-                    (1142, 182, 17, 350.00, 1),
-                    (1143, 183, 17, 350.00, 1),
-                    (1144, 184, 17, 350.00, 1),
-                    (1145, 185, 17, 350.00, 1),
-                    (1146, 186, 17, 350.00, 1),
-                    (1147, 187, 17, 350.00, 1),
-                    (1148, 188, 17, 350.00, 1),
-                    (1149, 189, 17, 350.00, 1),
-                    (1150, 190, 17, 350.00, 1),
-                    (1151, 191, 17, 350.00, 1),
-                    (1152, 192, 17, 350.00, 1),
-                    (1153, 193, 17, 350.00, 1),
-                    (1154, 194, 17, 350.00, 1),
-                    (1155, 195, 17, 350.00, 1),
-                    (1156, 196, 17, 350.00, 1),
-                    (1157, 197, 17, 350.00, 1),
-                    (1158, 198, 17, 350.00, 1),
-                    (1159, 199, 17, 350.00, 1),
-                    (1160, 200, 17, 350.00, 1),
-                    (1161, 201, 17, 350.00, 1),
-                    (1162, 202, 17, 350.00, 1),
-                    (1163, 203, 17, 350.00, 1),
-                    (1164, 204, 17, 350.00, 1),
-                    (1165, 205, 17, 350.00, 1),
-                    (1166, 206, 17, 350.00, 1),
-                    (1167, 207, 17, 350.00, 1),
-                    (1168, 208, 17, 350.00, 1),
-                    (1169, 209, 17, 350.00, 1),
-                    (1170, 210, 17, 350.00, 1),
-                    (1171, 211, 17, 350.00, 1),
-                    (1172, 212, 17, 350.00, 1),
-                    (1173, 213, 17, 350.00, 1),
-                    (1174, 214, 17, 350.00, 1),
-                    (1175, 215, 17, 350.00, 1),
-                    (1176, 216, 17, 350.00, 1),
-                    (1177, 217, 17, 350.00, 1),
-                    (1178, 218, 17, 350.00, 1),
-                    (1179, 219, 17, 350.00, 1),
-                    (1180, 220, 17, 350.00, 1),
-                    (1181, 221, 17, 350.00, 1),
-                    (1182, 222, 17, 350.00, 1),
-                    (1183, 223, 17, 350.00, 1),
-                    (1184, 224, 17, 350.00, 1),
-                    (1185, 225, 17, 350.00, 1),
-                    (1186, 226, 17, 350.00, 1),
-                    (1187, 227, 17, 350.00, 1),
-                    (1188, 228, 17, 350.00, 1),
-                    (1189, 229, 17, 350.00, 1),
-                    (1190, 230, 17, 350.00, 1),
-                    (1191, 161, 18, 350.00, 1),
-                    (1192, 162, 18, 350.00, 1),
-                    (1193, 163, 18, 350.00, 1),
-                    (1194, 164, 18, 350.00, 1),
-                    (1195, 165, 18, 350.00, 1),
-                    (1196, 166, 18, 350.00, 1),
-                    (1197, 167, 18, 350.00, 1),
-                    (1198, 168, 18, 350.00, 1),
-                    (1199, 169, 18, 350.00, 1),
-                    (1200, 170, 18, 350.00, 1),
-                    (1201, 171, 18, 350.00, 1),
-                    (1202, 172, 18, 350.00, 1),
-                    (1203, 173, 18, 350.00, 1),
-                    (1204, 174, 18, 350.00, 1),
-                    (1205, 175, 18, 350.00, 1),
-                    (1206, 176, 18, 350.00, 1),
-                    (1207, 177, 18, 350.00, 1),
-                    (1208, 178, 18, 350.00, 1),
-                    (1209, 179, 18, 350.00, 1),
-                    (1210, 180, 18, 350.00, 1),
-                    (1211, 181, 18, 350.00, 1),
-                    (1212, 182, 18, 350.00, 1),
-                    (1213, 183, 18, 350.00, 1),
-                    (1214, 184, 18, 350.00, 1),
-                    (1215, 185, 18, 350.00, 1),
-                    (1216, 186, 18, 350.00, 1),
-                    (1217, 187, 18, 350.00, 1),
-                    (1218, 188, 18, 350.00, 1),
-                    (1219, 189, 18, 350.00, 1),
-                    (1220, 190, 18, 350.00, 1),
-                    (1221, 191, 18, 350.00, 1),
-                    (1222, 192, 18, 350.00, 1),
-                    (1223, 193, 18, 350.00, 1),
-                    (1224, 194, 18, 350.00, 1),
-                    (1225, 195, 18, 350.00, 1),
-                    (1226, 196, 18, 350.00, 1),
-                    (1227, 197, 18, 350.00, 1),
-                    (1228, 198, 18, 350.00, 1),
-                    (1229, 199, 18, 350.00, 1),
-                    (1230, 200, 18, 350.00, 1),
-                    (1231, 201, 18, 350.00, 1),
-                    (1232, 202, 18, 350.00, 1),
-                    (1233, 203, 18, 350.00, 1),
-                    (1234, 204, 18, 350.00, 1),
-                    (1235, 205, 18, 350.00, 1),
-                    (1236, 206, 18, 350.00, 1),
-                    (1237, 207, 18, 350.00, 1),
-                    (1238, 208, 18, 350.00, 1),
-                    (1239, 209, 18, 350.00, 1),
-                    (1240, 210, 18, 350.00, 1),
-                    (1241, 211, 18, 350.00, 1),
-                    (1242, 212, 18, 350.00, 1),
-                    (1243, 213, 18, 350.00, 1),
-                    (1244, 214, 18, 350.00, 1),
-                    (1245, 215, 18, 350.00, 1),
-                    (1246, 216, 18, 350.00, 1),
-                    (1247, 217, 18, 350.00, 1),
-                    (1248, 218, 18, 350.00, 1),
-                    (1249, 219, 18, 350.00, 1),
-                    (1250, 220, 18, 350.00, 1),
-                    (1251, 221, 18, 350.00, 1),
-                    (1252, 222, 18, 350.00, 1),
-                    (1253, 223, 18, 350.00, 1),
-                    (1254, 224, 18, 350.00, 1),
-                    (1255, 225, 18, 350.00, 1),
-                    (1256, 226, 18, 350.00, 1),
-                    (1257, 227, 18, 350.00, 1),
-                    (1258, 228, 18, 350.00, 1),
-                    (1259, 229, 18, 350.00, 1),
-                    (1260, 230, 18, 350.00, 1),
-                    (1261, 161, 19, 350.00, 1),
-                    (1262, 162, 19, 350.00, 1),
-                    (1263, 163, 19, 350.00, 1),
-                    (1264, 164, 19, 350.00, 1),
-                    (1265, 165, 19, 350.00, 1),
-                    (1266, 166, 19, 350.00, 1),
-                    (1267, 167, 19, 350.00, 1),
-                    (1268, 168, 19, 350.00, 1),
-                    (1269, 169, 19, 350.00, 1),
-                    (1270, 170, 19, 350.00, 1),
-                    (1271, 171, 19, 350.00, 1),
-                    (1272, 172, 19, 350.00, 1),
-                    (1273, 173, 19, 350.00, 1),
-                    (1274, 174, 19, 350.00, 1),
-                    (1275, 175, 19, 350.00, 1),
-                    (1276, 176, 19, 350.00, 1),
-                    (1277, 177, 19, 350.00, 1),
-                    (1278, 178, 19, 350.00, 1),
-                    (1279, 179, 19, 350.00, 1),
-                    (1280, 180, 19, 350.00, 1),
-                    (1281, 181, 19, 350.00, 1),
-                    (1282, 182, 19, 350.00, 1),
-                    (1283, 183, 19, 350.00, 1),
-                    (1284, 184, 19, 350.00, 1),
-                    (1285, 185, 19, 350.00, 1),
-                    (1286, 186, 19, 350.00, 1),
-                    (1287, 187, 19, 350.00, 1),
-                    (1288, 188, 19, 350.00, 1),
-                    (1289, 189, 19, 350.00, 1),
-                    (1290, 190, 19, 350.00, 1),
-                    (1291, 191, 19, 350.00, 1),
-                    (1292, 192, 19, 350.00, 1),
-                    (1293, 193, 19, 350.00, 1),
-                    (1294, 194, 19, 350.00, 1),
-                    (1295, 195, 19, 350.00, 1),
-                    (1296, 196, 19, 350.00, 1),
-                    (1297, 197, 19, 350.00, 1),
-                    (1298, 198, 19, 350.00, 1),
-                    (1299, 199, 19, 350.00, 1),
-                    (1300, 200, 19, 350.00, 1),
-                    (1301, 201, 19, 350.00, 1),
-                    (1302, 202, 19, 350.00, 1),
-                    (1303, 203, 19, 350.00, 1),
-                    (1304, 204, 19, 350.00, 1),
-                    (1305, 205, 19, 350.00, 1),
-                    (1306, 206, 19, 350.00, 1),
-                    (1307, 207, 19, 350.00, 1),
-                    (1308, 208, 19, 350.00, 1),
-                    (1309, 209, 19, 350.00, 1),
-                    (1310, 210, 19, 350.00, 1),
-                    (1311, 211, 19, 350.00, 1),
-                    (1312, 212, 19, 350.00, 1),
-                    (1313, 213, 19, 350.00, 1),
-                    (1314, 214, 19, 350.00, 1),
-                    (1315, 215, 19, 350.00, 1),
-                    (1316, 216, 19, 350.00, 1),
-                    (1317, 217, 19, 350.00, 1),
-                    (1318, 218, 19, 350.00, 1),
-                    (1319, 219, 19, 350.00, 1),
-                    (1320, 220, 19, 350.00, 1),
-                    (1321, 221, 19, 350.00, 1),
-                    (1322, 222, 19, 350.00, 1),
-                    (1323, 223, 19, 350.00, 1),
-                    (1324, 224, 19, 350.00, 1),
-                    (1325, 225, 19, 350.00, 1),
-                    (1326, 226, 19, 350.00, 1),
-                    (1327, 227, 19, 350.00, 1),
-                    (1328, 228, 19, 350.00, 1),
-                    (1329, 229, 19, 350.00, 1),
-                    (1330, 230, 19, 350.00, 1),
-                    (1331, 161, 20, 350.00, 1),
-                    (1332, 162, 20, 350.00, 1),
-                    (1333, 163, 20, 350.00, 1),
-                    (1334, 164, 20, 350.00, 1),
-                    (1335, 165, 20, 350.00, 1),
-                    (1336, 166, 20, 350.00, 1),
-                    (1337, 167, 20, 350.00, 1),
-                    (1338, 168, 20, 350.00, 1),
-                    (1339, 169, 20, 350.00, 1),
-                    (1340, 170, 20, 350.00, 1),
-                    (1341, 171, 20, 350.00, 1),
-                    (1342, 172, 20, 350.00, 1),
-                    (1343, 173, 20, 350.00, 1),
-                    (1344, 174, 20, 350.00, 1),
-                    (1345, 175, 20, 350.00, 1),
-                    (1346, 176, 20, 350.00, 1),
-                    (1347, 177, 20, 350.00, 1),
-                    (1348, 178, 20, 350.00, 1),
-                    (1349, 179, 20, 350.00, 1),
-                    (1350, 180, 20, 350.00, 1),
-                    (1351, 181, 20, 350.00, 1),
-                    (1352, 182, 20, 350.00, 1),
-                    (1353, 183, 20, 350.00, 1),
-                    (1354, 184, 20, 350.00, 1),
-                    (1355, 185, 20, 350.00, 1),
-                    (1356, 186, 20, 350.00, 1),
-                    (1357, 187, 20, 350.00, 1),
-                    (1358, 188, 20, 350.00, 1),
-                    (1359, 189, 20, 350.00, 1),
-                    (1360, 190, 20, 350.00, 1),
-                    (1361, 191, 20, 350.00, 1),
-                    (1362, 192, 20, 350.00, 1),
-                    (1363, 193, 20, 350.00, 1),
-                    (1364, 194, 20, 350.00, 1),
-                    (1365, 195, 20, 350.00, 1),
-                    (1366, 196, 20, 350.00, 1),
-                    (1367, 197, 20, 350.00, 1),
-                    (1368, 198, 20, 350.00, 1),
-                    (1369, 199, 20, 350.00, 1),
-                    (1370, 200, 20, 350.00, 1),
-                    (1371, 201, 20, 350.00, 1),
-                    (1372, 202, 20, 350.00, 1),
-                    (1373, 203, 20, 350.00, 1),
-                    (1374, 204, 20, 350.00, 1),
-                    (1375, 205, 20, 350.00, 1),
-                    (1376, 206, 20, 350.00, 1),
-                    (1377, 207, 20, 350.00, 1),
-                    (1378, 208, 20, 350.00, 1),
-                    (1379, 209, 20, 350.00, 1),
-                    (1380, 210, 20, 350.00, 1),
-                    (1381, 211, 20, 350.00, 1),
-                    (1382, 212, 20, 350.00, 1),
-                    (1383, 213, 20, 350.00, 1),
-                    (1384, 214, 20, 350.00, 1),
-                    (1385, 215, 20, 350.00, 1),
-                    (1386, 216, 20, 350.00, 1),
-                    (1387, 217, 20, 350.00, 1),
-                    (1388, 218, 20, 350.00, 1),
-                    (1389, 219, 20, 350.00, 1),
-                    (1390, 220, 20, 350.00, 1),
-                    (1391, 221, 20, 350.00, 1),
-                    (1392, 222, 20, 350.00, 1),
-                    (1393, 223, 20, 350.00, 1),
-                    (1394, 224, 20, 350.00, 1),
-                    (1395, 225, 20, 350.00, 1),
-                    (1396, 226, 20, 350.00, 1),
-                    (1397, 227, 20, 350.00, 1),
-                    (1398, 228, 20, 350.00, 1),
-                    (1399, 229, 20, 350.00, 1),
-                    (1400, 230, 20, 350.00, 1),
-                    (1401, 161, 21, 350.00, 1),
-                    (1402, 162, 21, 350.00, 1),
-                    (1403, 163, 21, 350.00, 1),
-                    (1404, 164, 21, 350.00, 1),
-                    (1405, 165, 21, 350.00, 1),
-                    (1406, 166, 21, 350.00, 1),
-                    (1407, 167, 21, 350.00, 1),
-                    (1408, 168, 21, 350.00, 1),
-                    (1409, 169, 21, 350.00, 1),
-                    (1410, 170, 21, 350.00, 1),
-                    (1411, 171, 21, 350.00, 1),
-                    (1412, 172, 21, 350.00, 1),
-                    (1413, 173, 21, 350.00, 1),
-                    (1414, 174, 21, 350.00, 1),
-                    (1415, 175, 21, 350.00, 1),
-                    (1416, 176, 21, 350.00, 1),
-                    (1417, 177, 21, 350.00, 1),
-                    (1418, 178, 21, 350.00, 1),
-                    (1419, 179, 21, 350.00, 1),
-                    (1420, 180, 21, 350.00, 1),
-                    (1421, 181, 21, 350.00, 1),
-                    (1422, 182, 21, 350.00, 1),
-                    (1423, 183, 21, 350.00, 1),
-                    (1424, 184, 21, 350.00, 1),
-                    (1425, 185, 21, 350.00, 1),
-                    (1426, 186, 21, 350.00, 1),
-                    (1427, 187, 21, 350.00, 1),
-                    (1428, 188, 21, 350.00, 1),
-                    (1429, 189, 21, 350.00, 1),
-                    (1430, 190, 21, 350.00, 1),
-                    (1431, 191, 21, 350.00, 1),
-                    (1432, 192, 21, 350.00, 1),
-                    (1433, 193, 21, 350.00, 1),
-                    (1434, 194, 21, 350.00, 1),
-                    (1435, 195, 21, 350.00, 1),
-                    (1436, 196, 21, 350.00, 1),
-                    (1437, 197, 21, 350.00, 1),
-                    (1438, 198, 21, 350.00, 1),
-                    (1439, 199, 21, 350.00, 1),
-                    (1440, 200, 21, 350.00, 1),
-                    (1441, 201, 21, 350.00, 1),
-                    (1442, 202, 21, 350.00, 1),
-                    (1443, 203, 21, 350.00, 1),
-                    (1444, 204, 21, 350.00, 1),
-                    (1445, 205, 21, 350.00, 1),
-                    (1446, 206, 21, 350.00, 1),
-                    (1447, 207, 21, 350.00, 1),
-                    (1448, 208, 21, 350.00, 1),
-                    (1449, 209, 21, 350.00, 1),
-                    (1450, 210, 21, 350.00, 1),
-                    (1451, 211, 21, 350.00, 1),
-                    (1452, 212, 21, 350.00, 1),
-                    (1453, 213, 21, 350.00, 1),
-                    (1454, 214, 21, 350.00, 1),
-                    (1455, 215, 21, 350.00, 1),
-                    (1456, 216, 21, 350.00, 1),
-                    (1457, 217, 21, 350.00, 1),
-                    (1458, 218, 21, 350.00, 1),
-                    (1459, 219, 21, 350.00, 1),
-                    (1460, 220, 21, 350.00, 1),
-                    (1461, 221, 21, 350.00, 1),
-                    (1462, 222, 21, 350.00, 1),
-                    (1463, 223, 21, 350.00, 1),
-                    (1464, 224, 21, 350.00, 1),
-                    (1465, 225, 21, 350.00, 1),
-                    (1466, 226, 21, 350.00, 1),
-                    (1467, 227, 21, 350.00, 1),
-                    (1468, 228, 21, 350.00, 1),
-                    (1469, 229, 21, 350.00, 1),
-                    (1470, 230, 21, 350.00, 1),
-                    (1471, 161, 22, 350.00, 1),
-                    (1472, 162, 22, 350.00, 1),
-                    (1473, 163, 22, 350.00, 1),
-                    (1474, 164, 22, 350.00, 1),
-                    (1475, 165, 22, 350.00, 1),
-                    (1476, 166, 22, 350.00, 1),
-                    (1477, 167, 22, 350.00, 1),
-                    (1478, 168, 22, 350.00, 1),
-                    (1479, 169, 22, 350.00, 1),
-                    (1480, 170, 22, 350.00, 1),
-                    (1481, 171, 22, 350.00, 1),
-                    (1482, 172, 22, 350.00, 1),
-                    (1483, 173, 22, 350.00, 1),
-                    (1484, 174, 22, 350.00, 1),
-                    (1485, 175, 22, 350.00, 1),
-                    (1486, 176, 22, 350.00, 1),
-                    (1487, 177, 22, 350.00, 1),
-                    (1488, 178, 22, 350.00, 1),
-                    (1489, 179, 22, 350.00, 1),
-                    (1490, 180, 22, 350.00, 1),
-                    (1491, 181, 22, 350.00, 1),
-                    (1492, 182, 22, 350.00, 1),
-                    (1493, 183, 22, 350.00, 1),
-                    (1494, 184, 22, 350.00, 1),
-                    (1495, 185, 22, 350.00, 1),
-                    (1496, 186, 22, 350.00, 1),
-                    (1497, 187, 22, 350.00, 1),
-                    (1498, 188, 22, 350.00, 1),
-                    (1499, 189, 22, 350.00, 1),
-                    (1500, 190, 22, 350.00, 1),
-                    (1501, 191, 22, 350.00, 1),
-                    (1502, 192, 22, 350.00, 1),
-                    (1503, 193, 22, 350.00, 1),
-                    (1504, 194, 22, 350.00, 1),
-                    (1505, 195, 22, 350.00, 1),
-                    (1506, 196, 22, 350.00, 1),
-                    (1507, 197, 22, 350.00, 1),
-                    (1508, 198, 22, 350.00, 1),
-                    (1509, 199, 22, 350.00, 1),
-                    (1510, 200, 22, 350.00, 1),
-                    (1511, 201, 22, 350.00, 1),
-                    (1512, 202, 22, 350.00, 1),
-                    (1513, 203, 22, 350.00, 1),
-                    (1514, 204, 22, 350.00, 1),
-                    (1515, 205, 22, 350.00, 1),
-                    (1516, 206, 22, 350.00, 1),
-                    (1517, 207, 22, 350.00, 1),
-                    (1518, 208, 22, 350.00, 1),
-                    (1519, 209, 22, 350.00, 1),
-                    (1520, 210, 22, 350.00, 1),
-                    (1521, 211, 22, 350.00, 1),
-                    (1522, 212, 22, 350.00, 1),
-                    (1523, 213, 22, 350.00, 1),
-                    (1524, 214, 22, 350.00, 1),
-                    (1525, 215, 22, 350.00, 1),
-                    (1526, 216, 22, 350.00, 1),
-                    (1527, 217, 22, 350.00, 1),
-                    (1528, 218, 22, 350.00, 1),
-                    (1529, 219, 22, 350.00, 1),
-                    (1530, 220, 22, 350.00, 1),
-                    (1531, 221, 22, 350.00, 1),
-                    (1532, 222, 22, 350.00, 1),
-                    (1533, 223, 22, 350.00, 1),
-                    (1534, 224, 22, 350.00, 1),
-                    (1535, 225, 22, 350.00, 1),
-                    (1536, 226, 22, 350.00, 1),
-                    (1537, 227, 22, 350.00, 1),
-                    (1538, 228, 22, 350.00, 1),
-                    (1539, 229, 22, 350.00, 1),
-                    (1540, 230, 22, 350.00, 1);
+        CREATE TABLE `ticket` (
+        `Ticket_ID` int(11) NOT NULL,
+        `Seat_ID` int(11) NOT NULL,
+        `Customer_ID` int(11) NOT NULL,
+        `Movie_ID` int(11) NOT NULL,
+        `TimeSlot_ID` int(11) NOT NULL,
+        `Price` decimal(10,2) NOT NULL,
+        `Status` int(11) NOT NULL,
+        `DateTime` datetime NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    CREATE TABLE `theater` (
-                    `Theater_ID` int(11) NOT NULL,
-                    `Mall_ID` int(11) NOT NULL,
-                    `TheaterName` varchar(100) NOT NULL,
-                    `TotalSeats` int(11) NOT NULL,
-                    `TheaterType` varchar(50) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        CREATE TABLE `timeslot` (
+        `TimeSlot_ID` int(11) NOT NULL,
+        `StartTime` tinytext NOT NULL,
+        `EndTime` tinytext NOT NULL,
+        `Date` tinytext NOT NULL,
+        `ScreeningType` varchar(5) NOT NULL,
+        `Movie_ID` int(11) NOT NULL,
+        `Theater_ID` int(11) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-                    INSERT INTO `theater` (`Theater_ID`, `Mall_ID`, `TheaterName`, `TotalSeats`, `TheaterType`) VALUES
-                    (11, 1, 'Regular 1', 50, 'Regular');
-
-                    CREATE TABLE `ticket` (
-                    `Ticket_ID` int(11) NOT NULL,
-                    `Seat_ID` int(11) NOT NULL,
-                    `Customer_ID` int(11) NOT NULL,
-                    `Movie_ID` int(11) NOT NULL,
-                    `TimeSlot_ID` int(11) NOT NULL,
-                    `Price` decimal(10,2) NOT NULL,
-                    `Status` int(11) NOT NULL,
-                    `DateTime` datetime NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-                    INSERT INTO `ticket` (`Ticket_ID`, `Seat_ID`, `Customer_ID`, `Movie_ID`, `TimeSlot_ID`, `Price`, `Status`, `DateTime`) VALUES
-                    (4, 151, 1, 1, 9, 350.00, 1, '2026-03-13 13:27:15'),
-                    (5, 148, 1, 1, 9, 350.00, 1, '2026-03-13 13:27:15'),
-                    (6, 147, 1, 1, 9, 350.00, 1, '2026-03-13 13:27:15');
-
-                    CREATE TABLE `timeslot` (
-                    `TimeSlot_ID` int(11) NOT NULL,
-                    `StartTime` time NOT NULL,
-                    `Date` date NOT NULL,
-                    `ScreeningType` varchar(10) NOT NULL,
-                    `Movie_ID` int(11) NOT NULL,
-                    `Theater_ID` int(11) NOT NULL,
-                    `DateRange_ID` int(11) NOT NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-                    INSERT INTO `timeslot` (`TimeSlot_ID`, `StartTime`, `Date`, `ScreeningType`, `Movie_ID`, `Theater_ID`, `DateRange_ID`) VALUES
-                    (17, '19:25:00', '2026-03-25', '2D', 1, 11, 9),
-                    (18, '19:25:00', '2026-03-26', '2D', 1, 11, 9),
-                    (19, '19:25:00', '2026-03-27', '2D', 1, 11, 9),
-                    (20, '19:25:00', '2026-03-28', '2D', 1, 11, 9),
-                    (21, '19:25:00', '2026-03-29', '2D', 1, 11, 9),
-                    (22, '19:25:00', '2026-03-30', '2D', 1, 11, 9);
+        INSERT INTO `timeslot` (`TimeSlot_ID`, `StartTime`, `EndTime`, `Date`, `ScreeningType`, `Movie_ID`, `Theater_ID`) VALUES
+        (14, '18:30', '', '2025-11-20', '2D', 1, 13),
+        (15, '13:50', '', '2025-11-22', '2D', 1, 13),
+        (16, '18:50', '', '2025-11-21', '3D', 1, 13),
+        (17, '18:50', '', '2025-11-21', '3D', 1, 13),
+        (18, '18:15', '', '2025-11-22', '2D', 1, 13);
 
 
-                    ALTER TABLE `customer`
-                    ADD PRIMARY KEY (`Customer_ID`);
+        ALTER TABLE `customer`
+        ADD PRIMARY KEY (`Customer_ID`);
 
-                    ALTER TABLE `daterange`
-                    ADD PRIMARY KEY (`DateRange_ID`),
-                    ADD KEY `Movie_ID` (`Movie_ID`),
-                    ADD KEY `Theater_ID` (`Theater_ID`);
+        ALTER TABLE `e-receipt`
+        ADD PRIMARY KEY (`Receipt_ID`);
 
-                    ALTER TABLE `e-receipt`
-                    ADD PRIMARY KEY (`Receipt_ID`);
+        ALTER TABLE `mall`
+        ADD PRIMARY KEY (`Mall_ID`),
+        ADD UNIQUE KEY `MallName` (`MallName`) USING HASH;
 
-                    ALTER TABLE `mall`
-                    ADD PRIMARY KEY (`Mall_ID`),
-                    ADD UNIQUE KEY `MallName` (`MallName`) USING HASH;
+        ALTER TABLE `movie`
+        ADD PRIMARY KEY (`Movie_ID`);
 
-                    ALTER TABLE `movie`
-                    ADD PRIMARY KEY (`Movie_ID`);
+        ALTER TABLE `payment`
+        ADD PRIMARY KEY (`Payment_ID`);
 
-                    ALTER TABLE `payment`
-                    ADD PRIMARY KEY (`Payment_ID`);
+        ALTER TABLE `seats`
+        ADD PRIMARY KEY (`Seat_ID`),
+        ADD KEY `Theater_ID` (`Theater_ID`),
+        ADD KEY `seats_ibfk_2` (`TimeSlot_ID`);
 
-                    ALTER TABLE `seats`
-                    ADD PRIMARY KEY (`Seat_ID`),
-                    ADD KEY `Theater_ID` (`Theater_ID`);
+        ALTER TABLE `theater`
+        ADD PRIMARY KEY (`Theater_ID`),
+        ADD KEY `Mall_ID` (`Mall_ID`);
 
-                    ALTER TABLE `seat_timeslot`
-                    ADD PRIMARY KEY (`SeatTimeSlot_ID`),
-                    ADD UNIQUE KEY `uniq_seat_timeslot` (`Seat_ID`,`TimeSlot_ID`),
-                    ADD KEY `TimeSlot_ID` (`TimeSlot_ID`);
+        ALTER TABLE `ticket`
+        ADD PRIMARY KEY (`Ticket_ID`);
 
-                    ALTER TABLE `theater`
-                    ADD PRIMARY KEY (`Theater_ID`);
-
-                    ALTER TABLE `ticket`
-                    ADD PRIMARY KEY (`Ticket_ID`);
-
-                    ALTER TABLE `timeslot`
-                    ADD PRIMARY KEY (`TimeSlot_ID`),
-                    ADD KEY `Movie_ID` (`Movie_ID`),
-                    ADD KEY `Theater_ID` (`Theater_ID`),
-                    ADD KEY `DateRange_ID` (`DateRange_ID`);
+        ALTER TABLE `timeslot`
+        ADD PRIMARY KEY (`TimeSlot_ID`),
+        ADD KEY `Movie_ID` (`Movie_ID`),
+        ADD KEY `Theater_ID` (`Theater_ID`);
 
 
-                    ALTER TABLE `customer`
-                    MODIFY `Customer_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+        ALTER TABLE `customer`
+        MODIFY `Customer_ID` int(11) NOT NULL AUTO_INCREMENT;
 
-                    ALTER TABLE `daterange`
-                    MODIFY `DateRange_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+        ALTER TABLE `e-receipt`
+        MODIFY `Receipt_ID` int(11) NOT NULL AUTO_INCREMENT;
 
-                    ALTER TABLE `e-receipt`
-                    MODIFY `Receipt_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+        ALTER TABLE `mall`
+        MODIFY `Mall_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
-                    ALTER TABLE `mall`
-                    MODIFY `Mall_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+        ALTER TABLE `movie`
+        MODIFY `Movie_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
-                    ALTER TABLE `movie`
-                    MODIFY `Movie_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+        ALTER TABLE `payment`
+        MODIFY `Payment_ID` int(11) NOT NULL AUTO_INCREMENT;
 
-                    ALTER TABLE `payment`
-                    MODIFY `Payment_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+        ALTER TABLE `seats`
+        MODIFY `Seat_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=913;
 
-                    ALTER TABLE `seats`
-                    MODIFY `Seat_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=231;
+        ALTER TABLE `theater`
+        MODIFY `Theater_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
-                    ALTER TABLE `seat_timeslot`
-                    MODIFY `SeatTimeSlot_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1541;
+        ALTER TABLE `ticket`
+        MODIFY `Ticket_ID` int(11) NOT NULL AUTO_INCREMENT;
 
-                    ALTER TABLE `theater`
-                    MODIFY `Theater_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-
-                    ALTER TABLE `ticket`
-                    MODIFY `Ticket_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
-                    ALTER TABLE `timeslot`
-                    MODIFY `TimeSlot_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+        ALTER TABLE `timeslot`
+        MODIFY `TimeSlot_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 
-                    ALTER TABLE `daterange`
-                    ADD CONSTRAINT `daterange_ibfk_1` FOREIGN KEY (`Movie_ID`) REFERENCES `movie` (`Movie_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-                    ADD CONSTRAINT `daterange_ibfk_2` FOREIGN KEY (`Theater_ID`) REFERENCES `theater` (`Theater_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE `seats`
+        ADD CONSTRAINT `seats_ibfk_1` FOREIGN KEY (`Theater_ID`) REFERENCES `theater` (`Theater_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+        ADD CONSTRAINT `seats_ibfk_2` FOREIGN KEY (`TimeSlot_ID`) REFERENCES `timeslot` (`TimeSlot_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-                    ALTER TABLE `seats`
-                    ADD CONSTRAINT `seats_ibfk_1` FOREIGN KEY (`Theater_ID`) REFERENCES `theater` (`Theater_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE `theater`
+        ADD CONSTRAINT `theater_ibfk_1` FOREIGN KEY (`Mall_ID`) REFERENCES `mall` (`Mall_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-                    ALTER TABLE `seat_timeslot`
-                    ADD CONSTRAINT `seat_timeslot_ibfk_1` FOREIGN KEY (`TimeSlot_ID`) REFERENCES `timeslot` (`TimeSlot_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE `timeslot`
+        ADD CONSTRAINT `timeslot_ibfk_1` FOREIGN KEY (`Movie_ID`) REFERENCES `movie` (`Movie_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+        ADD CONSTRAINT `timeslot_ibfk_2` FOREIGN KEY (`Theater_ID`) REFERENCES `theater` (`Theater_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-                    ALTER TABLE `timeslot`
-                    ADD CONSTRAINT `timeslot_ibfk_1` FOREIGN KEY (`DateRange_ID`) REFERENCES `daterange` (`DateRange_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-                    ADD CONSTRAINT `timeslot_ibfk_2` FOREIGN KEY (`Theater_ID`) REFERENCES `theater` (`Theater_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-                    ADD CONSTRAINT `timeslot_ibfk_3` FOREIGN KEY (`Movie_ID`) REFERENCES `movie` (`Movie_ID`) ON DELETE CASCADE ON UPDATE CASCADE;
-                    COMMIT;
+        /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+        /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+        /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
         SQL;
 
         if ($conn->multi_query($sql)) {
-            echo "Updated Database Successfully.";
+            echo "yahooo";
         } else {
-            echo "Failed to update database.";
+            echo "uh oh...";
         }
     }
     

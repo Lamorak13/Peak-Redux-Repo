@@ -1,554 +1,354 @@
 <?php
-    include("peakscinemas_database.php");
-    session_start();
-    $profile_link = "personal_info_form.php";
+session_start();
+include("peakscinemas_database.php");
+
+$Customer_ID = $_SESSION['user_id'];
+$profile_link = "profile.php";
+
+$Movie_ID = $_POST['movie_id'] ?? '';
+$Mall_ID = $_POST['mall_id'] ?? '';
+$Date = $_POST['date'] ?? '';
+$TimeSlot_ID = $_POST['timeslot_id'] ?? '';
+$selectedSeats = $_POST['selectedSeats'] ?? [];
+
+// ✅ Stop if no movie or seats selected
+if (empty($Movie_ID) || empty($selectedSeats)) {
+    header("Location: seat_selection.php");
+    exit;
+}
+
+// Convert seats array to string
+$Seats = implode(",", $selectedSeats);
+
+// Compute total price
+$pricePerSeat = 250;
+$totalPrice = count($selectedSeats) * $pricePerSeat;
+$status = "Paid";
 
 
-    $Movie_ID = isset($_POST['movie_id']) ? $_POST['movie_id'] : '';
-    $Mall_ID = isset($_POST['mall_id']) ? $_POST['mall_id'] : '';
-    $Date = isset($_POST['date']) ? $_POST['date'] : '';
-    $TimeSlot_ID = isset($_POST['timeslot_id']) ? $_POST['timeslot_id'] : '';
-    $selectedSeats = isset($_POST['selectedSeats']) ? $_POST['selectedSeats'] : [];
-    $totalPrice = isset($_POST['priceTotal']) ? $_POST['priceTotal'] : 0;
+// 🔵 1. GET MOVIE NAME
+$movie_stmt = $conn->prepare("SELECT MovieName FROM movie WHERE Movie_ID = ?");
+$movie_stmt->bind_param("i", $Movie_ID);
+$movie_stmt->execute();
+$movieDetails = $movie_stmt->get_result()->fetch_assoc();
+$MovieName = $movieDetails['MovieName'];
 
 
-    if (empty($selectedSeats) || $totalPrice <= 0) {
-        header("Location: seat_selection.php?movie_id=" . $Movie_ID . "&mall_id=" . $Mall_ID . "&date=" . $Date . "&timeslot_id=" . $TimeSlot_ID);
-        exit;
-    }
+// 🔵 2. GET MALL NAME
+$mall_stmt = $conn->prepare("SELECT MallName FROM mall WHERE Mall_ID = ?");
+$mall_stmt->bind_param("i", $Mall_ID);
+$mall_stmt->execute();
+$mallDetails = $mall_stmt->get_result()->fetch_assoc();
+$MallName = $mallDetails['MallName'];
 
 
-    $_SESSION['booking_data'] = [
-        'movie_id' => $Movie_ID,
-        'mall_id' => $Mall_ID,
-        'date' => $Date,
-        'timeslot_id' => $TimeSlot_ID,
-        'selectedSeats' => $selectedSeats,
-        'totalPrice' => $totalPrice
-    ];
+// 🔵 3. GET THEATER NAME FROM TIMESLOT
+$timeslot_stmt = $conn->prepare("SELECT Theater_ID FROM timeslot WHERE TimeSlot_ID = ?");
+$timeslot_stmt->bind_param("i", $TimeSlot_ID);
+$timeslot_stmt->execute();
+$timeslotDetails = $timeslot_stmt->get_result()->fetch_assoc();
 
-
-    include("peakscinemas_database.php");
-
-
-    $movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
-    $movie_stmt->bind_param("i", $Movie_ID);
-    $movie_stmt->execute();
-    $movieDetails = ($movie_stmt->get_result())->fetch_assoc();
-
-
-    $mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-    $mall_stmt->bind_param("i", $Mall_ID);
-    $mall_stmt->execute();
-    $mallDetails = ($mall_stmt->get_result())->fetch_assoc();
-
-
-    $timeslot_stmt = $conn->prepare("SELECT * FROM timeslot INNER JOIN theater ON timeslot.Theater_ID=theater.Theater_ID WHERE TimeSlot_ID = ?");
-    $timeslot_stmt->bind_param("i", $TimeSlot_ID);
-    $timeslot_stmt->execute();
-    $timeslotDetails = ($timeslot_stmt->get_result())->fetch_assoc();
-
-
-    $seatPositions = [];
-    if (!empty($selectedSeats)) {
-        $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
-        $seat_stmt = $conn->prepare("
-            SELECT Seat_ID, SeatRow, SeatColumn 
-            FROM seats 
-            WHERE Seat_ID IN ($placeholders)
-        ");
-        $types = str_repeat('i', count($selectedSeats));
-        $seat_stmt->bind_param($types, ...$selectedSeats);
-        $seat_stmt->execute();
-        $seatResult = $seat_stmt->get_result();
-
-        $seatMap = [];
-        while ($seat = $seatResult->fetch_assoc()) {
-            $seatMap[$seat['Seat_ID']] = [
-                'row' => trim($seat['SeatRow']),
-                'col' => (int)$seat['SeatColumn']
-            ];
-        }
-
-        foreach ($selectedSeats as $id) {
-            if (isset($seatMap[$id])) {
-                $seatPositions[] = "Row " . $seatMap[$id]['row'] . ", Seat " . $seatMap[$id]['col'];
-            }
-        }
-    }
-
+$theater_stmt = $conn->prepare("SELECT TheaterName FROM theater WHERE Theater_ID = ?");
+$theater_stmt->bind_param("i", $timeslotDetails['Theater_ID']);
+$theater_stmt->execute();
+$theaterDetails = $theater_stmt->get_result()->fetch_assoc();
+$TheaterName = $theaterDetails['TheaterName'];
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        *{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
 
-        header {
-            background-color: #6A7F3F;
-            background: linear-gradient(90deg,rgba(106, 127, 63, 1) 0%, rgba(74, 106, 90, 1) 100%);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 30px;
-            border-bottom: 1px solid #ffffffff;
-            }
-         
-            body {
-                font-family: 'Segoe UI', Arial, sans-serif;
-                color: white;
-                display: flex;
-                flex-direction: column;
-                min-height: 100vh;
-                background: #5C4033;
-                background: linear-gradient(360deg, rgba(92, 64, 51, 1) 0%, rgba(51, 17, 0, 1) 100%);
-      
-                }
+body{
+background:linear-gradient(to bottom,#071018,#0d1b2a);
+color:white;
+overflow-x:hidden;
+min-height:100vh;
+}
 
-            body::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 11%, transparent 100%);
-                pointer-events: none;
-            }
-       
-                
-            .logo img {
-               height: 50px;
-               width: auto;
-               cursor: pointer;
-               transition: transform 0.3s ease;
-            }
+/* ===== HEADER (EXACT movie.php) ===== */
+header{
+position:fixed;
+width:100%;
+top:0;
+padding:20px 60px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+z-index:1000;
+background:linear-gradient(to bottom,rgba(7,16,24,0.95),transparent);
+transition:0.3s;
+}
 
-            .logo img:hover {
-               transform: scale(1.05);
-            }
+header.scrolled{
+background:#071018;
+box-shadow:0 4px 25px rgba(0,0,0,0.6);
+}
 
-            
-             .profile-btn {
-                background-color: #4b4b4b;
-                background: linear-gradient(90deg,rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-                border: 1px solid #CCCCCC;
-                border-radius: 50%;
-                width: 45px;
-                height: 45px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                margin-left: auto;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
+.logo img{
+height:45px;
+cursor:pointer;
+}
 
-            .profile-btn svg {
-                width: 24px;
-                height: 24px;
-                transition: transform 0.3s ease;
-            }
+.profile-btn{
+background:linear-gradient(135deg,#2dd4bf,#14b8a6);
+border:none;
+padding:8px 20px;
+border-radius:30px;
+font-weight:bold;
+cursor:pointer;
+color:#071018;
+transition:0.3s;
+}
 
-            .profile-btn:hover {
-                background: #ffffff;
-                background: linear-gradient(90deg,rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-                transform: scale(1.1);
-                border: 1px solid #4b4b4b;
-                box-shadow: 0 0 8px rgba(255,255,255,0.3);
-            }
+.profile-btn:hover{
+transform:scale(1.05);
+}
 
-            .profile-btn:hover svg {
-                transform: scale(1.05);
-            }
+/* ===== MAIN ===== */
+main{
+margin-top:130px;
+padding:0 60px;
+}
 
+/* ===== BREADCRUMB (movie.php style) ===== */
+.topLink{
+display:flex;
+gap:10px;
+margin-bottom:30px;
+flex-wrap:wrap;
+}
 
-        nav {
-            display: flex;
-            gap: 10px;
-        }
+.topLink a{
+background:rgba(255,255,255,0.08);
+padding:8px 15px;
+border-radius:20px;
+text-decoration:none;
+color:white;
+transition:0.3s;
+}
 
-        nav a {
-            background-color: #4b4b4b;
-            color: white;
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 10px;
-            border: 1px solid #a3c2b1;
-            transition: 0.3s;
-        }
+.topLink a:hover,
+.topLink a.active{
+background:#2dd4bf;
+color:#071018;
+}
 
-        nav a:hover,
-        nav a.active {
-            background-color: #a3c2b1;
-            color: #2b2b2b;
-        }
+.topLink a#active{
+background:#2dd4bf;
+color:#071018;
+}
 
-        .main-container {
-            background-color: #a3c2b1;
-            margin: 40px auto;
-            width: 85%;
-            padding: 30px;
-            border-radius: 10px;
-            border: 3px solid #4b4b4b;
-        }
+/* ===== MAIN CONTAINERS (converted from glassbox) ===== */
+.main-container,
+.glassbox,
+.glassbox-2{
+background:rgba(255,255,255,0.06);
+backdrop-filter:blur(10px);
+border-radius:15px;
+padding:25px;
+margin-bottom:30px;
+box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
 
-        .tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
+/* ===== PAYMENT TITLE ===== */
+h2{
+font-size:2rem;
+margin-bottom:20px;
+text-align:center;
+}
 
-        .tab {
-            background-color: #4b4b4b;
-            color: white;
-            padding: 10px 25px;
-            border-radius: 10px 10px 0 0;
-            margin: 0 3px;
-            cursor: pointer;
-            font-weight: bold;
-            border: 1px solid #4b4b4b;
-        }
+/* ===== PAYMENT OPTIONS ===== */
+.payment-methods{
+display:flex;
+flex-direction:column;
+gap:15px;
+margin-top:15px;
+}
 
-        .tab.active {
-            background-color: #a3c2b1;
-            color: #2b2b2b;
-            border-bottom: none;
-        }
+.payment-option{
+display:flex;
+align-items:center;
+gap:15px;
+padding:15px;
+border-radius:12px;
+background:rgba(255,255,255,0.08);
+border:1px solid transparent;
+cursor:pointer;
+transition:0.3s;
+}
 
-        /* Top Link Stuff */
-        #topLinkSection {
-            width: 50%;
-            margin: 10px auto;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            border-radius: 10px;
-        }
+.payment-option:hover{
+background:#2dd4bf;
+color:#071018;
+transform:scale(1.02);
+}
 
-        .topLink {
-            border-radius: 10px;
-            width: auto;
-            align-items: center;
-            text-align: center;
-        }
+.payment-option.selected{
+background:#2dd4bf;
+color:#071018;
+border:1px solid #14b8a6;
+}
 
-        .topLink a {
-                color: #FFFFFF;
-                background-color: #4b4b4b;
-                background: linear-gradient(90deg,rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-                text-decoration: none;
-                padding: 8px 15px;
-                border-radius: 10px;
-                border: 1px solid #CCCCCC;
-                transition: 0.3s;
-                margin-top: 10px;
-                font-size: 18px;
-                font-weight: 900;
-                font-family: 'Poppins', sans-serif;
-                font-weight: 600;
-                text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-            }
+/* radio */
+.payment-option input[type="radio"]{
+transform:scale(1.2);
+cursor:pointer;
+}
 
-            .topLink a#active {
-                background: #ffffff;
-                background: linear-gradient(360deg,rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-                color: white;
-                text-decoration: none;
-                padding: 8px 15px;
-                border-radius: 10px;
-                border: 1px solid #4b4b4b;
-                font-weight: bold;
-                color: #363635;
-                font-family: 'Poppins', sans-serif;
-                font-weight: 900;
-                
-                transition: 0.3s ease;
-            }
+/* logo */
+.payment-logo{
+width:60px;
+height:40px;
+object-fit:contain;
+background:white;
+padding:5px;
+border-radius:5px;
+}
 
-            
-        
+/* text */
+.payment-label{
+font-size:18px;
+font-weight:600;
+}
 
-            .topLink a:hover,
-            .topLink a.active {
-                background-color: #ffffffff;
-                background: linear-gradient(90deg,rgba(245, 245, 245, 1) 0%, rgba(255, 255, 255, 1) 100%);
-                color: #2b2b2b;
-                border: 1px solid #4b4b4b;
-                box-shadow: 0 0 8px rgba(255,255,255,0.3);
-                transition: 0.3s ease;
-            }
+/* ===== FORM ===== */
+.form-group{
+margin-bottom:15px;
+}
 
-        /* Available seats stuff */
+.form-group label{
+display:block;
+margin-bottom:5px;
+font-weight:500;
+opacity:0.9;
+}
 
-         .glassbox {
-            background: rgba(255, 255, 255, 0.3); /* semi-transparent white */
-            padding: 20px;
-            border: 2px solid white;
-            width: 50%;
-            margin: 5px auto;
-            margin-top: 30px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            color: #363635;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-            margin: 0px auto;
-            width: 50%;
-            align-items: left;
-            border-radius: 10px;
-            font-weight: 500;
-            font-size: 18px;
-            font-family: 'Poppins', sans-serif;
-            color: #ffffffff;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-            transition: 0.3s ease;
-        }
+.form-group input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:none;
+background:#0d1b2a;
+color:white;
+border:1px solid rgba(255,255,255,0.2);
+}
 
-         .glassbox:hover {
-            background: #ffffff;
-            background: linear-gradient(360deg,rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-            border: 2px solid #363635;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-            color: #363635;
+.form-group input.valid{
+border-color:#2dd4bf;
+}
 
+.form-group input.invalid{
+border-color:#ff4444;
+}
 
+/* ===== BUTTONS ===== */
+.btn,
+.btn-primary{
+background:#2dd4bf;
+color:#071018;
+border:none;
+padding:12px 20px;
+border-radius:30px;
+cursor:pointer;
+font-weight:bold;
+transition:0.3s;
+width:100%;
+}
 
-        }
+.btn:hover,
+.btn-primary:hover{
+background:#14b8a6;
+transform:scale(1.03);
+}
 
+/* disabled */
+.btn-primary:disabled{
+background:#555;
+color:#aaa;
+cursor:not-allowed;
+transform:none;
+}
 
-       
+/* ===== TABS (kept minimal) ===== */
+.tabs{
+display:flex;
+justify-content:center;
+margin-bottom:15px;
+}
 
-        /* Payment and Receipt Styles */
+.tab{
+background:rgba(255,255,255,0.08);
+color:white;
+padding:10px 20px;
+border-radius:20px;
+margin:0 5px;
+cursor:pointer;
+transition:0.3s;
+}
 
-        .glassbox-2 {
-            background: rgba(255, 255, 255, 0.3);
-            padding: 20px;
-            border: 2px solid white;
-            width: 50%;
-            margin: 5px auto;
-            border-radius: 10px;
-            color: #363635;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-        }
+.tab.active{
+background:#2dd4bf;
+color:#071018;
+}
 
-      .payment-methods {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 15px;
-          
-        }
-    
+p{
+opacity:0.9;
+text-align:center;
+}
 
-        h2 {
-            color: #ffffffff;
-            text-align: center;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-        }
+.hidden{
+display:none;
+}
 
-        .payment-option {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            border: 1px solid #ffffffff;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
+.payment-details{
+    display: none;
+}
 
-        .payment-option:hover {
-          background: #afbda4;
-          background: linear-gradient(360deg, rgba(175, 189, 164, 1) 0%, rgba(150, 176, 163, 1) 100%);
-        }
+.payment-details.active{
+    display: block;
+}
 
-        .payment-option.selected {
-        background: #afbda4;
-        background: linear-gradient(360deg, rgba(175, 189, 164, 1) 0%, rgba(150, 176, 163, 1) 100%);
-        }
+.progress-container{
+    margin-top:20px;
+    margin-bottom:20px;
+}
 
-        .payment-option input[type="radio"] {
-            margin: 0;
-            cursor: pointer;
-        }
+.progress-label{
+    font-size:14px;
+    margin-bottom:8px;
+    opacity:0.9;
+    text-align:center;
+}
 
-        .payment-logo {
-            width: 60px;
-            height: 40px;
-            object-fit: contain;
-            background-color: white;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            cursor: pointer;
-        }
+.progress-bar{
+    width:100%;
+    height:10px;
+    background:rgba(255,255,255,0.1);
+    border-radius:20px;
+    overflow:hidden;
+}
 
-        .payment-label {
-            cursor: pointer;
-            flex: 1;
-            color: #ffffff;
-            text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-weight: 500;
-            font-size: 18px;
-        }
-
-        .payment-details {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .payment-details.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #ffffffff;
-            text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
-
-        }
-
-        p {
-            color: #ffffffff;
-            text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
-            text-align: center;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #4b4b4b;
-            border-radius: 5px;
-            background-color: #e8f1ec;
-        }
-
-        .form-group input.valid {
-            border-color: #4caf50;
-            background-color: #a3c2b1;
-            
-        }
-
-        .form-group input.invalid {
-            border-color: #ff4444;
-            background-color: #ffe6e6;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 15px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .btn {
-            background-color: #4b4b4b;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin-top: 10px;
-            margin-right: 10px;
-        }
-
-        .btn:hover {
-           background: #ffffff;
-           background: linear-gradient(90deg,rgba(255, 255, 255, 1) 0%, rgba(204, 204, 204, 1) 100%);
-           color: #363635;
-           border: 1px solid #363635;
-           text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
-           font-family: 'Poppins', sans-serif;
-           font-size: 18px;
-           font-weight: 500;
-        }
-
-        .btn-primary {
-            background-color: #4b4b4b;
-            background: linear-gradient(90deg,rgba(75, 75, 75, 1) 0%, rgba(43, 43, 43, 1) 100%);
-            border: 1px solid #CCCCCC;
-            width: 100%;
-            font-family: 'Poppins', sans-serif;
-            font-size: 18px;
-            font-weight: 500;
-        }
-
-        .btn-primary:hover {
-            
-        }
-
-        .btn-primary:disabled {
-            background-color: #CCCCCC;
-            cursor: not-allowed;
-        }
-
-        .paypal-redirect {
-            text-align: center;
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e8f1ec;
-            border-radius: 5px;
-            border: 1px solid #4b4b4b;
-        }
-
-        .paypal-redirect p {
-            margin-bottom: 15px;
-        }
-
-        .error-message {
-            color: #ff4444;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .validation-status {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-        
-        .validation-status.valid {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .validation-status.invalid {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+#progressFill{
+    height:100%;
+    width:0%;
+    background:#ff4444;
+    transition:0.3s ease;
+    border-radius:20px;
+}
     </style>
 </head>
 <body>
      <header>
          <div class="logo">
-         <img src="peakscinematransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
+         <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
          </div>
     
         <div class="header-actions">
@@ -566,7 +366,7 @@
                 <a href="home.php">Home</a><p>&nbsp/&nbsp</p>
                 <a href="movie.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>">Malls with "<?= htmlspecialchars($movieDetails['MovieName']) ?>"</a><p>&nbsp/&nbsp</p>
                 <a href="mall.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>">Available theaters in "<?= htmlspecialchars($mallDetails['MallName']) ?>"</a><p>&nbsp/&nbsp</p>
-                <a href="seat_selection.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>&timeslot_id=<?= htmlspecialchars($TimeSlot_ID) ?>">Seats Selection in <?= htmlspecialchars($timeslotDetails['TheaterName']) ?></a><p>&nbsp/&nbsp</p>
+                <a href="seat_selection.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>&timeslot_id=<?= htmlspecialchars($TimeSlot_ID) ?>">Seats Selection in <?= htmlspecialchars($theaterDetails['TheaterName'] ?? 'Theater') ?></a><p>&nbsp/&nbsp</p>
                 <a id="active">Payment</a> 
             </nav>
         </div>
@@ -607,7 +407,7 @@
                 
                 <h2>Payment Method</h2>
                 <div class="payment-methods">
-                    <div class="payment-option" onclick="selectPaymentMethod('credit')">
+                    <div class="payment-option" onclick="selectPaymentMethod('credit'); updateProgress();">
                         <input type="radio" id="credit" name="paymentMethod" value="credit">
                         <img src="visa.png" alt="Visa" class="payment-logo" onclick="selectPaymentMethod('credit')">
                         <label for="credit" class="payment-label" onclick="selectPaymentMethod('credit')">Credit/Debit Card</label>
@@ -739,6 +539,16 @@
 
                 <!-- Validation Status -->
                 <div id="validationStatus" class="validation-status"></div>
+                
+                <div class="progress-container">
+    <div class="progress-label">
+        Payment Form Completion: <span id="progressText">0%</span>
+    </div>
+
+    <div class="progress-bar">
+        <div id="progressFill"></div>
+    </div>
+</div>
 
                 <!-- Submit Button -->
                 <button type="submit" id="submitButton" class="btn btn-primary" disabled>Complete Payment</button>
@@ -783,6 +593,42 @@
             validateCurrentForm();
         }
 
+            function updateProgress() {
+    const activeDetails = document.querySelector('.payment-details.active');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    if (!activeDetails) {
+        progressFill.style.width = "0%";
+        progressText.textContent = "0%";
+        return;
+    }
+
+    const fields = activeDetails.querySelectorAll('input[data-required="true"]');
+
+    let total = fields.length;
+    let filled = 0;
+
+    fields.forEach(field => {
+        if (field.value.trim() !== "") {
+            filled++;
+        }
+    });
+
+    let percent = total === 0 ? 0 : Math.round((filled / total) * 100);
+
+    progressFill.style.width = percent + "%";
+    progressText.textContent = percent + "%";
+
+    // color logic
+    if (percent < 40) {
+        progressFill.style.background = "#ff4444"; // red
+    } else if (percent < 70) {
+        progressFill.style.background = "#facc15"; // yellow
+    } else {
+        progressFill.style.background = "#2dd4bf"; // green
+    }
+}
         
         function formatCardNumber(input) {
             // Remove all non-digits
@@ -925,7 +771,7 @@
             // Add input event listeners for real-time validation
             const inputs = document.querySelectorAll('input[data-required="true"]');
             inputs.forEach(input => {
-                input.addEventListener('input', function() {
+                input.addEventListener('input', function() { updateProgress();
                     // Only validate if this field belongs to the current payment method
                     const activeDetails = document.querySelector('.payment-details.active');
                     if (activeDetails && activeDetails.contains(this)) {
@@ -953,17 +799,14 @@
                     return;
                 }
                 
-                // Validate only the current payment method's fields
                 if (!validateCurrentForm()) {
                     e.preventDefault();
                     alert('Please fill in all required fields for the selected payment method correctly.');
                     return;
                 }
                 
-                // If validation passes, the form will submit to receipt.php
             });
             
-            // Initialize with no payment method selected
             validateCurrentForm();
         });
     </script>

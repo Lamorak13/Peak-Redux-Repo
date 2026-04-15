@@ -57,12 +57,14 @@ const admin_gate = {
                     createA('dashboard', 'admin_dashboard.php', "Dashboard");
                     createA('admin_movie-gallery', 'admin_movie-gallery.php', "Movies");
                     createA('admin_theater-gallery', 'admin_theater-gallery.php', "Theaters");
+                    createA('admin_refunds', 'admin_refunds.php', "Refunds");
                     break;
                 case 2:    
                     createA('staff_cashier', 'staff_cashier.php', "Cashier");        
                     createA('dashboard', 'admin_dashboard.php', "Dashboard");
                     createA('admin_movie-gallery', 'admin_movie-gallery.php', "Movies");
                     createA('admin_theater-gallery', 'admin_theater-gallery.php', "Theaters");
+                    createA('admin_refunds', 'admin_refunds.php', "Refunds");
                     createA('admin_management', 'admin_management.php', 'Admin Management');
                     break;
             }
