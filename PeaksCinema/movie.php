@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="manifest.json">
+    <script src="customer_gate.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
         body{background:linear-gradient(to bottom,#071018,#0d1b2a);color:white;min-height:100vh;}
@@ -28,7 +34,7 @@
         main{margin-top:130px;padding:0 60px;}
         .topLink{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;}
         .topLink a{background:rgba(255,255,255,0.08);padding:8px 15px;border-radius:20px;color:white;text-decoration:none;}
-        .topLink a.active,.topLink a:hover{background:#2dd4bf;color:#071018;}
+        .topLink a.active,.topLink a:hover{background:#2dd4bf;color:#071018;font-weight: bold}
 
         .glassbox,.glassbox-2{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border-radius:15px;padding:25px;margin-bottom:30px;box-shadow:0 10px 30px rgba(0,0,0,0.4);}
 
@@ -37,15 +43,57 @@
         .play-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:rgba(0,0,0,0.75);border:5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;}
         .play-icon{width:0;height:0;border-top:15px solid transparent;border-bottom:15px solid transparent;border-left:26px solid white;margin-left:8px;}
 
-        .mallCard{
-            background:rgba(255,255,255,0.08);
-            padding:18px;
-            margin-bottom:15px;
-            border-radius:12px;
-            cursor:pointer;
-            transition:0.3s;
+        .theaterCard{
+        background:rgba(255,255,255,0.08);
+        border-radius:12px;
+        padding:15px;
+        margin-bottom:15px;
         }
-        .mallCard:hover{background:rgba(45,212,191,0.2);}
+
+        .theaterName{
+        font-weight:bold;
+        margin-bottom:10px;
+        }
+
+        .timeslotContainer{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        }
+
+        .timeslots{
+        padding:8px 15px;
+        border-radius:20px;
+        background:#2dd4bf;
+        color:#071018;
+        font-weight:bold;
+        cursor:pointer;
+        transition:0.3s;
+        }
+
+        .timeslots:hover{
+        transform:scale(1.05);
+        background:#14b8a6;
+        }
+
+        #screeningDate {
+            border-radius: 15px;
+            border: 2px solid black;
+            font-weight: bold;
+            padding: 3px;
+        }
+
+        .daterangepicker td.available {
+            color: black;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .daterangepicker td.available:hover {
+            background-color: black;
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -60,7 +108,7 @@
     <main>
         <div class="topLink">
             <a href="home.php">Home</a>
-            <a id="theatersWithMovie" class="active">Theaters with </a>
+            <a id="theatersWithMovie" class="active">1. Select Theater For </a>
         </div>
 
         <section class="glassbox">
@@ -79,9 +127,9 @@
         </section>
 
         <div class="glassbox-2">
-            <section id="availableMalls">
-                <label for="screeningDate"><strong>Date of Screening:</strong></label><br>
-                <input type="date" id="screeningDate" name="screeningDate"><br><br>
+            <section id="availableTheatersSection">
+                <label for="screeningDate"><strong>Date of Screening:</strong></label>
+                <input type="text" id="screeningDate" name="screeningDate"><br><br>
                 <p id="screeningsMsg" style="color:#ff6b6b;"></p>
                 <div id="availableMallsText" style="font-weight:bold;margin:15px 0 10px;">Theaters with this movie:</div>
                 <div id="theatersContainer"></div>
@@ -123,73 +171,89 @@
             document.getElementById('trailerFrame').src = "";
         }
 
-        // Load Malls
+        // Load Theaters
         const urlParams = new URLSearchParams(window.location.search);
         const Movie_ID = urlParams.get('movie_id');
 
-        // function loadMalls(date) {
-        //     const container = document.getElementById("mallsContainer");
-        //     const msg = document.getElementById("screeningsMsg");
-        //     container.innerHTML = "";
-        //     msg.textContent = "Loading...";
+        function loadTheaters(date) {
+            const theatersContainer = document.getElementById("theatersContainer");
+            theatersContainer.innerHTML = "";
 
-        //     fetch("", {
-        //         method: "POST",
-        //         headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        //         body: "screeningDate=" + encodeURIComponent(date) + "&id=" + Movie_ID
-        //     })
-        //     .then(r => r.json())
-        //     .then(data => {
-        //         console.log("Malls received:", data);
-        //         container.innerHTML = "";
-        //         msg.textContent = "";
+            const msg = document.getElementById("screeningsMsg");
+            msg.textContent = "Loading...";
 
-        //         if (data.length === 0) {
-        //             msg.innerHTML = "No screenings available for this date.";
-        //             return;
-        //         }
+            fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/31/theaters&date=${date}`, {
+                method: "GET"
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.log(response.error);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    msg.textContent = data.error;
+                }
 
-        //         data.forEach(mall => {
-        //             const div = document.createElement("div");
-        //             div.className = "mallCard";
-        //             div.innerHTML = `
-        //                 <strong>${mall.MallName}</strong><br>
-        //                 Location: ${mall.Location || 'Not specified'}<br>
-        //                 Theaters: ${mall.TheaterTypes ? mall.TheaterTypes.join(", ") : 'N/A'}<br>
-        //                 Screenings: ${mall.ScreeningTypes ? mall.ScreeningTypes.join(", ") : 'N/A'}
-        //             `;
-        //             div.onclick = () => window.location.href = `mall.php?movie_id=${Movie_ID}&mall_id=${mall.Mall_ID}&date=${date}`;
-        //             container.appendChild(div);
-        //         });
-        //     })
-        //     .catch(() => msg.textContent = "Error loading malls.");
-        // }
+                msg.textContent = "";
+                const theaters = data.data;
+
+                if (theaters.length == 0) {
+                    msg.textContent = "Sorry, there are no more screenings left today.";
+                    availableMallsText.innerHTML = "";
+                    return;
+                }
+
+                availableMallsText.innerHTML = "Theaters with this movie:";
+                
+                theaters.forEach(theater => {
+                    const theaterCard = document.createElement('div');
+                    theaterCard.classList.add('theaterCard');
+
+                    const theaterName = document.createElement('div');
+                    theaterName.classList.add('theaterName');
+                    theaterName.textContent = theater.TheaterName;
+                    theaterCard.append(theaterName);
+
+                    const timeslotContainer = document.createElement('div');
+                    timeslotContainer.classList.add('timeslotContainer');
+                    theaterCard.append(timeslotContainer);
+
+                    theater.Timeslots.forEach(timeslot => {
+                        const timeslots = document.createElement('div');
+                        timeslots.classList.add('timeslots');
+                        timeslots.textContent = timeslot.ScreeningType + " - " + timeslot.StartTime;
+
+                        timeslots.addEventListener("click", function() {
+                            window.location.href = 'seat_selection.php?timeslot_id=' + timeslot.TimeSlot_ID;
+                        })
+                        timeslotContainer.append(timeslots);
+                    })
+
+                    document.getElementById('theatersContainer').append(theaterCard);
+                })
+            })
+        }
 
         // Initialize
         window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById("screeningDate").value = today;
-            // loadMalls(today);
-
-            document.getElementById("screeningDate").addEventListener("change", (e) => {
-                // loadMalls(e.target.value);
-            });
-
+            // Gets Movie Details
             fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}`, {
                 method: 'GET'
             })
             .then(response => {
-                    if (!response.ok) {
-                        console.log(response.error);
-                    }
-                    return response.json();
-                })
+                if (!response.ok) {
+                    console.log(response.error);
+                }
+                return response.json();
+            })
             .then(data => {
                 const movieData = data.data[0];
                 console.log(movieData);
 
                 document.getElementById('theatersWithMovie').append('"' + movieData.MovieName + '"');
-                localStorage.setItem('currentMovie', JSON.stringify(movieData));
+                sessionStorage.setItem('currentMovie', JSON.stringify(movieData));
 
                 document.getElementById('posterTrailer').src = "/" + movieData.MoviePoster;
                 document.getElementById('MovieName').innerText = movieData.MovieName;
@@ -199,6 +263,52 @@
                 document.getElementById('Runtime').append(movieData.Runtime + " Minutes");
 
                 document.getElementById('trailerPlayer').addEventListener("click", () => playTrailer(movieData.TrailerURL));
+            })
+
+            //Gets Available Dates and makes them the only ones available for the date input . . .
+            fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/timeslots`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.log(response.error);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    window.location.href = 'home.php';
+                    return;
+                }
+                const timeslots = data.data;
+
+                const curYear = new Date().getFullYear();
+                const availableDates = timeslots.map(slot => slot.Date);
+                console.log(availableDates);
+
+                const sortedDates = availableDates.slice().sort();
+                const firstDate = sortedDates[0];
+                const lastDate = sortedDates[sortedDates.length - 1];
+
+                const dateInput = $('input[name="screeningDate"]');
+                dateInput.val(moment(firstDate).format('MM/DD/YYYY'));
+                
+                dateInput.daterangepicker({
+                    singleDatePicker: true,
+                    showDropdowns: true,
+                    minYear: curYear,
+                    minDate: firstDate,
+                    maxDate: lastDate,
+                    autoApply: true,
+                    isInvalidDate: function(date) {
+                        const dateString = date.format('YYYY-MM-DD');
+                        return !availableDates.includes(dateString);
+                    }
+                }, function(selected) {
+                    const selectedDate = selected.format('YYYY-MM-DD');
+                    loadTheaters(selectedDate);
+                })
+                loadTheaters(firstDate);
             })
         };
     </script>

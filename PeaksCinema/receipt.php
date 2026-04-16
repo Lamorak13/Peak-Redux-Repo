@@ -1,133 +1,135 @@
 <?php
-session_start();
+// session_start();
 
-$Movie_ID = isset($_POST['movie_id']) ? $_POST['movie_id'] : '';
-$Mall_ID = isset($_POST['mall_id']) ? $_POST['mall_id'] : '';
-$Date = isset($_POST['date']) ? $_POST['date'] : '';
-$TimeSlot_ID = isset($_POST['timeslot_id']) ? $_POST['timeslot_id'] : '';
-$selectedSeats = isset($_POST['selectedSeats']) ? $_POST['selectedSeats'] : [];
-$totalPrice = isset($_POST['totalPrice']) ? $_POST['totalPrice'] : 0;
-$paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : '';
-$Customer_ID = $_SESSION['user_id'];
+// $Movie_ID = isset($_POST['movie_id']) ? $_POST['movie_id'] : '';
+// $Mall_ID = isset($_POST['mall_id']) ? $_POST['mall_id'] : '';
+// $Date = isset($_POST['date']) ? $_POST['date'] : '';
+// $TimeSlot_ID = isset($_POST['timeslot_id']) ? $_POST['timeslot_id'] : '';
+// $selectedSeats = isset($_POST['selectedSeats']) ? $_POST['selectedSeats'] : [];
+// $totalPrice = isset($_POST['totalPrice']) ? $_POST['totalPrice'] : 0;
+// $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : '';
+// $Customer_ID = $_SESSION['user_id'];
 
-$customerName = '';
-if ($paymentMethod === 'credit') {
-    $customerName = isset($_POST['cardFirstName']) ? $_POST['cardFirstName'] . ' ' . (isset($_POST['cardLastName']) ? $_POST['cardLastName'] : '') : '';
-} elseif ($paymentMethod === 'paypal') {
-    $customerName = isset($_POST['paypalFirstName']) ? $_POST['paypalFirstName'] . ' ' . (isset($_POST['paypalLastName']) ? $_POST['paypalLastName'] : '') : '';
-} elseif ($paymentMethod === 'gcash') {
-    $customerName = isset($_POST['gcashFirstName']) ? $_POST['gcashFirstName'] . ' ' . (isset($_POST['gcashLastName']) ? $_POST['gcashLastName'] : '') : '';
-} elseif ($paymentMethod === 'paymaya') {
-    $customerName = isset($_POST['paymayaFirstName']) ? $_POST['paymayaFirstName'] . ' ' . (isset($_POST['paymayaLastName']) ? $_POST['paymayaLastName'] : '') : '';
-}
+// $customerName = '';
+// if ($paymentMethod === 'credit') {
+//     $customerName = isset($_POST['cardFirstName']) ? $_POST['cardFirstName'] . ' ' . (isset($_POST['cardLastName']) ? $_POST['cardLastName'] : '') : '';
+// } elseif ($paymentMethod === 'paypal') {
+//     $customerName = isset($_POST['paypalFirstName']) ? $_POST['paypalFirstName'] . ' ' . (isset($_POST['paypalLastName']) ? $_POST['paypalLastName'] : '') : '';
+// } elseif ($paymentMethod === 'gcash') {
+//     $customerName = isset($_POST['gcashFirstName']) ? $_POST['gcashFirstName'] . ' ' . (isset($_POST['gcashLastName']) ? $_POST['gcashLastName'] : '') : '';
+// } elseif ($paymentMethod === 'paymaya') {
+//     $customerName = isset($_POST['paymayaFirstName']) ? $_POST['paymayaFirstName'] . ' ' . (isset($_POST['paymayaLastName']) ? $_POST['paymayaLastName'] : '') : '';
+// }
 
-if (empty($paymentMethod)) {
-    header("Location: payment.php");
-    exit;
-}
+// if (empty($paymentMethod)) {
+//     header("Location: payment.php");
+//     exit;
+// }
 
-include("peakscinemas_database.php");
+// include("peakscinemas_database.php");
 
-$email_stmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
-$email_stmt->bind_param("i", $Customer_ID);
-$email_stmt->execute();
-$emailResult = $email_stmt->get_result()->fetch_assoc();
-$customerEmail = $emailResult['Email'];
+// $email_stmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
+// $email_stmt->bind_param("i", $Customer_ID);
+// $email_stmt->execute();
+// $emailResult = $email_stmt->get_result()->fetch_assoc();
+// $customerEmail = $emailResult['Email'];
 
-$movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
-$movie_stmt->bind_param("i", $Movie_ID);
-$movie_stmt->execute();
-$movieDetails = ($movie_stmt->get_result())->fetch_assoc();
+// $movie_stmt = $conn->prepare("SELECT * FROM movie WHERE Movie_ID = ?");
+// $movie_stmt->bind_param("i", $Movie_ID);
+// $movie_stmt->execute();
+// $movieDetails = ($movie_stmt->get_result())->fetch_assoc();
 
-$mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-$mall_stmt->bind_param("i", $Mall_ID);
-$mall_stmt->execute();
-$mallDetails = ($mall_stmt->get_result())->fetch_assoc();
+// $mall_stmt = $conn->prepare("SELECT * FROM mall WHERE Mall_ID = ?");
+// $mall_stmt->bind_param("i", $Mall_ID);
+// $mall_stmt->execute();
+// $mallDetails = ($mall_stmt->get_result())->fetch_assoc();
 
-$timeslot_stmt = $conn->prepare("SELECT * FROM timeslot WHERE TimeSlot_ID = ?");
-$timeslot_stmt->bind_param("i", $TimeSlot_ID);
-$timeslot_stmt->execute();
-$timeslotDetails = ($timeslot_stmt->get_result())->fetch_assoc();
+// $timeslot_stmt = $conn->prepare("SELECT * FROM timeslot WHERE TimeSlot_ID = ?");
+// $timeslot_stmt->bind_param("i", $TimeSlot_ID);
+// $timeslot_stmt->execute();
+// $timeslotDetails = ($timeslot_stmt->get_result())->fetch_assoc();
 
-$theater_stmt = $conn->prepare("SELECT TheaterName FROM theater WHERE Theater_ID = ?");
-$theater_stmt->bind_param("i", $timeslotDetails['Theater_ID']);
-$theater_stmt->execute();
-$theaterDetails = ($theater_stmt->get_result())->fetch_assoc();
+// $theater_stmt = $conn->prepare("SELECT TheaterName FROM theater WHERE Theater_ID = ?");
+// $theater_stmt->bind_param("i", $timeslotDetails['Theater_ID']);
+// $theater_stmt->execute();
+// $theaterDetails = ($theater_stmt->get_result())->fetch_assoc();
 
-$seatPositions = [];
-if (!empty($selectedSeats)) {
-    $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
-    $seat_stmt = $conn->prepare("SELECT Seat_ID, SeatRow, SeatColumn FROM seats WHERE Seat_ID IN ($placeholders)");
+// $seatPositions = [];
+// if (!empty($selectedSeats)) {
+//     $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
+//     $seat_stmt = $conn->prepare("SELECT Seat_ID, SeatRow, SeatColumn FROM seats WHERE Seat_ID IN ($placeholders)");
     
-    $types = str_repeat('i', count($selectedSeats));
-    $seat_stmt->bind_param($types, ...$selectedSeats);
-    $seat_stmt->execute();
-    $seatResult = $seat_stmt->get_result();
+//     $types = str_repeat('i', count($selectedSeats));
+//     $seat_stmt->bind_param($types, ...$selectedSeats);
+//     $seat_stmt->execute();
+//     $seatResult = $seat_stmt->get_result();
     
-    while ($seat = $seatResult->fetch_assoc()) {
-        $seatPositions[] = $seat['SeatRow'] . $seat['SeatColumn'];
-    }
+//     while ($seat = $seatResult->fetch_assoc()) {
+//         $seatPositions[] = $seat['SeatRow'] . $seat['SeatColumn'];
+//     }
     
-    sort($seatPositions);
-}
+//     sort($seatPositions);
+// }
 
-$bookingRef = 'PC-' . date('Ymd') . '-' . rand(1000, 9999);
+// $bookingRef = 'PC-' . date('Ymd') . '-' . rand(1000, 9999);
 
-if (empty($selectedSeats)) {
-    die("No seats selected.");
-}
+// if (empty($selectedSeats)) {
+//     die("No seats selected.");
+// }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $conn -> begin_transaction();
+// if ($_SERVER["REQUEST_METHOD"] == "POST") {
+//     $conn -> begin_transaction();
 
-    try {
-        $seatUpdate_stmt = $conn -> prepare("UPDATE seats SET SeatAvailability = 0 WHERE Seat_ID = ?");
+//     try {
+//         $seatUpdate_stmt = $conn -> prepare("UPDATE seats SET SeatAvailability = 0 WHERE Seat_ID = ?");
 
-        foreach ($selectedSeats as $Seat_ID) {
-            $seatUpdate_stmt -> bind_param("i", $Seat_ID);
-            $seatUpdate_stmt -> execute();
-        }
+//         foreach ($selectedSeats as $Seat_ID) {
+//             $seatUpdate_stmt -> bind_param("i", $Seat_ID);
+//             $seatUpdate_stmt -> execute();
+//         }
 
-        $ticketIDs = [];
-        $ticket_stmt = $conn -> prepare("INSERT INTO ticket(Seat_ID, Customer_ID, Movie_ID, TimeSlot_ID, Price, Status, DateTime)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)");
+//         $ticketIDs = [];
+//         $ticket_stmt = $conn -> prepare("INSERT INTO ticket(Seat_ID, Customer_ID, Movie_ID, TimeSlot_ID, Price, Status, DateTime)
+//                                         VALUES (?, ?, ?, ?, ?, ?, ?)");
 
-        $Status = 1;
-        $dateTime = date('Y-m-d H:i:s');    
-        $price = $totalPrice / count($selectedSeats);
+//         $Status = 1;
+//         $dateTime = date('Y-m-d H:i:s');    
+//         $price = $totalPrice / count($selectedSeats);
 
-        foreach ($selectedSeats as $Seat_ID) {
-            $ticket_stmt -> bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
-            $ticket_stmt -> execute();
-            $ticketIDs[] = $conn -> insert_id;
-        }
+//         foreach ($selectedSeats as $Seat_ID) {
+//             $ticket_stmt -> bind_param("iiiidis", $Seat_ID, $Customer_ID, $Movie_ID, $TimeSlot_ID, $price, $Status, $dateTime);
+//             $ticket_stmt -> execute();
+//             $ticketIDs[] = $conn -> insert_id;
+//         }
 
-        $payment_stmt = $conn -> prepare("INSERT INTO payment(Ticket_ID, PaymentMethod, AmountPaid, PaymentDate, PaymentStatus)
-                                        VALUES (?, ?, ?, ?, ?)");    
+//         $payment_stmt = $conn -> prepare("INSERT INTO payment(Ticket_ID, PaymentMethod, AmountPaid, PaymentDate, PaymentStatus)
+//                                         VALUES (?, ?, ?, ?, ?)");    
 
-        $receipt_stmt = $conn -> prepare("INSERT INTO `e-receipt`(Payment_ID, DateIssued, ReceiptStatus, Status)
-                                        VALUES (?, ?, ?, ?)");
+//         $receipt_stmt = $conn -> prepare("INSERT INTO `e-receipt`(Payment_ID, DateIssued, ReceiptStatus, Status)
+//                                         VALUES (?, ?, ?, ?)");
 
-        foreach ($ticketIDs as $Ticket_ID) {
-            $payment_stmt -> bind_param("isdsi", $Ticket_ID, $paymentMethod, $price, $dateTime, $Status);
-            $payment_stmt -> execute();
-            $Payment_ID = $conn -> insert_id;
+//         foreach ($ticketIDs as $Ticket_ID) {
+//             $payment_stmt -> bind_param("isdsi", $Ticket_ID, $paymentMethod, $price, $dateTime, $Status);
+//             $payment_stmt -> execute();
+//             $Payment_ID = $conn -> insert_id;
 
-            $receipt_stmt -> bind_param("isii", $Payment_ID, $dateTime, $Status, $Status);
-            $receipt_stmt -> execute();
-        }
+//             $receipt_stmt -> bind_param("isii", $Payment_ID, $dateTime, $Status, $Status);
+//             $receipt_stmt -> execute();
+//         }
 
-        $conn -> commit();
-    } catch (Exception $e) {
-        $conn -> rollback();
-        throw $e;
-    }    
-}
+//         $conn -> commit();
+//     } catch (Exception $e) {
+//         $conn -> rollback();
+//         throw $e;
+//     }    
+// }
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="manifest.json">
+    <script src="customer_gate.js"></script>
     <style>
         *{
             margin:0;
@@ -405,23 +407,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo">
         </div>
         <nav>
-            <a href="home.php">Home</a>
             <a href="home.php">Back to Home</a>
         </nav>
     </header>
 
     <main>
-        <div id="topLinkSection">
-            <nav class="topLink">
-                <a href="home.php">Home</a><p>&nbsp/&nbsp</p>
-                <a href="movie.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>">Malls with "<?= htmlspecialchars($movieDetails['MovieName']) ?>"</a><p>&nbsp/&nbsp</p>
-                <a href="mall.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>">Available theaters in "<?= htmlspecialchars($mallDetails['MallName']) ?>"</a><p>&nbsp/&nbsp</p>
-                <a href="seat_selection.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>&timeslot_id=<?= htmlspecialchars($TimeSlot_ID) ?>">Seats Selection in <?= htmlspecialchars($theaterDetails['TheaterName']) ?></a><p>&nbsp/&nbsp</p>
-                <a href="payment.php">Payment</a><p>&nbsp/&nbsp</p>
-                <a id="active">Receipt</a> 
-            </nav>
-        </div>
-
         <section id="receiptSection">
             <div class="receipt-logo">
                 <img src="peakscinemastransparent.png" alt="PeaksCinemas">
@@ -435,68 +425,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="receipt-details">
                 <div class="receipt-row">
                     <span>Movie:</span>
-                    <span id="receiptMovieName"><?= htmlspecialchars($movieDetails['MovieName']) ?></span>
+                    <span id="receiptMovieName"></span>
                 </div>
                 <div class="receipt-row">
                     <span>Cinema:</span>
-                    <span id="receiptCinemaName"><?= htmlspecialchars($mallDetails['MallName']) ?> - <?= htmlspecialchars($theaterDetails['TheaterName']) ?></span>
+                    <span id="receiptCinemaName"></span>
                 </div>
                 <div class="receipt-row">
                     <span>Date & Time:</span>
                     <span id="receiptDateTime">
-                        <?= htmlspecialchars($Date) ?> - 
-                        <?php 
-                        if (isset($timeslotDetails['ScreeningType']) && isset($timeslotDetails['StartTime'])) {
-                            echo htmlspecialchars($timeslotDetails['ScreeningType'] . ' - ' . date("g:i A", strtotime($timeslotDetails['StartTime'])));
-                        } else {
-                            echo 'Time not available';
-                        }
-                        ?>
+                        
                     </span>
                 </div>
                 <div class="receipt-row">
                     <span>Seats:</span>
                     <span id="selectedSeatsReceipt">
-                        <?php 
-                        if (!empty($seatPositions)) {
-                            echo implode(", ", $seatPositions);
-                        } else {
-                            echo 'No seats selected';
-                        }
-                        ?>
+                        
                     </span>
                 </div>
                 <div class="receipt-row">
                     <span>Tickets:</span>
-                    <span id="ticketCountReceipt"><?= count($selectedSeats) ?></span>
+                    <span id="ticketCountReceipt"></span>
                 </div>
                 <div class="receipt-row">
                     <span>Customer Name:</span>
-                    <span id="customerNameReceipt"><?= !empty($customerName) ? htmlspecialchars($customerName) : '-' ?></span>
+                    <span id="customerNameReceipt"></span>
                 </div>
                 <div class="receipt-row">
                     <span>Payment Method:</span>
                     <span id="paymentMethodReceipt">
-                        <?php 
-                        switch($paymentMethod) {
-                            case 'credit': echo 'Credit/Debit Card'; break;
-                            case 'paypal': echo 'PayPal'; break;
-                            case 'gcash': echo 'GCash'; break;
-                            case 'paymaya': echo 'PayMaya'; break;
-                            default: echo '-';
-                        }
-                        ?>
+                        
                     </span>
                 </div>
                 <div class="receipt-row receipt-total">
                     <span>Total:</span>
-                    <span>₱<span id="totalReceipt"><?= number_format($totalPrice, 2) ?></span></span>
+                    <span>₱<span id="totalReceipt"></span></span>
                 </div>
             </div>
             
             <div class="booking-box">
                 <p>Booking Reference</p>
-                <div id="bookingReference"><?= htmlspecialchars($bookingRef) ?></div>
+                <div id="bookingReference"></div>
             </div>
 
             <div class="receipt-footer">
@@ -514,16 +483,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         function downloadReceipt() {
             const receipt = document.getElementById('receiptSection');
             const headerEl = document.querySelector('header');
-            const topLinkEl = document.getElementById('topLinkSection');
             const buttons = document.querySelector('.button-container');
 
             const originalBodyBg = document.body.style.background;
             const originalHeaderDisplay = headerEl.style.display;
-            const originalTopDisplay = topLinkEl.style.display;
             const originalBtnDisplay = buttons.style.display;
 
             headerEl.style.display = 'none';
-            topLinkEl.style.display = 'none';
             buttons.style.display = 'none';
             document.body.style.background = '#071018';
             receipt.classList.add('pdf-mode');
@@ -537,13 +503,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 filename: `receipt_${bookingRef}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: {
-                    scale: 3.5,
+                    scale: 2,
                     useCORS: true,
                     backgroundColor: '#071018',
                     allowTaint: true,
                     logging: false,
                     scrollX: 0,
-                    scrollY: 0
+                    scrollY: 0,
                 },
                 jsPDF: {
                     unit: 'mm',
@@ -560,7 +526,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     .then(() => {
                         receipt.classList.remove('pdf-mode');
                         headerEl.style.display = originalHeaderDisplay;
-                        topLinkEl.style.display = originalTopDisplay;
                         buttons.style.display = originalBtnDisplay;
                         document.body.style.background = originalBodyBg;
                     });
@@ -570,8 +535,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         function goHome() {
             window.location.href = 'home.php';
         }
-    </script>
-    
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const Receipt_ID = urlParams.get('receipt_id');
+
+        window.onload = function() {
+            fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=receipt/${Receipt_ID}`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.log(response.error);
+                }
+                return response.json();
+            })
+            .then(data => {
+                receipt = data.data[0];
+
+                document.getElementById('receiptMovieName').textContent = receipt.MovieName;                
+                document.getElementById('receiptCinemaName').textContent = receipt.TheaterName;
+                document.getElementById('receiptDateTime').textContent = receipt.Date + " | " + receipt.ScreeningType + " - " 
+                                                                        + new Date(`1970-01-01T${receipt.StartTime}`).toLocaleTimeString('en-US', {
+                                                                            hour: 'numeric',
+                                                                            minute: 'numeric',
+                                                                            hour12: true
+                                                                        });
+                document.getElementById('customerNameReceipt').textContent = receipt.LastName + ", " + receipt.FirstName;
+
+                const paymentMethodReceipt = document.getElementById('paymentMethodReceipt');
+
+                switch (receipt.PaymentMethod) {
+                    case 'credit':
+                        paymentMethodReceipt.textContent = "Credit/Debit Card";
+                        break;
+                    case 'paypal':
+                        paymentMethodReceipt.textContent = "PayPal";
+                        break;
+                    case 'gcash':
+                        paymentMethodReceipt.textContent = "GCash";
+                        break;
+                    case 'paymaya':
+                        paymentMethodReceipt.textContent = "PayMaya";
+                        break;
+                }
+
+                document.getElementById('totalReceipt').textContent = receipt.AmountPaid;
+
+                document.getElementById('bookingReference').textContent = "PC" + receipt.Receipt_ID + new Date().getFullYear();
+            })
+        }
+    </script>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </body>
 </html>

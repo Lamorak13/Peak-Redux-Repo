@@ -251,15 +251,16 @@
             break;
         case 'customer':
             if ($method == 'GET') {
-                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare('SELECT Customer_ID, FirstName, LastName, Email, PhoneNumber, CountryCode, PaymentMethod FROM customer');
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare('SELECT Customer_ID, FirstName, LastName, Email, PhoneNumber, CountryCode FROM customer WHERE Customer_ID = ?');
                     
                     try {
+                        $stmt->bind_param("i", $ID);
                         $stmt->execute();
                         $result = $stmt->get_result();
 
                         if ($result->num_rows === 0) {
-                            echo json_encode(["error" => "There are no customers yet."]);
+                            echo json_encode(["error" => "Null for a customer."]);
                         } else {
                             echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
                         }
@@ -421,10 +422,11 @@
         case 'movie':
             if ($method == 'GET') {
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare("SELECT movie.*, MIN(timeslot.Date) AS EarliestDate,
+                    $stmt = $conn->prepare("SELECT movie.*, MIN(daterange.StartDate) AS EarliestDate, MAX(daterange.EndDate) AS LatestDate,
                                             CASE 
-                                                WHEN MIN(timeslot.Date) <= CURRENT_DATE THEN 'Now Showing'
-                                                ELSE 'Coming Soon'
+                                                WHEN CURRENT_DATE BETWEEN MIN(daterange.StartDate) AND MAX(daterange.EndDate) THEN 'Now Showing'
+                                                WHEN CURRENT_DATE < MIN(daterange.StartDate) THEN 'Coming Soon'
+                                                ELSE 'Ended'
                                             END AS MovieAvailability
                                             FROM `movie`
                                             INNER JOIN daterange ON daterange.Movie_ID = movie.Movie_ID
@@ -461,17 +463,52 @@
                 }
                 else if ($ID !== null && $subResource === 'theaters' && $subID === null && $subResource2 === null && $subID2 === null && $date !== null) {
                     try {
-                        $stmt = $conn->prepare('SELECT DISTINCT theater.Theater_ID, theater.TheaterName FROM theater
+                        $stmt = $conn->prepare('SELECT theater.Theater_ID, theater.TheaterName, timeslot.TimeSlot_ID, timeslot.ScreeningType, timeslot.StartTime FROM theater
                                             INNER JOIN daterange ON daterange.Theater_ID = theater.Theater_ID
                                             INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
                                             INNER JOIN timeslot ON timeslot.DateRange_ID = daterange.DateRange_ID
-                                            WHERE movie.Movie_ID = ? AND timeslot.date = ?');
+                                            WHERE movie.Movie_ID = ? AND timeslot.Date = ?
+                                            AND TIMESTAMP(timeslot.Date, timeslot.StartTime) >= NOW()
+                                            ORDER BY theater.TheaterName ASC, timeslot.StartTime ASC');
                         $stmt->bind_param('is', $ID, $date);
+                        $stmt->execute();
+                        $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+                        $theaters = [];
+
+                        foreach ($result as $row) {
+                            $Theater_ID = $row['Theater_ID'];
+                            if (!isset($theaters[$Theater_ID])) {
+                                $theaters[$Theater_ID] = [
+                                    'TheaterName' => $row['TheaterName'],
+                                    'Timeslots' => []
+                                ];
+                            }
+
+                            $theaters[$Theater_ID]['Timeslots'][] = [
+                                'TimeSlot_ID' => $row['TimeSlot_ID'],
+                                'ScreeningType' => $row['ScreeningType'],
+                                'StartTime' => date("g:i A", strtotime($row['StartTime']))
+                            ];
+                        }
+
+                        echo json_encode(['data' => array_values($theaters)]);
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
+                }
+                else if ($ID !== null && $subResource === 'timeslots' && $subID === null && $subResource2 === null && $subID2 === null && $date === null) {
+                    try {
+                        $stmt = $conn->prepare('SELECT timeslot.Date FROM timeslot
+                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
+                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
+                                            WHERE movie.Movie_ID = ?');
+                        $stmt->bind_param('i', $ID);
                         $stmt->execute();
                         $result = $stmt->get_result();
 
                         if ($result->num_rows === 0) {
-                            echo json_encode(["data" => "No Available Theaters."]);
+                            echo json_encode(["error" => "No Available dates."]);
                         } else {
                             echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
                         }
@@ -525,6 +562,9 @@
                             }
                             echo json_encode(["data" => $rows]);
                         }
+
+                        $result->free();
+                        $stmt->close();
                     } catch (mysqli_sql_exception $e) {
                         echo json_encode(["error" => $e->getMessage()]);
                     }                    
@@ -722,6 +762,8 @@
                         } else {
                             echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
                         }
+                        $result->free();
+                        $stmt->close();
                     } catch (mysqli_sql_exception $e) {
                         echo json_encode(["error" => $e->getMessage()]);
                     }
@@ -733,23 +775,27 @@
             break;
         case 'seat_timeslot':
             if ($method == 'PUT') {
-                $data = json_decode(file_get_contents("php://input"), true);
 
-                if ($data) {
-                    $seats = $data['seats'];
-                    $SeatAvailability = 0;
+                // if ($data) {
+                //     $seats = $data['seats'];
+                //     $SeatAvailability = 0;
 
-                    $stmt = $conn->prepare("UPDATE seat_timeslot SET SeatAvailability = ? WHERE SeatTimeSlot_ID = ?");
+                //     $stmt = $conn->prepare("UPDATE seat_timeslot SET SeatAvailability = ? WHERE SeatTimeSlot_ID = ?");
                     
-                    try {
-                        foreach ($seats as $SeatTimeSlot_ID) {
-                            $stmt->bind_param("ii", $SeatAvailability, $SeatTimeSlot_ID);
-                            $stmt->execute();
-                        }
-                        echo json_encode(["status" => "Success!"]);
-                    } catch (mysqli_sql_exception $e) {
-                        echo json_encode(["error" => $e->getMessage()]);
-                    }
+                //     try {
+                //         foreach ($seats as $SeatTimeSlot_ID) {
+                //             $stmt->bind_param("ii", $SeatAvailability, $SeatTimeSlot_ID);
+                //             $stmt->execute();
+                //         }
+                //         echo json_encode(["status" => "Success!"]);
+                //     } catch (mysqli_sql_exception $e) {
+                //         echo json_encode(["error" => $e->getMessage()]);
+                //     }
+                // }
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {                    
+                    $data = json_decode(file_get_contents("php://input"), true);
+
+
                 }
             }
 
@@ -767,6 +813,8 @@
                         } else {
                             echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
                         }
+                        $result->free();
+                        $stmt->close();
                     } catch (mysqli_sql_exception $e) {
                         echo json_encode(["error" => $e->getMessage()]);
                     }
@@ -885,6 +933,124 @@
         case 'ticket':
             break;
         case 'timeslot':
+            if ($method == 'GET') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    try {
+                        $stmt = $conn->prepare('SELECT SeatTimeSlot_ID, seats.SeatRow, seats.SeatColumn, seat_timeslot.SeatPrice, seat_timeslot.SeatAvailability, timeslot.Date FROM seat_timeslot
+                                            INNER JOIN seats ON seats.Seat_ID = seat_timeslot.Seat_ID
+                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                            WHERE timeslot.TimeSlot_ID = ?');
+                        $stmt->bind_param('i', $ID);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => "No Available Timeslots."]);
+                        } else {
+                            $rows = [];
+                            foreach ($result as $seat) {
+                                $rowIndex = $seat['SeatRow'];
+                                $colIndex = $seat['SeatColumn'];
+                                $rows[$rowIndex][] = [
+                                    "SeatColumn" => $colIndex,
+                                    "SeatTimeSlot_ID" => $seat['SeatTimeSlot_ID'],
+                                    "SeatPrice" => $seat['SeatPrice'],
+                                    "SeatAvailability" => $seat['SeatAvailability']
+                                ];
+                            }
+                            echo json_encode(["data" => $rows, "Date" => $seat['Date']]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }                    
+                }
+            }
+            break;
+        case 'receipt':
+            if ($method == 'GET') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare("SELECT receipt.*, ticket.*, customer.LastName, customer.FirstName, movie.*, theater.*, timeslot.* FROM receipt
+                                            INNER JOIN ticket ON ticket.Receipt_ID = receipt.Receipt_ID
+                                            INNER JOIN customer ON customer.Customer_ID = ticket.Customer_ID
+                                            INNER JOIN seat_timeslot ON seat_timeslot.SeatTimeSlot_ID = ticket.SeatTimeSlot_ID
+                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
+                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
+                                            INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
+                                            WHERE receipt.Receipt_ID = ?");
+                    try {
+                        $stmt->bind_param("i", $ID);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+
+                        $result->free();
+                        $stmt->close();
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => "An error occurred upon retrieving this receipt. Please try again." . $e]);
+                    }
+                }
+                else if ($ID === 'customer' && $subResource !== null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $stmt = $conn->prepare("SELECT receipt.*, ticket.*, customer.LastName, customer.FirstName, movie.*, theater.*, timeslot.* FROM receipt
+                                            INNER JOIN ticket ON ticket.Receipt_ID = receipt.Receipt_ID
+                                            INNER JOIN customer ON customer.Customer_ID = ticket.Customer_ID
+                                            INNER JOIN seat_timeslot ON seat_timeslot.SeatTimeSlot_ID = ticket.SeatTimeSlot_ID
+                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
+                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
+                                            INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
+                                            WHERE customer.Customer_ID = ?");
+                    try {
+                        $stmt->bind_param("i", $subResource);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+
+                        $result->free();
+                        $stmt->close();
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => "An error occurred upon retrieving this receipt. Please try again." . $e]);
+                    }
+                } 
+            }            
+            
+            if ($method == 'POST') {            
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+
+                    $Customer_ID = $data['Customer_ID'];
+                    $PaymentMethod = $data['PaymentMethod'];
+                    $AmountPaid = $data['totalPrice'];
+                    $selectedSeats = $data['selectedSeats'];
+
+                    $conn->begin_transaction();
+                    try {
+                        $stmt = $conn->prepare("INSERT INTO Receipt (Customer_ID, PaymentMethod, AmountPaid)
+                                                VALUES (?, ?, ?)");
+                        $stmt->bind_param("isd", $Customer_ID, $PaymentMethod, $AmountPaid);
+                        $stmt->execute();
+
+                        $Receipt_ID = $conn->insert_id;
+
+                        $stmt2 = $conn->prepare("INSERT INTO Ticket(Customer_ID, SeatTimeSlot_ID, Receipt_ID, Price)
+                                                VALUES (?, ?, ?, ?)");
+                        foreach ($selectedSeats as $seat) {
+                            $stmt2->bind_param("iiid", $Customer_ID, $seat['SeatTimeSlot_ID'], $Receipt_ID, $seat['SeatPrice']);
+                            $stmt2->execute();
+
+                            $stmt3 = $conn->prepare("UPDATE seat_timeslot SET SeatAvailability = 0 WHERE SeatTimeSlot_ID = ?");
+                            $stmt3->bind_param("i", $seat['SeatTimeSlot_ID']);
+                            $stmt3->execute();
+                        }
+
+                        $conn->commit();
+                        echo json_encode(["status" => "Success!!!!", "Receipt_ID" => $Receipt_ID]);
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        echo json_encode(["error" => "There has been an error with submitting. Please try again."]);
+                    }
+                }
+            }
             break;
         case 'monthly_sales':
             if ($method == 'GET') {

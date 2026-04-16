@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="customer_gate.js" defer></script>
+  <link rel="manifest" href="manifest.json">
+  <script src="customer_gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeaksCinemas</title>
@@ -576,6 +577,14 @@ color:#aaa;
               volumeBtn.textContent = isMuted ? '🔇' : '🔊';
           });
       });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker Registered!'))
+            .catch(err => console.log('Registration failed:', err));
+        });
+      }
     </script>
   </body>
 </html>

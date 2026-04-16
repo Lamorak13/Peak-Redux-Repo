@@ -1,63 +1,65 @@
 <?php
-session_start();
-include("peakscinemas_database.php");
+// session_start();
+// include("peakscinemas_database.php");
 
-$Customer_ID = $_SESSION['user_id'];
-$profile_link = "profile.php";
+// $Customer_ID = $_SESSION['user_id'];
+// $profile_link = "profile.php";
 
-$Movie_ID = $_POST['movie_id'] ?? '';
-$Mall_ID = $_POST['mall_id'] ?? '';
-$Date = $_POST['date'] ?? '';
-$TimeSlot_ID = $_POST['timeslot_id'] ?? '';
-$selectedSeats = $_POST['selectedSeats'] ?? [];
+// $Movie_ID = $_POST['movie_id'] ?? '';
+// $Mall_ID = $_POST['mall_id'] ?? '';
+// $Date = $_POST['date'] ?? '';
+// $TimeSlot_ID = $_POST['timeslot_id'] ?? '';
+// $selectedSeats = $_POST['selectedSeats'] ?? [];
 
-// ✅ Stop if no movie or seats selected
-if (empty($Movie_ID) || empty($selectedSeats)) {
-    header("Location: seat_selection.php");
-    exit;
-}
+// // ✅ Stop if no movie or seats selected
+// if (empty($Movie_ID) || empty($selectedSeats)) {
+//     header("Location: seat_selection.php");
+//     exit;
+// }
 
-// Convert seats array to string
-$Seats = implode(",", $selectedSeats);
+// // Convert seats array to string
+// $Seats = implode(",", $selectedSeats);
 
-// Compute total price
-$pricePerSeat = 250;
-$totalPrice = count($selectedSeats) * $pricePerSeat;
-$status = "Paid";
-
-
-// 🔵 1. GET MOVIE NAME
-$movie_stmt = $conn->prepare("SELECT MovieName FROM movie WHERE Movie_ID = ?");
-$movie_stmt->bind_param("i", $Movie_ID);
-$movie_stmt->execute();
-$movieDetails = $movie_stmt->get_result()->fetch_assoc();
-$MovieName = $movieDetails['MovieName'];
+// // Compute total price
+// $pricePerSeat = 250;
+// $totalPrice = count($selectedSeats) * $pricePerSeat;
+// $status = "Paid";
 
 
-// 🔵 2. GET MALL NAME
-$mall_stmt = $conn->prepare("SELECT MallName FROM mall WHERE Mall_ID = ?");
-$mall_stmt->bind_param("i", $Mall_ID);
-$mall_stmt->execute();
-$mallDetails = $mall_stmt->get_result()->fetch_assoc();
-$MallName = $mallDetails['MallName'];
+// // 🔵 1. GET MOVIE NAME
+// $movie_stmt = $conn->prepare("SELECT MovieName FROM movie WHERE Movie_ID = ?");
+// $movie_stmt->bind_param("i", $Movie_ID);
+// $movie_stmt->execute();
+// $movieDetails = $movie_stmt->get_result()->fetch_assoc();
+// $MovieName = $movieDetails['MovieName'];
 
 
-// 🔵 3. GET THEATER NAME FROM TIMESLOT
-$timeslot_stmt = $conn->prepare("SELECT Theater_ID FROM timeslot WHERE TimeSlot_ID = ?");
-$timeslot_stmt->bind_param("i", $TimeSlot_ID);
-$timeslot_stmt->execute();
-$timeslotDetails = $timeslot_stmt->get_result()->fetch_assoc();
+// // 🔵 2. GET MALL NAME
+// $mall_stmt = $conn->prepare("SELECT MallName FROM mall WHERE Mall_ID = ?");
+// $mall_stmt->bind_param("i", $Mall_ID);
+// $mall_stmt->execute();
+// $mallDetails = $mall_stmt->get_result()->fetch_assoc();
+// $MallName = $mallDetails['MallName'];
 
-$theater_stmt = $conn->prepare("SELECT TheaterName FROM theater WHERE Theater_ID = ?");
-$theater_stmt->bind_param("i", $timeslotDetails['Theater_ID']);
-$theater_stmt->execute();
-$theaterDetails = $theater_stmt->get_result()->fetch_assoc();
-$TheaterName = $theaterDetails['TheaterName'];
+
+// // 🔵 3. GET THEATER NAME FROM TIMESLOT
+// $timeslot_stmt = $conn->prepare("SELECT Theater_ID FROM timeslot WHERE TimeSlot_ID = ?");
+// $timeslot_stmt->bind_param("i", $TimeSlot_ID);
+// $timeslot_stmt->execute();
+// $timeslotDetails = $timeslot_stmt->get_result()->fetch_assoc();
+
+// $theater_stmt = $conn->prepare("SELECT TheaterName FROM theater WHERE Theater_ID = ?");
+// $theater_stmt->bind_param("i", $timeslotDetails['Theater_ID']);
+// $theater_stmt->execute();
+// $theaterDetails = $theater_stmt->get_result()->fetch_assoc();
+// $TheaterName = $theaterDetails['TheaterName'];
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="manifest.json">
+    <script src="customer_gate.js"></script>
     <style>
         *{
 margin:0;
@@ -144,6 +146,7 @@ color:#071018;
 .topLink a#active{
 background:#2dd4bf;
 color:#071018;
+font-weight: bold;
 }
 
 /* ===== MAIN CONTAINERS (converted from glassbox) ===== */
@@ -362,45 +365,30 @@ display:none;
 
     <main>
         <div id="topLinkSection">
-            <nav class="topLink">
-                <a href="home.php">Home</a><p>&nbsp/&nbsp</p>
-                <a href="movie.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>">Malls with "<?= htmlspecialchars($movieDetails['MovieName']) ?>"</a><p>&nbsp/&nbsp</p>
-                <a href="mall.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>">Available theaters in "<?= htmlspecialchars($mallDetails['MallName']) ?>"</a><p>&nbsp/&nbsp</p>
-                <a href="seat_selection.php?movie_id=<?= htmlspecialchars($Movie_ID) ?>&mall_id=<?= htmlspecialchars($Mall_ID) ?>&date=<?= htmlspecialchars($Date) ?>&timeslot_id=<?= htmlspecialchars($TimeSlot_ID) ?>">Seats Selection in <?= htmlspecialchars($theaterDetails['TheaterName'] ?? 'Theater') ?></a><p>&nbsp/&nbsp</p>
-                <a id="active">Payment</a> 
+            <nav class="topLink">            
+                <a href="home.php">Home</a>
+                <a class="theatersWith">1. Select Theater For</a>
+                <a class="selectionFor">2. Select Seats For </a> 
+                <a id="active">3. Payment Information</a> 
             </nav>
         </div>
         
         <section id="seatsSelectionSection">
             <div class="glassbox">
-            <div id="seatsSelectionText">Selected Seats: 
-                <?php 
-                if (!empty($selectedSeats)) { 
-                    $seatRowCol_stmt = $conn -> prepare("SELECT SeatRow, SeatColumn FROM seats WHERE Seat_ID = ?"); echo "Seat's Selected: "; 
-                    foreach ($selectedSeats as $seatID) { $seatRowCol_stmt -> bind_param("i", $seatID); 
-                        $seatRowCol_stmt -> execute(); $seatDetails = ($seatRowCol_stmt -> get_result()) -> fetch_assoc(); 
-                        echo $seatDetails['SeatRow'] . $seatDetails['SeatColumn'] . " ";
-                    }
-                } else { 
-                    echo "No seats selected"; 
-                }
-                ?>
-                | Total Price: ₱<?= number_format($totalPrice, 2) ?>
-            </div>
+                <div id="movieToWatch" style="font-weight: bold"></div><br>
+                <div id="seatsSelectionText" style="font-weight: bold">Selected Seats: <div>
             </div>
         </section>
 
     
-        <form id="paymentForm" action="receipt.php" method="POST" novalidate>
+        <form id="paymentForm">
            
-            <input type="hidden" name="movie_id" value="<?= htmlspecialchars($Movie_ID) ?>">
-            <input type="hidden" name="mall_id" value="<?= htmlspecialchars($Mall_ID) ?>">
-            <input type="hidden" name="date" value="<?= htmlspecialchars($Date) ?>">
-            <input type="hidden" name="timeslot_id" value="<?= htmlspecialchars($TimeSlot_ID) ?>">
-            <input type="hidden" name="totalPrice" value="<?= htmlspecialchars($totalPrice) ?>">
-            <?php foreach ($selectedSeats as $seat): ?>
-                <input type="hidden" name="selectedSeats[]" value="<?= htmlspecialchars($seat) ?>">
-            <?php endforeach; ?>
+            <input type="hidden" name="movie_id" value="">
+            <input type="hidden" name="mall_id" value="">
+            <input type="hidden" name="date" value="">
+            <input type="hidden" name="timeslot_id" value="">
+            <input type="hidden" name="totalPrice" value="">
+                <input type="hidden" name="selectedSeats[]" value="">
             
             <div class="glassbox-2">
             <div id="paymentSection">
@@ -768,6 +756,27 @@ display:none;
 
         // Real-time input validation
         document.addEventListener('DOMContentLoaded', function() {
+            const booking = JSON.parse(sessionStorage.getItem('tempBooking'));
+
+            if (booking && booking.selectedSeats) {
+                const seatList = booking.selectedSeats.map(seat => seat.SeatRowColumn).join(', ');
+                document.getElementById('seatsSelectionText').append(seatList + " | Total Price: P " + booking.totalPrice);
+                document.querySelector('.selectionFor').append(booking.date);
+                document.querySelector('.selectionFor').href = 'seat_selection.php?timeslot_id=' + booking.TimeSlot_ID;
+            } else {
+                window.location.href = 'home.php';
+            }
+
+            const movieData = JSON.parse(sessionStorage.getItem('currentMovie'));
+
+            if (movieData) {
+                document.getElementById('movieToWatch').append('Movie: "' + movieData.MovieName + '"');
+                document.querySelector('.theatersWith').append(' "' + movieData.MovieName + '"');
+                document.querySelector('.theatersWith').href = 'movie.php?movie_id=' + movieData.Movie_ID;
+            } else {
+                window.location.href = 'home.php';
+            }
+
             // Add input event listeners for real-time validation
             const inputs = document.querySelectorAll('input[data-required="true"]');
             inputs.forEach(input => {
@@ -791,20 +800,57 @@ display:none;
 
             // Form submission handler
             document.getElementById('paymentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
                 const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked');
                 
                 if (!selectedMethod) {
-                    e.preventDefault();
                     alert('Please select a payment method');
                     return;
                 }
                 
                 if (!validateCurrentForm()) {
-                    e.preventDefault();
                     alert('Please fill in all required fields for the selected payment method correctly.');
                     return;
                 }
-                
+
+                const token = localStorage.getItem('jwt_token');
+                const payload = JSON.parse(atob(token.split('.')[1]));
+
+                const booking = JSON.parse(sessionStorage.getItem('tempBooking'));
+
+                const payloadForReceipt = {
+                    "Customer_ID": payload.id,
+                    "PaymentMethod": selectedMethod.value,
+                    "totalPrice": booking.totalPrice,
+                    "selectedSeats": booking.selectedSeats
+                };
+
+                fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=receipt', {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payloadForReceipt)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        console.log("Something went horribly wrong.");
+                    }
+                    if (data.status) {
+                        const Receipt_ID = data.Receipt_ID;
+                        window.location.href = 'receipt.php?receipt_id=' + Receipt_ID;
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                })
             });
             
             validateCurrentForm();

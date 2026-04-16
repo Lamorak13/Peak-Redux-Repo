@@ -1,59 +1,61 @@
 <?php
-session_start();
-include("peakscinemas_database.php");
+// session_start();
+// include("peakscinemas_database.php");
 
-$message = "";
+// $message = "";
 
 
-// ==================== FETCH USER INFO ====================
-$stmt = $conn->prepare("SELECT LastName, FirstName, Email, PhoneNumber, Password FROM customer WHERE Customer_ID = ?");
-$stmt->bind_param("i", $Customer_ID);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows === 0) {
-    echo "User not found.";
-    exit;
-}
-$user = $result->fetch_assoc();
+// // ==================== FETCH USER INFO ====================
+// $stmt = $conn->prepare("SELECT LastName, FirstName, Email, PhoneNumber, Password FROM customer WHERE Customer_ID = ?");
+// $stmt->bind_param("i", $Customer_ID);
+// $stmt->execute();
+// $result = $stmt->get_result();
+// if ($result->num_rows === 0) {
+//     echo "User not found.";
+//     exit;
+// }
+// $user = $result->fetch_assoc();
 
-// ==================== HANDLE PROFILE UPDATE ====================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['tab'])) {
-    $name = trim($_POST['name']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $password = trim($_POST['password']);
+// // ==================== HANDLE PROFILE UPDATE ====================
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['tab'])) {
+//     $name = trim($_POST['name']);
+//     $email = trim($_POST['email']);
+//     $phone = trim($_POST['phone']);
+//     $password = trim($_POST['password']);
 
-    $hashedPassword = !empty($password) ? password_hash($password, PASSWORD_DEFAULT) : $user['Password'];
+//     $hashedPassword = !empty($password) ? password_hash($password, PASSWORD_DEFAULT) : $user['Password'];
 
-    $updateStmt = $conn->prepare("UPDATE customer SET Name = ?, Email = ?, PhoneNumber = ?, Password = ? WHERE Customer_ID = ?");
-    $updateStmt->bind_param("ssssi", $name, $email, $phone, $hashedPassword, $Customer_ID);
+//     $updateStmt = $conn->prepare("UPDATE customer SET Name = ?, Email = ?, PhoneNumber = ?, Password = ? WHERE Customer_ID = ?");
+//     $updateStmt->bind_param("ssssi", $name, $email, $phone, $hashedPassword, $Customer_ID);
 
-    if ($updateStmt->execute()) {
-        $message = "✅ Your profile has been updated successfully!";
-        $user['Name'] = $name;
-        $user['Email'] = $email;
-        $user['PhoneNumber'] = $phone;
-    } else {
-        $message = "❌ Error updating profile. Please try again.";
-    }
-}
+//     if ($updateStmt->execute()) {
+//         $message = "✅ Your profile has been updated successfully!";
+//         $user['Name'] = $name;
+//         $user['Email'] = $email;
+//         $user['PhoneNumber'] = $phone;
+//     } else {
+//         $message = "❌ Error updating profile. Please try again.";
+//     }
+// }
 
-// ==================== FETCH PURCHASE HISTORY ====================
-$history_stmt = $conn->prepare("SELECT 
-    Purchase_ID, MovieName, MallName, TheaterName, Seats, 
-    TotalPrice, PurchaseDate, Status 
-    FROM purchases 
-    WHERE Customer_ID = ? 
-    ORDER BY PurchaseDate DESC");
+// // ==================== FETCH PURCHASE HISTORY ====================
+// $history_stmt = $conn->prepare("SELECT 
+//     Purchase_ID, MovieName, MallName, TheaterName, Seats, 
+//     TotalPrice, PurchaseDate, Status 
+//     FROM purchases 
+//     WHERE Customer_ID = ? 
+//     ORDER BY PurchaseDate DESC");
 
-$history_stmt->bind_param("i", $Customer_ID);
-$history_stmt->execute();
-$history_result = $history_stmt->get_result();
+// $history_stmt->bind_param("i", $Customer_ID);
+// $history_stmt->execute();
+// $history_result = $history_stmt->get_result();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="manifest" href="manifest.json">
+    <script src="customer_gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile - PeaksCinemas</title>
@@ -98,6 +100,25 @@ header {
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
 .profile-btn, .logout-btn { /* styles same as before */ }
+
+.profile-btn, .logout-btn {
+background:linear-gradient(135deg,#2dd4bf,#14b8a6);
+border:none;
+padding:8px 20px;
+border-radius:30px;
+font-weight:bold;
+cursor:pointer;
+color:#071018;
+transition:0.3s;
+}
+
+.profile-btn:hover{
+transform:scale(1.05);
+}
+
+.logout-btn:hover {
+    background: #bd3b3b;
+}
 
 /* TABS */
 .tabs {
@@ -212,8 +233,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
     </div>
     <div class="header-actions">
-        <button class="profile-btn" onclick="window.location.href='<?= $profile_link ?>'" title="Profile">👤</button>
-        <a href="?logout=1"><button class="logout-btn">Logout</button></a>
+        <button class="logout-btn" onclick="logoutFunc()">Logout</button></a>
     </div>
 </header>
 
@@ -229,26 +249,25 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         <div class="profile-header">
             <h2>Account Settings</h2>
             <p>Manage your PeaksCinemas profile information</p>
-        </div>
+        </div><br>
 
-        <?php if (!empty($message)) : ?>
-            <div class="message <?= strpos($message, 'Error') !== false ? 'error' : 'success' ?>">
-                <?= $message ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="post" action="">
+        <form class="profileEditForm">
             <input type="hidden" name="tab" value="0">
 
-            <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" required value="<?= htmlspecialchars($user['Name']) ?>">
+            <label for="LastName">Last Name</label>
+            <input type="text" id="LastName" name="LastName" required value="">
+            
+            <label for="FirstName">First Name </label>
+            <input type="text" id="FirstName" name="FirstName" required value="">
 
             <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" required value="<?= htmlspecialchars($user['Email']) ?>">
+            <input type="email" id="email" name="email" required value="">
+
+            <label for="phone">Country Code</label>
+            <input type="tel" id="countryCode" name="countryCode" required value="">
 
             <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" 
-                   value="<?= htmlspecialchars($user['PhoneNumber']) ?>">
+            <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" value="">
 
             <label for="password">New Password (leave blank to keep current)</label>
             <div class="password-container" style="position:relative;">
@@ -262,86 +281,136 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
 
     <!-- ==================== BOOKING HISTORY TAB ==================== -->
     <div id="tab1" class="tab-content" style="display:none;">
-        <h2 style="margin-bottom:25px; text-align:center;">My Booking History</h2>
-
-        <?php if ($history_result->num_rows > 0): ?>
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Movie</th>
-                        <th>Mall</th>
-                        <th>Theater</th>
-                        <th>Seats</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while ($row = $history_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?= date("M d, Y • h:i A", strtotime($row['PurchaseDate'])) ?></td>
-                            <td><?= htmlspecialchars($row['MovieName']) ?></td>
-                            <td><?= htmlspecialchars($row['MallName']) ?></td>
-                            <td><?= htmlspecialchars($row['TheaterName']) ?></td>
-                            <td><?= htmlspecialchars(str_replace(',', ', ', $row['Seats'])) ?></td>
-                            <td>₱<?= number_format($row['TotalPrice'], 2) ?></td>
-                            <td>
-                                <span class="status <?= htmlspecialchars($row['Status']) ?>">
-                                <?= htmlspecialchars($row['Status']) ?>
-                                </span>
-
-                                <?php if ($row['Status'] === 'Paid'): ?>
-                                <button class="refund-btn" onclick="window.location.href='home.php'">
-                                Refund
-                            </button>
-                            <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <div class="no-history">
-                <p>You don't have any booking history yet.</p>
-                <button onclick="window.location.href='movie.php'" style="margin-top:20px; padding:12px 24px; background:var(--accent); color:#071018; border:none; border-radius:30px; cursor:pointer;">
-                    Browse Movies Now
-                </button>
-            </div>
-        <?php endif; ?>
+        <h2 class="myBookingHistory" style="margin-bottom:25px; text-align:center;">My Booking History</h2>
+        <table class="history-table"></table>
+        <div class="no-history" style="display:none">
+            <p>You don't have any booking history yet.</p>
+            <button onclick="window.location.href='movie.php'" style="margin-top:20px; padding:12px 24px; background:var(--accent); color:#071018; border:none; border-radius:30px; cursor:pointer;">
+                Browse Movies Now
+            </button>
+        </div>
     </div>
 
 </div>
 
 <script>
-// Tab switching
-function switchTab(tabIndex) {
-    document.querySelectorAll('.tab').forEach((tab, index) => {
-        tab.classList.toggle('active', index === tabIndex);
-    });
-    
-    document.querySelectorAll('.tab-content').forEach((content, index) => {
-        content.style.display = (index === tabIndex) ? 'block' : 'none';
-    });
-}
-
-// Password toggle (for Account Settings tab)
-document.addEventListener('DOMContentLoaded', () => {
-    const toggleBtn = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    
-    if (toggleBtn && passwordInput) {
-        toggleBtn.addEventListener('click', () => {
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = 'Hide';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = 'Show';
-            }
+    // Tab switching
+    function switchTab(tabIndex) {
+        document.querySelectorAll('.tab').forEach((tab, index) => {
+            tab.classList.toggle('active', index === tabIndex);
+        });
+        
+        document.querySelectorAll('.tab-content').forEach((content, index) => {
+            content.style.display = (index === tabIndex) ? 'block' : 'none';
         });
     }
-});
+
+    // Password toggle (for Account Settings tab)
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', () => {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleBtn.textContent = 'Hide';
+                } else {
+                    passwordInput.type = 'password';
+                    toggleBtn.textContent = 'Show';
+                }
+            });
+        }
+
+        const token = localStorage.getItem('jwt_token');
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const Customer_ID = payload.id;
+
+        fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=customer/${Customer_ID}`, {
+            method: 'GET'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                console.log("uh oh");
+            }
+
+            customer = data.data[0];
+
+            document.getElementById('LastName').value = customer.LastName;
+            document.getElementById('FirstName').value = customer.FirstName;
+            document.getElementById('email').value = customer.Email;
+
+            if (customer.CountryCode) {
+                document.getElementById('countryCode').value = customer.CountryCode;
+            } else {
+                document.getElementById('countryCode').placeholder = "No Country Code Inputted Yet."
+            }
+
+            if (customer.PhoneNumber) {
+                document.getElementById('phone').value = customer.PhoneNumber;
+            } else {
+                document.getElementById('phone').placeholder = "No Phone Number Inputted Yet."
+            }            
+        })
+
+        fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=receipt/customer/${Customer_ID}`, {
+            method: 'GET'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                document.querySelector(".no-history").style.display = "flex";
+                return;
+            }
+            const receipts = data.data;
+            document.querySelector('.history-table').innerHTML = `<thead>
+                                                                    <tr>
+                                                                        <th>Date</th>
+                                                                        <th>Movie</th>
+                                                                        <th>Theater</th>
+                                                                        <th>Seats</th>
+                                                                        <th>Total</th>
+                                                                        <th>Status</th>
+                                                                    </tr>
+                                                                </thead>`;
+
+            const tbody = document.createElement("tbody");            
+            receipts.forEach(purchase => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                                    <td class="PurchaseDate">${purchase.PaymentDate}</td>
+                                    <td class="MovieName">${purchase.MovieName}</td>
+                                    <td class="TheaterName">${purchase.TheaterName}</td>
+                                    <td class="seats"></td>
+                                    <td class="TotalPrice">₱${purchase.AmountPaid}</td>
+                                    <td>
+                                        <span class="status">${purchase.Status}</span>                                        
+                                        <button class="refund-btn" onclick="refundFunc(${purchase.Receipt_ID})">
+                                        Refund
+                                        </button>
+                                    </td>
+                                `;
+                tbody.appendChild(tr);
+            })
+            document.querySelector('.history-table').append(tbody);         
+        })
+    });
+
+    function logoutFunc() {
+        localStorage.removeItem('jwt_token');
+        window.location.href = 'personal_info_form.php';
+    }
 </script>
 
 </body>

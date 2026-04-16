@@ -1,80 +1,8 @@
-<?php
-    include("peakscinemas_database.php");
-    session_start();
-    $profile_link = "personal_info_form.php";
-      
-    $Movie_ID = filter_input(INPUT_GET, 'movie_id', FILTER_VALIDATE_INT);
-    $Mall_ID = filter_input(INPUT_GET, 'mall_id', FILTER_VALIDATE_INT);
-    $Date = filter_input(INPUT_GET, 'date');
-    $TimeSlot_ID = filter_input(INPUT_GET, 'timeslot_id', FILTER_VALIDATE_INT);
-
-    if (!$Movie_ID || !$Mall_ID || !$Date || !$TimeSlot_ID) {
-        header("Location: home.php");
-        exit;
-    }
-
-    $movie_stmt = $conn -> prepare("SELECT * FROM movie WHERE Movie_ID = ?");
-    $movie_stmt -> bind_param("i", $Movie_ID);
-    $movie_stmt -> execute();
-    $movieDetails = ($movie_stmt -> get_result()) -> fetch_assoc();
-
-    $mall_stmt = $conn -> prepare("SELECT * FROM mall WHERE Mall_ID = ?");
-    $mall_stmt -> bind_param("i", $Mall_ID);
-    $mall_stmt -> execute();
-    $mallDetails = ($mall_stmt -> get_result()) -> fetch_assoc();
-
-    $timeslot_stmt = $conn -> prepare("SELECT * FROM timeslot
-                                       INNER JOIN theater ON timeslot.Theater_ID=theater.Theater_ID
-                                       WHERE TimeSlot_ID = ?");
-    $timeslot_stmt -> bind_param("i", $TimeSlot_ID);
-    $timeslot_stmt -> execute();
-    $timeslotDetails = ($timeslot_stmt -> get_result()) -> fetch_assoc();
-
-    if (!$timeslotDetails) {
-        header("Location: home.php");
-        exit;
-    }
-
-    $seats_stmt = $conn -> prepare("SELECT * FROM seats WHERE TimeSlot_ID = ?");
-    $seats_stmt -> bind_param("i", $TimeSlot_ID);
-    $seats_stmt -> execute();
-    $seatLayout = $seats_stmt -> get_result();
-
-    if ($seatLayout) {
-        $layoutProper = [];
-
-        while ($seat = $seatLayout -> fetch_assoc()) {
-            $Seat_ID = $seat['Seat_ID'];
-            $rows = $seat['SeatRow'];
-            $cols = $seat['SeatColumn'];
-            $type = $seat['SeatType'];
-            $price = $seat['SeatPrice'];
-            $availability = $seat['SeatAvailability'];
-            $layoutProper[$rows][] = [
-                'Seat_ID' => $Seat_ID,
-                'SeatType' => $type,
-                'SeatPrice' => $price,
-                'SeatAvailability' => $availability,
-                'SeatColumn' => $cols
-            ];
-        }
-    }
-    
-    if (!$movieDetails || !$mallDetails) {
-        header("Location: home.php");
-        exit;
-    }
-
-    function input_cleanup($data) {
-        $data = trim($data);
-        $data = stripslashes($data);
-        return $data;
-    }
-?>
-
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="manifest" href="manifest.json">
+        <script src="customer_gate.js"></script>
         <style>
 *{
 margin:0;
@@ -143,6 +71,10 @@ color:white;
 transition:0.3s;
 }
 
+.topLink a#active {
+    font-weight: bold;
+}
+
 .topLink a#active,
 .topLink a:hover{
 background:#2dd4bf;
@@ -167,10 +99,19 @@ margin-bottom:15px;
 display:flex;
 flex-direction:column;
 align-items:center;
+overflow-x: auto;
 }
 
 .seatsLayoutProper{
 border-spacing:6px;
+margin: 0 auto;
+}
+
+.availableTheaterSeat, .unavailableTheaterSeat, .seat3D {
+    width: 7vw;
+    height: 7vw;
+    max-width: 45px;
+    max-height: 45px;
 }
 
 .seatRows{
@@ -387,10 +328,9 @@ transition:0.25s ease;
         <main>
             <div id="topLinkSection">
                 <nav class="topLink">
-                    <a href="home.php">Home</a><p>&nbsp/&nbsp</p>
-                    <a href="movie.php?movie_id=<?= htmlspecialchars($movieDetails['Movie_ID']) ?> ">Malls with "<?= htmlspecialchars($movieDetails['MovieName']) ?>"</a><p>&nbsp/&nbsp</p>
-                    <a href="mall.php?movie_id=<?= htmlspecialchars($movieDetails['Movie_ID']) ?>&mall_id=<?= htmlspecialchars($mallDetails['Mall_ID']) ?>&date=<?= htmlspecialchars($Date) ?>">Available theaters in "<?= htmlspecialchars($mallDetails['MallName']) ?>"</a><p>&nbsp/&nbsp</p>
-                    <a id="active">Seats Selection in <?= htmlspecialchars($timeslotDetails['TheaterName']) ?></a> 
+                    <a href="home.php">Home</a>
+                    <a class="theatersWith">1. Select Theater For </a>
+                    <a class="selectionFor" id="active">2. Select Seats For </a> 
                 </nav>
             </div>
             
@@ -400,47 +340,16 @@ transition:0.25s ease;
   <div><span style="background:#374151; padding:5px 10px; border-radius:5px;"></span> Unavailable</div>
 </div>
              
-            <form id="seatsSelectionSection" action="payment.php" method="POST">
+            <form id="seatsSelectionSection">
                 <div class="glassbox">
-                <input type="hidden" name="movie_id" value="<?= htmlspecialchars($Movie_ID) ?>">
-                <input type="hidden" name="mall_id" value="<?= htmlspecialchars($Mall_ID) ?>">
-                <input type="hidden" name="date" value="<?= htmlspecialchars($Date) ?>">
-                <input type="hidden" name="timeslot_id" value="<?= htmlspecialchars($TimeSlot_ID) ?>">
+                <input type="hidden" name="movie_id" value="">
+                <input type="hidden" name="mall_id" value="">
+                <input type="hidden" name="date" value="">
+                <input type="hidden" name="timeslot_id" value="">
                 
                 <div id="seatsSelectionText">Seat Selection, Please select: </div>
                 <div id="seatsContainer">
-                    <table class="seatsLayoutProper">
-                        <?php foreach ($layoutProper as $row => $columns): ?> 
-                            <tr>
-                                <th class="seatRows"><?= htmlspecialchars($row) ?></th>
-                                <?php foreach ($columns as $seat): ?>
-                                    <td>
-                                    <?php if ($seat['SeatType'] === 'Empty' || $seat['SeatColumn'] == 0): ?>
-                                        <div class = "emptySeat"></div>
-                                    <?php elseif ($seat['SeatAvailability'] == 0 ): ?>
-                                        <div class="unavailableTheaterSeat"></div></td>
-                                    <?php else: ?>
-                                        <div>
-                                            <label class="availableSeatCheckbox">
-                                                <input type="checkbox" data-type ="<?= htmlspecialchars($seat['SeatType']) ?>" data-price="<?= htmlspecialchars($seat['SeatPrice']) ?>" name= "selectedSeats[]" value="<?= htmlspecialchars($seat['Seat_ID']) ?>">
-                                                <div class="seat3D">
-                                                <div class="seat"></div>
-
-                                                <div class="seatNumber">
-                                                    <?= htmlspecialchars($seat['SeatColumn']) ?>
-                                                </div>
-
-                                                <div class="person">🧍</div>
-                                            </div>
-                                            </label>
-                                        </div>
-                                    <?php endif; ?>
-                                    </td>
-                                <?php endforeach; ?>
-                                <th class="seatRows"><?= htmlspecialchars($row) ?></th>
-                            </tr>
-                        <?php endforeach; ?>
-                    </table>                    
+                    <table class="seatsLayoutProper"></table>
                 </div>
                 <div id="seatsCalculatorContainer">
                     <div>
@@ -463,30 +372,140 @@ transition:0.25s ease;
             seatPriceTotal.innerText = 0;
             const priceTotalInput = document.getElementById("priceTotal");
 
-            document.querySelectorAll('.availableSeatCheckbox').forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    const selectedCount = document.querySelectorAll('input[type="checkbox"]:checked').length;
-                    seatTotal.innerText = selectedCount;
+            function seatCalc() {
+                const selectedCount = document.querySelectorAll('input[type="checkbox"]:checked').length;
+                seatTotal.innerText = selectedCount;
 
-                    let priceTotal = 0;
-                    document.querySelectorAll('input[type="checkbox"]:checked').forEach(selectedSeats => {
-                        priceTotal += parseFloat(selectedSeats.getAttribute('data-price'));
-                    });
-                    
-                    seatPriceTotal.innerText = priceTotal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                    
-                    priceTotalInput.value = priceTotal;
+                let priceTotal = 0;
+                document.querySelectorAll('input[type="checkbox"]:checked').forEach(selectedSeats => {
+                    priceTotal += parseFloat(selectedSeats.getAttribute('data-price'));
                 });
-            });
+                
+                seatPriceTotal.innerText = priceTotal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                
+                priceTotalInput.value = priceTotal;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const TimeSlot_ID = urlParams.get('timeslot_id');                
 
             document.getElementById('seatsSelectionSection').addEventListener('submit', function(event) {
+                event.preventDefault();
+
                 const selectedSeats = document.querySelectorAll('input[name="selectedSeats[]"]:checked');
                 if (selectedSeats.length === 0) {
                     alert('Please select at least one seat before proceeding.');
-                    event.preventDefault();
+                    return;
                 }
-            });
 
+                const bookingInfo = {
+                    seatCount: selectedSeats.length,
+                    totalPrice: document.getElementById('priceTotal').value,
+                    selectedSeats: Array.from(selectedSeats).map(s => {
+                        return {
+                            SeatRowColumn: s.getAttribute('data-seatRowCol'), 
+                            SeatTimeSlot_ID: s.getAttribute('data-id'),
+                            SeatPrice: s.getAttribute('data-price')
+                        };                        
+                    }),
+                    date: seatDate,
+                    TimeSlot_ID: TimeSlot_ID
+                };
+
+                sessionStorage.setItem('tempBooking', JSON.stringify(bookingInfo));
+                window.location.href = 'payment.php';
+            });            
+
+            let seatDate = "";
+
+            window.onload = function() {
+                const movieData = JSON.parse(sessionStorage.getItem('currentMovie'));
+
+                document.querySelector('.theatersWith').append('"' + movieData.MovieName + '"');
+                document.querySelector('.theatersWith').href = 'movie.php?movie_id=' + movieData.Movie_ID;
+                fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=timeslot/${TimeSlot_ID}`, {
+                    method: "GET"
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    seats = data.data;
+                    console.log(seats);
+
+                    seatDate = data.Date;
+                    document.querySelector('.selectionFor').append(data.Date);
+
+                    for (const row in seats) {
+                        const tr = document.createElement('tr');
+                        
+                        const seatRows = document.createElement('th');
+                        seatRows.classList.add('seatRows');
+                        seatRows.textContent = row;
+                        tr.append(seatRows);
+
+                        for (const col of seats[row]) {
+                            const td = document.createElement('td');
+
+                            if (col.SeatColumn == 0) {
+                                const emptySeat = document.createElement('div');
+                                emptySeat.classList.add('emptySeat');
+                                td.append(emptySeat);
+                            } else if (col.SeatAvailability == 0){
+                                const unavailableTheaterSeat = document.createElement('div');
+                                unavailableTheaterSeat.classList.add('unavailableTheaterSeat');
+                                td.append(unavailableTheaterSeat);
+                            } else {                                
+                                const availableSeatCheckbox = document.createElement('label');
+                                availableSeatCheckbox.classList.add('availableSeatCheckbox');
+
+                                const inputforseat = document.createElement('input');
+                                inputforseat.type = 'checkbox';
+                                inputforseat.setAttribute('data-id', col.SeatTimeSlot_ID);
+                                inputforseat.setAttribute('data-price', col.SeatPrice);
+                                inputforseat.setAttribute('data-seatRowCol', `${row}${col.SeatColumn}`);
+                                inputforseat.addEventListener("change", seatCalc);
+                                inputforseat.name = "selectedSeats[]";
+                                availableSeatCheckbox.append(inputforseat);
+
+                                const seat3D = document.createElement('div');
+                                seat3D.classList.add('seat3D');
+
+                                const seat = document.createElement('div');
+                                seat.classList.add('seat');
+                                seat3D.append(seat);
+
+                                const seatNumber = document.createElement('div');
+                                seatNumber.classList.add('seatNumber');
+                                seatNumber.textContent = col.SeatColumn;
+                                seat3D.append(seatNumber);
+
+                                const person = document.createElement('div');
+                                person.classList.add('person');
+                                person.textContent = "🧍";
+                                seat3D.append(person);
+
+                                availableSeatCheckbox.append(seat3D);
+                                td.append(availableSeatCheckbox);
+                            }
+                            tr.append(td);
+                        }
+
+                        const rowLabelEnd = document.createElement('th');
+                        rowLabelEnd.classList.add('seatRows');
+                        rowLabelEnd.textContent = row;
+                        tr.append(rowLabelEnd);
+
+                        document.querySelector('.seatsLayoutProper').append(tr);
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            } 
             
         </script>
     </body>

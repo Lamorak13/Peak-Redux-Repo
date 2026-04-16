@@ -1,0 +1,14 @@
+{
+    "name": "Peak's Cinemas",
+    "short_name": "PC",
+    "start_url": "/personal_info_form.php",
+    "display": "standalone",
+    "background_color": "linear-gradient(to bottom,#071018,#0d1b2a)",
+    "theme_color": "linear-gradient(to bottom,#071018,#0d1b2a)",
+    "icons": [
+        {
+            "src": "peakscinemastransparent.png",
+            "sizes": "192x192"
+        }
+    ]
+}
