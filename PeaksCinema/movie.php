@@ -29,7 +29,20 @@
             box-shadow:0 4px 25px rgba(0,0,0,0.6);
         }
         .logo img{height:45px;cursor:pointer;}
-        .profile-btn{background:linear-gradient(135deg,#2dd4bf,#14b8a6);border:none;padding:8px 20px;border-radius:30px;font-weight:bold;color:#071018;}
+        .profile-btn{
+            background:linear-gradient(135deg,#2dd4bf,#14b8a6);
+            border:none;
+            padding:8px 18px;
+            border-radius:30px;
+            font-weight:bold;
+            cursor:pointer;
+            color:#071018;
+            transition:0.3s;
+            }
+
+            .profile-btn:hover{
+            transform:scale(1.05);
+            }
 
         main{margin-top:130px;padding:0 60px;}
         .topLink{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;}
@@ -102,7 +115,7 @@
         <div class="logo">
             <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
         </div>
-        <button class="profile-btn" onclick="window.location.href='profile_edit.php'">👤 Profile</button>
+        <button class="profile-btn" onclick="window.location.href='profile_edit.php'">👤</button>
     </header>
 
     <main>

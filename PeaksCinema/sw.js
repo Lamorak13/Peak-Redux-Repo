@@ -1,10 +1,9 @@
 const CACHE_NAME = 'peaks-cache-v1';
 const ASSETS = [
   '/',
-  '/index.php',
-  '/customer_gate.js',
-  '/offline.html',
-  '/peakscinemastransparent.png' 
+  './home.php',
+  './customer_gate.js',
+  './peakscinemastransparent.png' 
 ];
 
 self.addEventListener('install', event => {

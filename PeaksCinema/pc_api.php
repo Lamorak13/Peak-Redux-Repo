@@ -269,6 +269,79 @@
                     }
                 }
             }
+            if ($method == 'PUT') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+
+                    $FirstName = $data['FirstName'] ?? null;
+                    $LastName = $data['LastName'] ?? null;
+                    $Email = $data['Email'] ?? null;
+                    $PhoneNumber = $data['PhoneNumber'] ?? null;
+                    $CountryCode = $data['CountryCode'] ?? null;
+                    $Password = $data['Password'] ?? null;
+                    $hashedPassword = null;
+
+                    if (!$FirstName) {
+                        echo json_encode(["error_ln" => "First name is required."]);
+                        exit();
+                    }
+
+                    if (!$LastName) {
+                        echo json_encode(["error_fn" => "Last name is required."]);
+                        exit();
+                    }
+
+                    if (!$Email) {
+                        echo json_encode(["error_e" => "Email is required."]);
+                        exit();
+                    }
+
+                    if ($Password) {
+                        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$/', $Password)) {                    
+                            echo json_encode(["error" => "Password must be 8-64 characters long and include at least one uppercase letter, one lowercase letter, one number (0-9), and one symbol from: @$!%*?&"]);
+                            exit();
+                        }
+
+                        $hashedPassword = password_hash($Password, PASSWORD_DEFAULT);                        
+                    } 
+                    
+
+                    if (!empty($PhoneNumber)) {
+                        if (!preg_match("/^\+[0-9]{1,4}$/", $CountryCode)) {
+                            echo json_encode(["error" => "Invalid country code."]);
+                            exit();
+                        }
+                        // Phone number validation
+                        if (!preg_match("/^9[0-9]{9}$/", $PhoneNumber)) {
+                            echo json_encode(["error" => "Invalid phone number. Must start with 9 and be exactly 10 digits."]);
+                            exit();
+                        }
+                    } else {
+                        $CountryCode = "";
+                    }  
+
+                    $stmt = $conn->prepare('UPDATE customer SET 
+                                                                FirstName = COALESCE(NULLIF(?, ""), FirstName), 
+                                                                LastName = COALESCE(NULLIF(?, ""), LastName),
+                                                                Email = COALESCE(NULLIF(?, ""), Email), 
+                                                                PhoneNumber = COALESCE(NULLIF(?, ""), PhoneNumber), 
+                                                                CountryCode = COALESCE(NULLIF(?, ""), CountryCode), 
+                                                                Password = COALESCE(NULLIF(?, ""), Password) 
+                                                            WHERE Customer_ID = ?');
+                    $conn->begin_transaction();
+                    
+                    try {
+                        $stmt->bind_param("ssssssi", $FirstName, $LastName, $Email, $PhoneNumber, $CountryCode, $hashedPassword, $ID);
+                        $stmt->execute();                        
+                        $conn->commit();
+
+                        echo json_encode(["status" => "SUCCESS! WOOO"]);
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
             break;
         case 'daterange':
             if ($method == 'GET') {
@@ -502,7 +575,7 @@
                         $stmt = $conn->prepare('SELECT timeslot.Date FROM timeslot
                                             INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
                                             INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
-                                            WHERE movie.Movie_ID = ?');
+                                            WHERE movie.Movie_ID = ? AND timeslot.Date >= CURRENT_DATE');
                         $stmt->bind_param('i', $ID);
                         $stmt->execute();
                         $result = $stmt->get_result();
@@ -1048,6 +1121,47 @@
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
                         echo json_encode(["error" => "There has been an error with submitting. Please try again."]);
+                    }
+                }
+            }
+            break;
+        case 'refund':
+            if ($method == 'GET') {
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    try {
+                        $stmt = $conn->prepare("SELECT refund.*, receipt.* FROM refund
+                                                INNER JOIN receipt ON receipt.Receipt_ID = refund.Receipt_ID");
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+            if ($method == 'POST') {
+                if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+
+                    $Customer_ID = $data['Customer_ID'];
+                    $Receipt_ID = $data['Receipt_ID'];
+                    $RefundReason = $data['RefundReason'];
+
+                    $stmt = $conn->prepare("INSERT INTO refund (Customer_ID, Receipt_ID, RefundReason) VALUES (?, ?, ?)");                    
+                    $stmt2 = $conn->prepare("UPDATE receipt SET Status = 'Pending Refund' WHERE Receipt_ID = ?");
+                    $conn->begin_transaction();
+                    try {
+                        $stmt->bind_param("iis", $Customer_ID, $Receipt_ID, $RefundReason);
+                        $stmt2->bind_param("i", $Receipt_ID);
+                        $stmt->execute();
+                        $stmt2->execute();
+                        echo json_encode(["status" => "Success."]);
+                        $conn->commit();
+
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        echo json_encode(["error" => $e->getMessage()]);
                     }
                 }
             }

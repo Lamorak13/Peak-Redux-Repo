@@ -495,12 +495,18 @@ color:#aaa;
               noMoviesMessage.classList.add('movie-card');
               noMoviesMessage.classList.remove('movie-card:hover');
               noMoviesMessage.classList.add('noMoviesMessage');
-              noMoviesMessage.textContent = "Seems there are no movies here. Please come again soon!";
+              noMoviesMessage.textContent = "Seems no movies are currently showing. Please come back soon!";
+
+              const noComingSoon = document.createElement('div');
+              noComingSoon.classList.add('movie-card');
+              noComingSoon.classList.remove('movie-card:hover');
+              noComingSoon.classList.add('noMoviesMessage');
+              noComingSoon.textContent = "Seems no movies are coming soon..";
               if (nowShowingTotal == 0) {
                 nowShowingRow.append(noMoviesMessage);
               }
               if (comingSoonTotal == 0) {
-                comingSoonRow.append(noMoviesMessage);
+                comingSoonRow.append(noComingSoon);
               }
               
               const slides = document.querySelectorAll(".slide");
@@ -580,7 +586,7 @@ color:#aaa;
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker Registered!'))
             .catch(err => console.log('Registration failed:', err));
         });

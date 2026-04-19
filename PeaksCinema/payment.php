@@ -355,7 +355,7 @@ display:none;
          </div>
     
         <div class="header-actions">
-        <button class="profile-btn" onclick="window.location.href='<?= $profile_link ?>'" title="Profile">👤</button>
+        <button class="profile-btn" onclick="window.location.href='profile_edit.php'" title="Profile">👤</button>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5.121 17.804A8 8 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
    </svg>

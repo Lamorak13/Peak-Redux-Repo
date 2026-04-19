@@ -192,9 +192,12 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
 }
 .status {
     padding: 6px 14px;
-    border-radius: 20px;
     font-size: 0.85rem;
     font-weight: bold;
+}
+
+.refund {
+    min-width: 7rem;
 }
 .status.Paid { background: #2dd4bf; color: #071018; }
 
@@ -224,6 +227,33 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
     color: var(--text-muted);
     font-size: 1.1rem;
 }
+
+.refundRequestContainer {
+    z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.refundRequest {
+    width: 30%;
+    min-width: fit-content;
+    height: fit-content;
+    display: flex;
+    gap: 5px;
+    flex-direction: column;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 1rem;
+    background-color: #0c181a;
+}
+
 </style>
 </head>
 <body>
@@ -233,12 +263,15 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         <img src="peakscinemastransparent.png" alt="PeaksCinemas Logo" onclick="window.location.href='home.php'">
     </div>
     <div class="header-actions">
-        <button class="logout-btn" onclick="logoutFunc()">Logout</button></a>
+        <button class="logout-btn" onclick="logoutFunc()">Logout</button>
     </div>
 </header>
 
-<div class="main-container">
+<div class="refundRequestContainer" style="display:none;">
+    <div class="refundRequest"></div>
+</div>
 
+<div class="main-container">
     <div class="tabs">
         <div class="tab active" onclick="switchTab(0)">Account Settings</div>
         <div class="tab" onclick="switchTab(1)">Booking History</div>
@@ -251,23 +284,26 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             <p>Manage your PeaksCinemas profile information</p>
         </div><br>
 
-        <form class="profileEditForm">
+        <form id="profileEditForm" class="profileEditForm">
             <input type="hidden" name="tab" value="0">
 
             <label for="LastName">Last Name</label>
             <input type="text" id="LastName" name="LastName" required value="">
+            <div id="lastnamewarning"></div>
             
             <label for="FirstName">First Name </label>
             <input type="text" id="FirstName" name="FirstName" required value="">
+            <div id="firstnamewarning"></div>
 
             <label for="email">Email Address</label>
             <input type="email" id="email" name="email" required value="">
+            <div id="emailwarning"></div>
 
             <label for="phone">Country Code</label>
-            <input type="tel" id="countryCode" name="countryCode" required value="">
+            <input type="tel" id="countryCode" name="countryCode" value="">
 
             <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" value="">
+            <input type="tel" id="phone" name="phone" pattern="[0-9]{10}" value="">
 
             <label for="password">New Password (leave blank to keep current)</label>
             <div class="password-container" style="position:relative;">
@@ -305,27 +341,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         });
     }
 
-    // Password toggle (for Account Settings tab)
-    document.addEventListener('DOMContentLoaded', () => {
-        const toggleBtn = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-        
-        if (toggleBtn && passwordInput) {
-            toggleBtn.addEventListener('click', () => {
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    toggleBtn.textContent = 'Hide';
-                } else {
-                    passwordInput.type = 'password';
-                    toggleBtn.textContent = 'Show';
-                }
-            });
-        }
-
-        const token = localStorage.getItem('jwt_token');
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const Customer_ID = payload.id;
-
+    function getCustoms() {
         fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=customer/${Customer_ID}`, {
             method: 'GET'
         })
@@ -358,7 +374,134 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
                 document.getElementById('phone').placeholder = "No Phone Number Inputted Yet."
             }            
         })
+    }
 
+    const token = localStorage.getItem('jwt_token');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const Customer_ID = payload.id;
+
+    // Password toggle (for Account Settings tab)
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', () => {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleBtn.textContent = 'Hide';
+                } else {
+                    passwordInput.type = 'password';
+                    toggleBtn.textContent = 'Show';
+                }
+            });
+        }
+        
+        getCustoms();
+        getReceipts();
+    });
+
+    const profileEditForm = document.getElementById('profileEditForm');
+    profileEditForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(profileEditForm);
+        const payload = {
+            LastName: formData.get('LastName'),
+            FirstName: formData.get('FirstName'),
+            Email: formData.get('email'),
+            CountryCode: formData.get('countryCode'),
+            PhoneNumber: formData.get('phone'),
+            Password: formData.get('password')
+        }
+
+        fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=customer/${Customer_ID}`, {
+            method: 'PUT',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                console.log(data.status);
+                profileEditForm.reset();
+                getCustoms();
+            }
+        })
+    })
+
+    function logoutFunc() {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = 'personal_info_form.php';
+    }
+
+    function refundFunc(Receipt_ID, PaymentDate) {
+        const refundRequest = document.querySelector('.refundRequest');
+        const paymentYear = new Date(PaymentDate).getFullYear();
+        refundRequest.innerHTML = "";
+
+        refundRequest.innerHTML = `<form id="refundRequestForm">
+                                    <button type="button" onclick="refundMenuOpenClose()">Back</button>
+                                    <div>Booking Reference PC${Receipt_ID}${paymentYear}</div>
+                                    <label for="refundReason">Why do you want to refund? </label>
+                                    <input type="text id="refundReason" name="refundReason">
+
+                                    <button type="submit">Submit</button>
+                                   </form>`;
+        refundMenuOpenClose();
+
+        refundRequest.addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const refundRequestForm = document.getElementById('refundRequestForm');
+            const formData = new FormData(refundRequestForm);
+            const payload = {
+                Customer_ID: Customer_ID,
+                Receipt_ID: Receipt_ID,
+                RefundReason: formData.get('refundReason')
+            }
+            fetch('http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=refund', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.log("something went wrong.");
+                    return;
+                }
+                if (data.status) {
+                    console.log(data.status);
+                    refundMenuOpenClose();
+                    getReceipts();
+                }
+            })
+        })
+    }
+
+    const refundRequestContainer = document.querySelector('.refundRequestContainer');
+    let isRefundMenuOpen = false;
+    function refundMenuOpenClose() {
+        if (isRefundMenuOpen) {
+            refundRequestContainer.style.display = "none";
+        } else {
+            refundRequestContainer.style.display = "flex";
+        }
+        isRefundMenuOpen = !isRefundMenuOpen;
+    }
+
+    function getReceipts() {
         fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=receipt/customer/${Customer_ID}`, {
             method: 'GET'
         })
@@ -376,40 +519,57 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             const receipts = data.data;
             document.querySelector('.history-table').innerHTML = `<thead>
                                                                     <tr>
+                                                                        <th>Booking Ref#</th>
                                                                         <th>Date</th>
                                                                         <th>Movie</th>
                                                                         <th>Theater</th>
                                                                         <th>Seats</th>
                                                                         <th>Total</th>
                                                                         <th>Status</th>
+                                                                        <th></th>
                                                                     </tr>
                                                                 </thead>`;
 
-            const tbody = document.createElement("tbody");            
+            const tbody = document.createElement("tbody");
             receipts.forEach(purchase => {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `
+                tr.setAttribute('data-id', purchase.Receipt_ID);
+                
+                const paymentYear = new Date(purchase.PaymentDate).getFullYear();
+
+                if (purchase.Status === "Pending Refund") {
+                    tr.innerHTML = `
+                                    <td class="BookingRef">${purchase.Receipt_ID}${paymentYear}</td>
                                     <td class="PurchaseDate">${purchase.PaymentDate}</td>
                                     <td class="MovieName">${purchase.MovieName}</td>
                                     <td class="TheaterName">${purchase.TheaterName}</td>
                                     <td class="seats"></td>
                                     <td class="TotalPrice">₱${purchase.AmountPaid}</td>
-                                    <td>
-                                        <span class="status">${purchase.Status}</span>                                        
-                                        <button class="refund-btn" onclick="refundFunc(${purchase.Receipt_ID})">
+                                    <td class="status">${purchase.Status}</td>
+                                    <td class="refund">
+                                    </td>
+                                `;
+                } else {
+                    tr.innerHTML = `
+                                    <td class="BookingRef">${purchase.Receipt_ID}${paymentYear}</td>
+                                    <td class="PurchaseDate">${purchase.PaymentDate}</td>
+                                    <td class="MovieName">${purchase.MovieName}</td>
+                                    <td class="TheaterName">${purchase.TheaterName}</td>
+                                    <td class="seats"></td>
+                                    <td class="TotalPrice">₱${purchase.AmountPaid}</td>
+                                    <td class="status">${purchase.Status}</td>
+                                    <td class="refund">                                    
+                                        <button class="refund-btn" onclick="refundFunc(${purchase.Receipt_ID}, '${purchase.PaymentDate}')">
                                         Refund
                                         </button>
                                     </td>
                                 `;
+                }
+                
                 tbody.appendChild(tr);
             })
             document.querySelector('.history-table').append(tbody);         
         })
-    });
-
-    function logoutFunc() {
-        localStorage.removeItem('jwt_token');
-        window.location.href = 'personal_info_form.php';
     }
 </script>
 
