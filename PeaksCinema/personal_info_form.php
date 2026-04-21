@@ -88,8 +88,11 @@ letter-spacing:1px;
     gap: 5px;
 }
 
-#loginForm {
+#signupForm {    
     display: none;
+}
+
+#loginForm {
 }
 
 label{
@@ -159,6 +162,11 @@ to{opacity:1;transform:translateY(0);}
 @media (max-width:600px){
 header{padding:20px;}
 }
+
+#loginErrorMessage {
+    font-weight: bold;
+    color: #f14d38ec;
+}
 </style>
 </head>
     <body>
@@ -214,6 +222,7 @@ header{padding:20px;}
 
                         <label for="loginPassword">Password</label>
                         <input type="password" id="loginPassword" name="loginPassword" placeholder="Enter your password" required>
+                        <div id="loginErrorMessage"></div>
 
                         <div style="text-align: center; margin-top: 20px;">
                             <button type="submit" name="login_user">Login</button>
@@ -321,7 +330,8 @@ header{padding:20px;}
                         
                         window.location.href = 'home.php';
                     } else {
-                        console.log("Login failed.");
+                        document.getElementById('loginErrorMessage').textContent = "Wrong Email or Password.";
+                        document.getElementById('loginPassword').value = "";
                     }
                 })
                 .catch(error => {

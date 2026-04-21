@@ -321,7 +321,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         <table class="history-table"></table>
         <div class="no-history" style="display:none">
             <p>You don't have any booking history yet.</p>
-            <button onclick="window.location.href='movie.php'" style="margin-top:20px; padding:12px 24px; background:var(--accent); color:#071018; border:none; border-radius:30px; cursor:pointer;">
+            <button onclick="window.location.href='home.php'" style="margin-top:20px; padding:12px 24px; background:var(--accent); color:#071018; border:none; border-radius:30px; cursor:pointer;">
                 Browse Movies Now
             </button>
         </div>
@@ -511,12 +511,16 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             }
             return response.json();
         })
-        .then(data => {
-            if (data.error) {
+        .then(data => {            
+            const receipts = data.data;
+
+            if (receipts.length === 0) {
                 document.querySelector(".no-history").style.display = "flex";
+                document.querySelector(".no-history").style.flexDirection = "column";
+                document.querySelector(".no-history").style.alignItems = "center";
                 return;
             }
-            const receipts = data.data;
+
             document.querySelector('.history-table').innerHTML = `<thead>
                                                                     <tr>
                                                                         <th>Booking Ref#</th>

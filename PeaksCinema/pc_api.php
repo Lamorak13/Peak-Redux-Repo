@@ -7,6 +7,9 @@
     use Firebase\JWT\JWT;
     use Firebase\JWT\Key;
 
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\Exception;
+
     $jwt_secret = '6bcfd225e5e2a38f3682734905a6984c5b1883abbe56128ef1d8d5729e428dab';
 
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -133,7 +136,7 @@
                     http_response_code(409);
                     echo json_encode(["error" => "Email already exists. Please log in instead using that email."]);
                 } else {
-                    begin_transaction();       
+                    $conn->begin_transaction();       
                     $sql = $conn->prepare("
                         INSERT INTO customer (LastName, FirstName, Email, Password, CountryCode, PhoneNumber)
                         VALUES (?, ?, ?, ?, ?, ?)
@@ -142,7 +145,7 @@
                     $sql->bind_param("ssssss", $lastName, $firstName, $email, $password, $countryCode, $phoneNumber);
 
                     if ($sql->execute()) {
-                        $sql->commit();
+                        $conn->commit();
                         http_response_code(200);
                         echo json_encode(["status" => "Sign up successful! Please log in."]);
                         // echo "<script>
@@ -150,7 +153,7 @@
                         //     document.getElementById('loginForm').style.display = 'block';
                         // </script>";
                     } else {
-                        $sql->rollback();
+                        $conn->rollback();
                         http_response_code(400);
                         echo json_encode(["error" => "An error occurred. Please try again."]);
                     }
@@ -1094,7 +1097,7 @@
                     $Customer_ID = $data['Customer_ID'];
                     $PaymentMethod = $data['PaymentMethod'];
                     $AmountPaid = $data['totalPrice'];
-                    $selectedSeats = $data['selectedSeats'];
+                    $selectedSeats = $data['selectedSeats'];                    
 
                     $conn->begin_transaction();
                     try {
@@ -1116,8 +1119,8 @@
                             $stmt3->execute();
                         }
 
-                        $conn->commit();
                         echo json_encode(["status" => "Success!!!!", "Receipt_ID" => $Receipt_ID]);
+                        $conn->commit();
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
                         echo json_encode(["error" => "There has been an error with submitting. Please try again."]);
@@ -1158,7 +1161,6 @@
                         $stmt2->execute();
                         echo json_encode(["status" => "Success."]);
                         $conn->commit();
-
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
                         echo json_encode(["error" => $e->getMessage()]);
@@ -1259,6 +1261,43 @@
                     }
                 }              
             }            
+            break;
+        case 'customer_email':
+            if ($method == 'POST') {
+                $data = json_decode(file_get_contents('php://input'), true);
+                
+                $email2BSent = $data['Body'];
+
+                $emailStmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
+                $emailStmt->bind_param('i', $Customer_ID);
+                $emailStmt->execute();
+                $result = $emailStmt->get_result();
+                $row = $result->fetch_assoc();
+
+                $address = $row['Email'] ?? null;
+
+                try {
+                    $mail = new PHPMailer(true);
+                    $mail->isSMTP();
+                    $mail->Host = 'smtp.gmail.com';
+                    $mail->SMTPAuth = true;
+                    $mail->Username = 'jerrellnathan@gmail.com';
+                    $mail->Password = 'kzmg pbko flhr xwhp';
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port = 587;
+
+                    $mail->setFrom('jerrellnathan@gmail.com', 'PeaksCinemas');
+                    $mail->addAddress($address);
+
+                    $mail->isHTML(true);
+                    $mail->Subject = 'You just bought brand new tickets!';
+                    $mail->Body = 'HELLO HELLO HELLO';
+
+                    $mail->send();
+                } catch (Exception $e) {
+                    echo "console.log('damnnn')";
+                }
+            }
             break;
         default:
             break;
