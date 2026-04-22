@@ -272,6 +272,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['screeningDate'])) {
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="stylesheet" href="site.css">
     <style>
         *{
             margin:0;

@@ -2,6 +2,7 @@
 <html>
     <head>
         <link rel="manifest" href="manifest.json">
+        <link rel="stylesheet" href="site.css">
         <script src="customer_gate.js"></script>
         <style>
 *{

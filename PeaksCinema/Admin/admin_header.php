@@ -7,7 +7,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         const logoutButton = document.getElementById('logoutButton');
         logoutButton.addEventListener('click', function() {
-            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('admin_jwt_token');
             window.location.href = 'admin_login.php';
         })
     })    

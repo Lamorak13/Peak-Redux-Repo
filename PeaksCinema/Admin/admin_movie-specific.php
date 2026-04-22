@@ -16,16 +16,12 @@
                 <div>loading..</div>
             </div>
             <section id="content" style="display: none">
-                <!-- <div id="areYouSureScreenContainer" style="display: none">
-                    <div id="areYouSureScreen"></div>
-                </div> -->
                 <div id="movieDetailsContainer"></div>
                 <div id="theaterDaterangeContainer">
                     <div id="daterangeTheaterSelectionContainer">
                         <div id="daterangeTheaterLabel">Date ranges for theater:</div>
                         <select id="theaterSelection"></select>
                     </div>
-                    <!-- <div id="daterangeLoader" class="loader"><div>Loading...</div></div> -->
                     <div id="daterangeContent">
                         <div id="daterangesGallery"></div>
                         <div id="addDateContainer"></div>
@@ -89,6 +85,99 @@
             const Movie_ID = url.searchParams.get('movie_id');
             
             var lastDate = new Date().toDateString();
+            var dateRangePickerInstance = null;
+            var usedDatesForPicker = new Set();
+            var minimumAllowedStartTime = null;
+
+            async function getUsedDatesForTheater(Theater_ID) {
+                if (!Theater_ID) {
+                    return new Set();
+                }
+
+                try {
+                    const response = await fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/all/theater/${Theater_ID}&exclude_movie=${Movie_ID}`, {
+                        method: "GET"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const blockedDates = new Set();
+                    const ranges = data.data || [];
+
+                    ranges.forEach(range => {
+                        const rangeStart = moment(range.StartDate, "YYYY-MM-DD");
+                        const rangeEnd = range.EndDate
+                            ? moment(range.EndDate, "YYYY-MM-DD")
+                            : moment(range.StartDate, "YYYY-MM-DD");
+
+                        for (let day = rangeStart.clone(); day.isSameOrBefore(rangeEnd); day.add(1, "day")) {
+                            blockedDates.add(day.format("YYYY-MM-DD"));
+                        }
+                    });
+
+                    return blockedDates;
+                } catch (error) {
+                    console.error(error);
+                    return new Set();
+                }
+            }
+
+            function timeToMinutes(timeValue) {
+                if (!timeValue) return 0;
+                const timeParts = timeValue.split(":");
+                const hours = Number(timeParts[0]) || 0;
+                const minutes = Number(timeParts[1]) || 0;
+                return (hours * 60) + minutes;
+            }
+
+            function minutesToTimeInput(totalMinutes) {
+                const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+                const hours = Math.floor(normalized / 60).toString().padStart(2, "0");
+                const minutes = (normalized % 60).toString().padStart(2, "0");
+                return `${hours}:${minutes}`;
+            }
+
+            function roundUpToFiveMinutes(totalMinutes) {
+                return Math.ceil(totalMinutes / 5) * 5;
+            }
+
+            function formatMinutesToAmPm(totalMinutes) {
+                const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+                const hours24 = Math.floor(normalized / 60);
+                const minutes = normalized % 60;
+                const suffix = hours24 >= 12 ? "PM" : "AM";
+                const hours12 = (hours24 % 12) === 0 ? 12 : (hours24 % 12);
+                return `${hours12}:${minutes.toString().padStart(2, "0")} ${suffix}`;
+            }
+
+            function getCurrentRuntimeMinutes() {
+                return Number(document.getElementById("Runtime").value) || 0;
+            }
+
+            async function getOccupiedTimeslotsForRange(Theater_ID, startDate, endDate) {
+                if (!Theater_ID || !startDate || !endDate) {
+                    return [];
+                }
+
+                try {
+                    const response = await fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=timeslot/all/theater/${Theater_ID}&start_date=${startDate}&end_date=${endDate}`, {
+                        method: "GET"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data.data || [];
+                } catch (error) {
+                    console.error(error);
+                    return [];
+                }
+            }
 
             async function getMovieInfo() {
                 console.log(Movie_ID);
@@ -255,7 +344,6 @@
             const addDateContainer = document.getElementById('addDateContainer');
             theaterSelection.addEventListener("change", function() {
                 getDateranges(theaterSelection.value);
-                daterangeMenuOpenClose();
             })
 
             function getDateranges(Theater_ID) {
@@ -307,7 +395,7 @@
 
                                 const endDate = document.createElement('div');
                                 endDate.classList.add('endDate');
-                                endDate.textContent = " - " + daterange.EndDate;
+                                endDate.textContent = " - " + endDateFormatted;
                                 daterangeProper.append(endDate);
                                 
                                 lastDate = daterange.EndDate;
@@ -322,59 +410,6 @@
                             deleteDaterange.classList.add('deleteDaterange');
                             deleteDaterange.textContent = "Delete";
                             deleteDaterange.addEventListener("click", () => areYouSure("daterange", daterange.DateRange_ID, null, daterangeProper, theaterSelection.value));
-                            // {
-                            //     const areYouSureScreenContainer = document.createElement('div');
-                            //     areYouSureScreenContainer.id = 'areYouSureScreenContainer';
-                            //     areYouSureScreenContainer.style.display = "flex";
-                            //     const areYouSureScreen = document.createElement('div');
-                            //     areYouSureScreen.id = 'areYouSureScreen';
-                            //     areYouSureScreen.textContent = "Do you really want to delete this date range?";
-
-                            //     const cloneDaterangeProper = daterangeProper.cloneNode(true);
-                            //     cloneDaterangeProper.classList.add('daterangeProper');
-
-                            //     areYouSureScreen.append(cloneDaterangeProper);
-
-                            //     const areYouSureScreenButtons = document.createElement('div');
-                            //     areYouSureScreenButtons.classList.add('areYouSureScreenButtons');
-
-                            //     const theBackButton = document.createElement('button');
-                            //     theBackButton.classList.add('generalAdminButton');
-                            //     theBackButton.id = 'theBackButton';
-                            //     theBackButton.textContent = "Back";
-
-                            //     theBackButton.addEventListener("click", function() {
-                            //         areYouSureScreenContainer.remove();
-                            //     })
-                            //     areYouSureScreenButtons.append(theBackButton);
-
-                            //     const deleteFinalButton = document.createElement('button');
-                            //     deleteFinalButton.classList.add('deleteDaterange');
-                            //     deleteFinalButton.textContent = "Yes, Delete";
-
-                            //     deleteFinalButton.addEventListener("click", function() {
-                            //         fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/${daterange.DateRange_ID}`, {
-                            //             method: "DELETE"
-                            //         })
-                            //         .then(response => {
-                            //             if (!response.ok) {
-                            //                 throw new Error(`HTTP error! ${response.status}`);
-                            //             }
-                            //             return response.json();
-                            //         })
-                            //         .then(data => {
-                            //             getDateranges();
-                            //             areYouSureScreenContainer.delete();
-                            //         })
-                            //         .catch(error => {
-                            //             console.error(error);
-                            //         })
-                            //     })
-                            //     areYouSureScreenButtons.append(deleteFinalButton);
-                            //     areYouSureScreen.append(areYouSureScreenButtons);
-                            //     areYouSureScreenContainer.append(areYouSureScreen);
-                            //     document.getElementById('content').append(areYouSureScreenContainer);
-                            // })
 
                             daterangeTop.append(deleteDaterange);
 
@@ -385,7 +420,8 @@
                             daterange.Timeslots.forEach(timeslot => {
                                 const timeslotDiv = document.createElement('div');
                                 timeslotDiv.classList.add('timeslotDiv');
-                                timeslotDiv.textContent = timeslot.StartTime;
+                                const timeslotAsDate = new Date(`1970-01-01T${timeslot.StartTime}`);
+                                timeslotDiv.textContent = timeslotAsDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
                                 timeslotsContainer.append(timeslotDiv);
                             })
                             daterangeContainer.append(timeslotsContainer);
@@ -403,6 +439,9 @@
             function createDaterangeMenu(minValueWhole) {
                 let maxTimeslots = 5;
                 let currentTimeslots = 1;
+                dateRangePickerInstance = null;
+                usedDatesForPicker = new Set();
+                minimumAllowedStartTime = null;
 
                 addDateContainer.innerHTML = "";
                 const everythingDateranges = document.createElement('div');
@@ -412,84 +451,94 @@
                 addDaterangeButton.classList.add('addDaterangeButton');
                 addDaterangeButton.classList.add('generalAdminButton');
                 addDaterangeButton.textContent = "Add New Date Range";
+                addDaterangeButton.type = 'button';
                 everythingDateranges.append(addDaterangeButton);
 
                 const addDaterangeMenu = document.createElement('form');
                 addDaterangeMenu.id = 'addDaterangeMenu';
                 addDaterangeMenu.style.display = 'none';
 
-                // daterangeInputSpan (e.g. Start Date: [ ] - End Date: [ ] )
+                // Date Range Picker
                 const daterangeInputSpan = document.createElement('span');
                 daterangeInputSpan.classList.add('daterangeInputSpan');
 
-                const startDateInputLabel = document.createElement('label');
-                startDateInputLabel.textContent = "Start Date: ";
-                startDateInputLabel.htmlFor = "startDateInput";
-                daterangeInputSpan.append(startDateInputLabel);
-                const startDateInput = document.createElement('input');
-                startDateInput.type = 'date';
-                startDateInput.name = "StartDate";
+                const dateRangePickerLabel = document.createElement('label');
+                dateRangePickerLabel.textContent = "Select Date Range: ";
+                dateRangePickerLabel.htmlFor = "dateRangePicker";
+                daterangeInputSpan.append(dateRangePickerLabel);
 
-                minValueWhole = new Date(minValueWhole);
-                minValueWhole.setDate(minValueWhole.getDate() + 1);
-                startDateInput.setAttribute('min', minValueWhole.toISOString().split('T')[0]);
-                startDateInput.required = true;
-                startDateInput.classList.add('dateInput');
-                startDateInput.id = "startDateInput";
-                daterangeInputSpan.append(startDateInput);
+                const dateRangePickerInput = document.createElement('input');
+                dateRangePickerInput.type = 'text';
+                dateRangePickerInput.id = 'dateRangePicker';
+                dateRangePickerInput.name = 'dateRangePicker';
+                dateRangePickerInput.classList.add('dateRangePickerInput');
+                dateRangePickerInput.required = true;
+                daterangeInputSpan.append(dateRangePickerInput);
 
-                daterangeInputSpan.append(" - ");
-
-                const endDateInputLabel = document.createElement('label');
-                endDateInputLabel.textContent = "End Date: ";
-                endDateInputLabel.htmlFor = "endDateInput";
-                daterangeInputSpan.append(endDateInputLabel);
-                const endDateInput = document.createElement('input');
-                endDateInput.type = 'date';
-                endDateInput.name = "EndDate";
-                endDateInput.classList.add('dateInput');
-                endDateInput.id = "endDateInput";
-                daterangeInputSpan.append(endDateInput);
-
-                startDateInput.addEventListener("change", function() {
-                    if (startDateInput.value) {
-                        const minValue = new Date(startDateInput.value);
-                        minValue.setDate(minValue.getDate() + 1);
-                        endDateInput.setAttribute('min', minValue.toISOString().split('T')[0]);
-                        if (minValue > new Date(endDateInput.value)) {
-                            endDateInput.value = "";
-                        }
-                    } else {
-                        endDateInput.removeAttribute('min');
-                    }                   
-                })
-
-                daterangeInputSpan.append("optional");
-                
                 addDaterangeMenu.append(daterangeInputSpan);
 
-                // daterangeTimeslotInputs (e.g. (9:00) (10:30) (11:45) (+) )
-
+                // Timeslots
                 const daterangeTimeslotInputsPlus = document.createElement('span');
                 daterangeTimeslotInputsPlus.classList.add('daterangeTimeslotInputsPlus');
                 
                 const daterangeTimeslotInputs = document.createElement('span');
                 daterangeTimeslotInputs.classList.add('daterangeTimeslotInputs');
                 daterangeTimeslotInputsPlus.append(daterangeTimeslotInputs);
-                
-                let minTimeValue = new Date();
+
+                function rebuildTimeslotOptions() {
+                    const allTimeslotSelects = Array.from(document.querySelectorAll('#addDaterangeMenu .timeslotInput'));
+                    const runtimeMinutes = getCurrentRuntimeMinutes();
+                    const theaterOpeningMinutes = 10 * 60; // 10:00 AM
+                    const baseMinimumMinutes = Math.max(
+                        theaterOpeningMinutes,
+                        minimumAllowedStartTime ? timeToMinutes(minimumAllowedStartTime) : 0
+                    );
+
+                    let rollingMinimum = baseMinimumMinutes;
+
+                    allTimeslotSelects.forEach(select => {
+                        const previousValue = select.value;
+                        select.innerHTML = "";
+
+                        for (let totalMinutes = rollingMinimum; totalMinutes < 1440; totalMinutes += 5) {
+                            const option = document.createElement('option');
+                            option.value = minutesToTimeInput(totalMinutes);
+                            option.textContent = formatMinutesToAmPm(totalMinutes);
+                            select.append(option);
+                        }
+
+                        if (select.options.length === 0) {
+                            const noTimesOption = document.createElement('option');
+                            noTimesOption.value = "";
+                            noTimesOption.textContent = "No Times Left For This Day";
+                            noTimesOption.selected = true;
+                            noTimesOption.disabled = true;
+                            select.append(noTimesOption);
+                            rollingMinimum = 1440;
+                            return;
+                        }
+
+                        if (previousValue && timeToMinutes(previousValue) >= rollingMinimum) {
+                            select.value = previousValue;
+                        }
+
+                        const selectedMinutes = timeToMinutes(select.value);
+                        if (runtimeMinutes > 0) {
+                            rollingMinimum = roundUpToFiveMinutes(selectedMinutes + runtimeMinutes);
+                        } else {
+                            rollingMinimum = selectedMinutes;
+                        }
+                    });
+                }
 
                 function createTimeslot() {
                     const timeslotInputSpan = document.createElement('span');
                     timeslotInputSpan.classList.add('timeslotInputSpan');
 
-                    const timeslotInput = document.createElement('input');
-                    timeslotInput.type = 'time';
+                    const timeslotInput = document.createElement('select');
                     timeslotInput.name = "timeslot";
                     timeslotInput.classList.add('timeslotInput');
-                    timeslotInput.addEventListener("change", function() {
-                        console.log("time minimum, to be done");
-                    })
+                    timeslotInput.addEventListener("change", rebuildTimeslotOptions);
                     timeslotInputSpan.append(timeslotInput);
 
                     if (currentTimeslots != 1) {
@@ -497,14 +546,12 @@
                         timeslotDelete.type = 'button';
                         timeslotDelete.classList.add('timeslotDelete');
                         timeslotDelete.textContent = "X";
-                        timeslotDelete.addEventListener("click", function() {
+                        timeslotDelete.addEventListener("click", function(e) {
+                            e.preventDefault();
                             this.parentNode.remove();
                             currentTimeslots -= 1;
                             timeslotAddButton.style.display = 'block';
                         })
-                        // latestTimeValue = new Date(inputtedTime);
-                        // latestTimeValue.setMinutes(date.getMinutes() + minutesToAdd);
-                        // timeslotInput.setAttribute('min', latestTimeValue);
                         timeslotInputSpan.append(timeslotDelete);
                     } else {
                         timeslotInput.required = true;
@@ -519,7 +566,8 @@
                 timeslotAddButton.classList.add('timeslotAddButton');
                 timeslotAddButton.classList.add('generalAdminButton');
                 timeslotAddButton.textContent = "+";
-                timeslotAddButton.addEventListener("click", function() {
+                timeslotAddButton.addEventListener("click", function(e) {
+                    e.preventDefault();
                     if (currentTimeslots <= (maxTimeslots - 1)) {
                         currentTimeslots += 1;
                         daterangeTimeslotInputs.append(createTimeslot());
@@ -535,8 +583,7 @@
 
                 addDaterangeMenu.append(daterangeTimeslotInputsPlus);
 
-                //
-
+                // Screening Type and Price
                 const screeningTypePrice = document.createElement('span');
 
                 const screeningTypeLabel = document.createElement('label');
@@ -566,8 +613,6 @@
 
                 screeningTypePrice.append(screeningTypeInput);
 
-                //
-
                 const seatPriceInputLabel = document.createElement('label');
                 seatPriceInputLabel.htmlFor = 'seatPrice';
                 seatPriceInputLabel.textContent = "Seat Price (In Pesos): ";
@@ -581,8 +626,7 @@
 
                 addDaterangeMenu.append(screeningTypePrice);
 
-                //
-
+                // Submit button
                 const addDaterangeMenuSubmit = document.createElement('button');
                 addDaterangeMenuSubmit.type = 'submit';
                 addDaterangeMenuSubmit.textContent = "Add Date Range";
@@ -590,39 +634,84 @@
                 addDaterangeMenuSubmit.classList.add('generalAdminButton');
                 addDaterangeMenu.append(addDaterangeMenuSubmit);
 
-                //
-                
+                // Form submission
                 addDaterangeMenu.addEventListener("submit", function(e) {
                     e.preventDefault();
+
+                    if (!dateRangePickerInstance) {
+                        console.error("Date range picker not initialized");
+                        return;
+                    }
 
                     const formData = new FormData(addDaterangeMenu);
                     const Theater_ID = theaterSelection.value;
 
-                    let timeslots = formData.getAll('timeslot').filter(t => t !== "");
+                    // Get selected date range from daterangepicker
+                    const startDate = dateRangePickerInstance.startDate;
+                    const endDate = dateRangePickerInstance.endDate;
+
+                    if (!startDate || !endDate) {
+                        console.error("Invalid date range selected");
+                        return;
+                    }
+
+                    let timeslots = Array.from(document.querySelectorAll('#addDaterangeMenu .timeslotInput'))
+                        .map(input => input.value)
+                        .filter(t => t !== "");
+
+                    if (timeslots.length === 0) {
+                        console.error("No timeslots provided");
+                        return;
+                    }
+
                     let allTimeslots = [];
-                    let start = new Date(formData.get("StartDate"));
-                    let end = formData.get("EndDate") ? new Date(formData.get("EndDate")) : null;
-                    if (!end) {
-                        let dateStr = start.toLocaleDateString('en-CA');
-                        timeslots.forEach(time => {
-                            allTimeslots.push({ date: dateStr, timeslot: time});
-                        });
-                    } else {
-                        for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                            let dateStr = new Date(d).toLocaleDateString('en-CA');
-                            timeslots.forEach(time => {
-                                allTimeslots.push({ date: dateStr, timeslot: time});
-                            });
+                    const runtimeMinutes = getCurrentRuntimeMinutes();
+                    const minAllowedMinutes = minimumAllowedStartTime ? timeToMinutes(minimumAllowedStartTime) : null;
+                    const timeslotMinutesSorted = timeslots.map(timeToMinutes).sort((a, b) => a - b);
+
+                    if (minAllowedMinutes !== null) {
+                        for (const minutes of timeslotMinutesSorted) {
+                            if (minutes < minAllowedMinutes) {
+                                alert(`Timeslot must be ${minimumAllowedStartTime} or later for the selected dates.`);
+                                return;
+                            }
                         }
                     }
 
+                    if (runtimeMinutes > 0 && timeslotMinutesSorted.length > 1) {
+                        for (let i = 1; i < timeslotMinutesSorted.length; i++) {
+                            const previousMinimum = roundUpToFiveMinutes(timeslotMinutesSorted[i - 1] + runtimeMinutes);
+                            if (timeslotMinutesSorted[i] < previousMinimum) {
+                                alert(`Timeslots must be at least ${runtimeMinutes} minutes apart (rounded to 5-minute steps).`);
+                                return;
+                            }
+                        }
+                    }
+
+                    for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
+                        if (usedDatesForPicker.has(d.format('YYYY-MM-DD'))) {
+                            alert("One or more selected dates are already used.");
+                            return;
+                        }
+                    }
+
+                    // Generate all timeslots for each day in the range
+                    for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
+                        let dateStr = d.format('YYYY-MM-DD');
+                        timeslots.forEach(time => {
+                            allTimeslots.push({ date: dateStr, timeslot: time });
+                        });
+                    }
+
                     const payload = {
-                        StartDate: start.toISOString().split('T')[0],
-                        EndDate: end ? end.toISOString().split('T')[0] : null,
+                        StartDate: startDate.format('YYYY-MM-DD'),
+                        EndDate: endDate.format('YYYY-MM-DD'),
                         timeslots: allTimeslots,
                         ScreeningType: formData.get("ScreeningType"),
                         SeatPrice: Number(formData.get("SeatPrice"))
                     }
+
+                    console.log("Sending payload:", payload);
 
                     fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=daterange/all/theater/${Theater_ID}/movie/${Movie_ID}`, {
                         method: 'POST',
@@ -647,13 +736,66 @@
                     })
                 })
 
-                //
-
                 everythingDateranges.append(addDaterangeMenu)
                 addDateContainer.append(everythingDateranges);
 
                 let addDaterangeMenuIsOpen = false;
-                addDaterangeButton.addEventListener("click", daterangeMenuOpenClose);
+                addDaterangeButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    daterangeMenuOpenClose();
+                    
+                    if (addDaterangeMenuIsOpen) {
+                        // Initialize daterangepicker when menu opens
+                        if (!dateRangePickerInstance) {
+                            const theaterId = theaterSelection.value;
+                            usedDatesForPicker = await getUsedDatesForTheater(theaterId);
+                            let minDate = moment().startOf('day');
+                            let firstAvailableDate = minDate.clone();
+
+                            while (usedDatesForPicker.has(firstAvailableDate.format('YYYY-MM-DD'))) {
+                                firstAvailableDate.add(1, 'day');
+                            }
+                            
+                            const pickerElement = $(dateRangePickerInput).daterangepicker({
+                                locale: {
+                                    format: 'YYYY-MM-DD'
+                                },
+                                minDate: minDate,
+                                startDate: firstAvailableDate,
+                                endDate: firstAvailableDate,
+                                opens: 'center',
+                                isInvalidDate: function(date) {
+                                    return usedDatesForPicker.has(date.format('YYYY-MM-DD'));
+                                }
+                            });
+                            dateRangePickerInstance = pickerElement.data('daterangepicker');
+
+                            async function refreshMinimumAllowedStartTime() {
+                                const selectedStartDate = dateRangePickerInstance.startDate.format('YYYY-MM-DD');
+                                const selectedEndDate = dateRangePickerInstance.endDate.format('YYYY-MM-DD');
+                                const occupiedTimeslots = await getOccupiedTimeslotsForRange(theaterId, selectedStartDate, selectedEndDate);
+
+                                let minimumStartMinutes = null;
+                                occupiedTimeslots.forEach(slot => {
+                                    const slotStartMinutes = timeToMinutes(slot.StartTime);
+                                    const slotRuntime = Number(slot.Runtime) || 0;
+                                    const slotEndRounded = roundUpToFiveMinutes(slotStartMinutes + slotRuntime);
+                                    if (minimumStartMinutes === null || slotEndRounded > minimumStartMinutes) {
+                                        minimumStartMinutes = slotEndRounded;
+                                    }
+                                });
+
+                                minimumAllowedStartTime = minimumStartMinutes !== null ? minutesToTimeInput(minimumStartMinutes) : null;
+                                rebuildTimeslotOptions();
+                            }
+
+                            await refreshMinimumAllowedStartTime();
+                            pickerElement.on('apply.daterangepicker', async function() {
+                                await refreshMinimumAllowedStartTime();
+                            });
+                        }
+                    }
+                });
 
                 function daterangeMenuOpenClose() {
                     if (addDaterangeMenuIsOpen) {

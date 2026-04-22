@@ -47,13 +47,12 @@
                 .then(data => {
                     if (data.token) {
                         const jwt_token = data.token;
-                        localStorage.setItem('jwt_token', jwt_token);
-                        
+
                         let payload;
                         try {
                             payload = JSON.parse(atob(jwt_token.split('.')[1]));
                         } catch (e) {
-                            localStorage.removeItem('jwt_token');
+                            localStorage.removeItem('admin_jwt_token');
                             window.location.href = 'admin_login.php';
                             return;
                         }
@@ -61,8 +60,16 @@
                         const currentTime = Math.floor(Date.now() / 1000);
 
                         if (!payload || payload.exp < currentTime) {
-                            localStorage.removeItem('jwt_token');
+                            localStorage.removeItem('admin_jwt_token');
                             window.location.href = 'admin_login.php';
+                            return;
+                        }
+
+                        // Store under a separate key so it never collides with the customer token
+                        localStorage.setItem('admin_jwt_token', jwt_token);
+
+                        if (payload.must_reset === true) {
+                            window.location.href = 'admin_reset_password.php';
                             return;
                         }
 
@@ -75,7 +82,7 @@
                             case 2:
                                 window.location.href = 'admin_dashboard.php';
                                 break;
-                            default: 
+                            default:
                                 window.location.href = 'admin_login.php';
                                 break;
                         }

@@ -129,6 +129,7 @@
 <html>
 <head>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="site.css">
     <script src="customer_gate.js"></script>
     <style>
         *{
@@ -545,12 +546,15 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    console.log(response.error);
+                    throw new Error(`Failed to load receipt (HTTP ${response.status})`);
                 }
                 return response.json();
             })
             .then(data => {
-                receipt = data.data[0];
+                const receipt = data.data?.[0];
+                if (!receipt) {
+                    throw new Error("Receipt not found.");
+                }
 
                 document.getElementById('receiptMovieName').textContent = receipt.MovieName;                
                 document.getElementById('receiptCinemaName').textContent = receipt.TheaterName;
@@ -561,6 +565,8 @@
                                                                             hour12: true
                                                                         });
                 document.getElementById('customerNameReceipt').textContent = receipt.LastName + ", " + receipt.FirstName;
+                document.getElementById('selectedSeatsReceipt').textContent = receipt.Seat_List || "";
+                document.getElementById('ticketCountReceipt').textContent = receipt.Ticket_Count || "";
 
                 const paymentMethodReceipt = document.getElementById('paymentMethodReceipt');
 
@@ -581,8 +587,12 @@
 
                 document.getElementById('totalReceipt').textContent = receipt.AmountPaid;
 
-                document.getElementById('bookingReference').textContent = "PC" + receipt.Receipt_ID + new Date().getFullYear();
+                const paymentYear = receipt.PaymentDate ? new Date(receipt.PaymentDate).getFullYear() : new Date().getFullYear();
+                document.getElementById('bookingReference').textContent = "PC" + receipt.Receipt_ID + paymentYear;
             })
+            .catch(err => {
+                alert(err.message || "Error loading receipt.");
+            });
         }
     </script>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

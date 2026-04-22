@@ -97,8 +97,6 @@
 
                 // Password match check
                 if ($passwordPlain !== $confirmPassword) {                
-                    var_dump($passwordPlain);
-                    var_dump($confirmPassword);    
                     echo json_encode(["error" => "Passwords do not match."]);
                     exit();
                 }
@@ -227,13 +225,19 @@
                     $admin = $result->fetch_assoc();
 
                     if (password_verify($password, $admin['AdminPassword'])) {
+                        // Force password reset while the temp password is still in use.
+                        // This is checked against the stored hash (not the entered password),
+                        // so it works for newly created admins and after admin-initiated resets.
+                        $must_reset = password_verify('admin1234', $admin['AdminPassword']);
+
                         $payload = [
                             'iss' => 'http://localhost/Peak-Redux-Repo/PeaksCinema',
                             'iat' => time(),
                             'exp' => time() + (60 * 60 * 12),
                             'id' => $admin['Admin_ID'],
                             'role' => 'admin',
-                            'access_level' => $admin['AccessLevel']
+                            'access_level' => $admin['AccessLevel'],
+                            'must_reset' => $must_reset
                         ];
 
                         $jwt = JWT::encode($payload, $jwt_secret, 'HS256');
@@ -249,6 +253,84 @@
                     http_response_code(404);
                     echo json_encode(["error" => "Wrong Email or Password."]);
                     exit();
+                }
+            }
+            break;
+        case 'admin_password':
+            // Allows an authenticated admin to set their own password.
+            if ($method === 'PUT') {
+                $decoded = admin_surely($jwt_secret, 0);
+                $adminId = intval($decoded['id'] ?? 0);
+
+                if ($adminId <= 0) {
+                    http_response_code(401);
+                    die(json_encode(["error" => "Invalid session."]));
+                }
+
+                $data = json_decode(file_get_contents("php://input"), true);
+                $newPassword = $data['newPassword'] ?? '';
+
+                if (!is_string($newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Invalid password."]));
+                }
+
+                $newPassword = trim($newPassword);
+
+                if (strlen($newPassword) < 8) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password must be at least 8 characters."]));
+                }
+
+                if (preg_match('/\s/', $newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password cannot contain spaces."]));
+                }
+
+                if ($newPassword === 'admin1234') {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Please choose a password different from the temporary password."]));
+                }
+
+                // Strong password policy: uppercase + lowercase + number + symbol
+                if (!preg_match('/[A-Z]/', $newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password must include at least 1 uppercase letter."]));
+                }
+                if (!preg_match('/[a-z]/', $newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password must include at least 1 lowercase letter."]));
+                }
+                if (!preg_match('/[0-9]/', $newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password must include at least 1 number."]));
+                }
+                if (!preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Password must include at least 1 symbol (example: ! @ # $)."]));
+                }
+
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+                try {
+                    $conn->begin_transaction();
+
+                    $stmt = $conn->prepare("UPDATE admin SET AdminPassword = ? WHERE Admin_ID = ?");
+                    $stmt->bind_param("si", $hashedPassword, $adminId);
+
+                    if ($stmt->execute() && $stmt->affected_rows > 0) {
+                        $conn->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Password updated successfully"]);
+                    } else {
+                        $conn->rollback();
+                        http_response_code(404);
+                        echo json_encode(["error" => "Admin not found"]);
+                    }
+                } catch (mysqli_sql_exception $e) {
+                    $conn->rollback();
+                    http_response_code(400);
+                    echo json_encode(["error" => $e->getMessage()]);
                 }
             }
             break;
@@ -400,6 +482,28 @@
                             } catch (mysqli_sql_exception $e) {
                                 echo json_encode(["error" => $e->getMessage()]);
                             }
+                } else if ($ID !== null && $subResource === 'theater' && $subID !== null && $subResource2 === null && $subID2 === null) {
+                    $excludeMovieID = $_GET['exclude_movie'] ?? null;
+                    if ($excludeMovieID !== null && $excludeMovieID !== '') {
+                        $excludeMovieID = (int)$excludeMovieID;
+                        $stmt = $conn->prepare('SELECT DateRange_ID, Movie_ID, StartDate, EndDate FROM daterange WHERE Theater_ID = ? AND Movie_ID <> ?');
+                        $stmt->bind_param('ii', $subID, $excludeMovieID);
+                    } else {
+                        $stmt = $conn->prepare('SELECT DateRange_ID, Movie_ID, StartDate, EndDate FROM daterange WHERE Theater_ID = ?');
+                        $stmt->bind_param('i', $subID);
+                    }
+
+                    try {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => []]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
                             
                 } else {
                     echo json_encode("Error with your request.");
@@ -1010,7 +1114,43 @@
             break;
         case 'timeslot':
             if ($method == 'GET') {
-                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                if ($ID === 'all' && $subResource === 'theater' && $subID !== null && $subResource2 === null && $subID2 === null) {
+                    $startDate = $_GET['start_date'] ?? null;
+                    $endDate = $_GET['end_date'] ?? null;
+                    $excludeMovieID = $_GET['exclude_movie'] ?? null;
+
+                    if ($startDate === null || $endDate === null) {
+                        echo json_encode(["error" => "Missing required date range."]);
+                        break;
+                    }
+
+                    try {
+                        if ($excludeMovieID !== null && $excludeMovieID !== '') {
+                            $excludeMovieID = (int)$excludeMovieID;
+                            $stmt = $conn->prepare('SELECT timeslot.Date, timeslot.StartTime, timeslot.Movie_ID, movie.Runtime
+                                                    FROM timeslot
+                                                    INNER JOIN movie ON movie.Movie_ID = timeslot.Movie_ID
+                                                    WHERE timeslot.Theater_ID = ?
+                                                    AND timeslot.Date BETWEEN ? AND ?
+                                                    AND timeslot.Movie_ID <> ?');
+                            $stmt->bind_param('issi', $subID, $startDate, $endDate, $excludeMovieID);
+                        } else {
+                            $stmt = $conn->prepare('SELECT timeslot.Date, timeslot.StartTime, timeslot.Movie_ID, movie.Runtime
+                                                    FROM timeslot
+                                                    INNER JOIN movie ON movie.Movie_ID = timeslot.Movie_ID
+                                                    WHERE timeslot.Theater_ID = ?
+                                                    AND timeslot.Date BETWEEN ? AND ?');
+                            $stmt->bind_param('iss', $subID, $startDate, $endDate);
+                        }
+
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                    } catch (mysqli_sql_exception $e) {
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+                else if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
                     try {
                         $stmt = $conn->prepare('SELECT SeatTimeSlot_ID, seats.SeatRow, seats.SeatColumn, seat_timeslot.SeatPrice, seat_timeslot.SeatAvailability, timeslot.Date FROM seat_timeslot
                                             INNER JOIN seats ON seats.Seat_ID = seat_timeslot.Seat_ID
@@ -1045,15 +1185,36 @@
         case 'receipt':
             if ($method == 'GET') {
                 if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare("SELECT receipt.*, ticket.*, customer.LastName, customer.FirstName, movie.*, theater.*, timeslot.* FROM receipt
-                                            INNER JOIN ticket ON ticket.Receipt_ID = receipt.Receipt_ID
-                                            INNER JOIN customer ON customer.Customer_ID = ticket.Customer_ID
-                                            INNER JOIN seat_timeslot ON seat_timeslot.SeatTimeSlot_ID = ticket.SeatTimeSlot_ID
-                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
-                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
-                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
-                                            INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
-                                            WHERE receipt.Receipt_ID = ?");
+                    // Receipt details (one row), including ordered seat list and ticket count
+                    $stmt = $conn->prepare("
+                        SELECT
+                            r.Receipt_ID,
+                            r.Customer_ID,
+                            r.PaymentMethod,
+                            r.AmountPaid,
+                            r.PaymentDate,
+                            r.Status,
+                            c.LastName,
+                            c.FirstName,
+                            m.MovieName,
+                            th.TheaterName,
+                            ts.Date,
+                            ts.StartTime,
+                            ts.ScreeningType,
+                            COUNT(t.Ticket_ID) AS Ticket_Count,
+                            GROUP_CONCAT(CONCAT(s.SeatRow, s.SeatColumn) ORDER BY s.SeatRow, s.SeatColumn SEPARATOR ', ') AS Seat_List
+                        FROM receipt r
+                        INNER JOIN ticket t ON t.Receipt_ID = r.Receipt_ID
+                        INNER JOIN customer c ON c.Customer_ID = r.Customer_ID
+                        INNER JOIN seat_timeslot st ON st.SeatTimeSlot_ID = t.SeatTimeSlot_ID
+                        INNER JOIN seats s ON s.Seat_ID = st.Seat_ID
+                        INNER JOIN timeslot ts ON ts.TimeSlot_ID = st.TimeSlot_ID
+                        INNER JOIN daterange dr ON dr.DateRange_ID = ts.DateRange_ID
+                        INNER JOIN movie m ON m.Movie_ID = dr.Movie_ID
+                        INNER JOIN theater th ON th.Theater_ID = dr.Theater_ID
+                        WHERE r.Receipt_ID = ?
+                        GROUP BY r.Receipt_ID
+                    ");
                     try {
                         $stmt->bind_param("i", $ID);
                         $stmt->execute();
@@ -1140,7 +1301,7 @@
                         }
                         
                         $detail_stmt = $conn->prepare("
-                            SELECT m.MovieName, t.Date, t.StartTime, th.TheaterName, c.FirstName, c.LastName, r.PaymentMethod,
+                            SELECT m.MovieName, t.Date, t.StartTime, th.TheaterName, c.FirstName, c.LastName, r.PaymentMethod, r.PaymentDate,
                                 s.SeatRow, s.SeatColumn, tk.Price
                             FROM ticket tk
                             JOIN seat_timeslot st ON tk.SeatTimeSlot_ID = st.SeatTimeSlot_ID
@@ -1172,6 +1333,8 @@
 
                         $paymentMethodDisplay = strtoupper($firstRow['PaymentMethod']);
                         $formattedTime = date("h:i A", strtotime($firstRow['StartTime']));
+
+                        $year = date("Y", strtotime($firstRow['PaymentDate']));
 
                         $mail = new PHPMailer(true);
                         $mail->isSMTP();
@@ -1205,7 +1368,7 @@
                             
                             <div style="margin-top: 30px; text-align: center; background: #112233; padding: 20px; border-radius: 10px;">
                                 <p style="margin: 0; color: #8a9bad;">Booking Reference</p>
-                                <h2 style="color: #2dd4bf; margin: 10px 0 0 0; letter-spacing: 2px;">PC{$Receipt_ID}2026</h2>
+                                <h2 style="color: #2dd4bf; margin: 10px 0 0 0; letter-spacing: 2px;">PC{$Receipt_ID}{$year}</h2>
                                 <div>If you did not book this, please immediately refund through the website or contact us using our contact information below:</div>
                                 <div>Phone Number: +63 9202520720</div>
                                 <div>Email: peakscinemas@gmail.com</div>
@@ -1227,8 +1390,10 @@
             if ($method == 'GET') {
                 if ($ID === null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
                     try {
-                        $stmt = $conn->prepare("SELECT refund.*, receipt.* FROM refund
-                                                INNER JOIN receipt ON receipt.Receipt_ID = refund.Receipt_ID");
+                        $stmt = $conn->prepare("SELECT refund.*, receipt.*, customer.FirstName, customer.LastName FROM refund
+                                                INNER JOIN receipt ON receipt.Receipt_ID = refund.Receipt_ID
+                                                LEFT JOIN customer ON customer.Customer_ID = receipt.Customer_ID
+                                                ORDER BY refund.Refund_ID DESC");
                         $stmt->execute();
                         $result = $stmt->get_result();
 
@@ -1258,6 +1423,196 @@
                         $conn->commit();
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+            if ($method == 'PUT') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $data = json_decode(file_get_contents('php://input'), true);
+                    $action = $data['action'] ?? null;
+
+                    if ($action !== 'accept' && $action !== 'deny') {
+                        http_response_code(400);
+                        echo json_encode(["error" => "Invalid refund action."]);
+                        break;
+                    }
+
+                    $conn->begin_transaction();
+                    try {
+                        $lookupStmt = $conn->prepare("SELECT refund.Receipt_ID, receipt.AmountPaid, receipt.PaymentDate, customer.Email, customer.FirstName, customer.LastName, PaymentDate
+                                                      FROM refund
+                                                      INNER JOIN receipt ON receipt.Receipt_ID = refund.Receipt_ID
+                                                      LEFT JOIN customer ON customer.Customer_ID = receipt.Customer_ID
+                                                      WHERE refund.Refund_ID = ?");
+                        $lookupStmt->bind_param("i", $ID);
+                        $lookupStmt->execute();
+                        $lookupResult = $lookupStmt->get_result();
+                        if ($lookupResult->num_rows === 0) {
+                            throw new \Exception("Refund request not found.");
+                        }
+                        $refundRow = $lookupResult->fetch_assoc();
+                        $Receipt_ID = $refundRow['Receipt_ID'];
+                        $customerEmail = $refundRow['Email'] ?? null;
+                        $firstName = $refundRow['FirstName'] ?? "Customer";
+                        $lastName = $refundRow['LastName'] ?? "";
+                        $amountPaid = $refundRow['AmountPaid'] ?? 0;
+                        $paymentDate = $refundRow['PaymentDate'] ?? null;
+                        $year = date("Y", strtotime($paymentDate));
+
+                        if ($action === 'accept') {
+                            $deleteReceiptStmt = $conn->prepare("DELETE FROM receipt WHERE Receipt_ID = ?");
+                            $deleteReceiptStmt->bind_param("i", $Receipt_ID);
+                            $deleteReceiptStmt->execute();
+                        } else {
+                            $statusStmt = $conn->prepare("UPDATE receipt SET Status = 'Paid' WHERE Receipt_ID = ?");
+                            $statusStmt->bind_param("i", $Receipt_ID);
+                            $statusStmt->execute();
+                        }
+
+                        $deleteStmt = $conn->prepare("DELETE FROM refund WHERE Refund_ID = ?");
+                        $deleteStmt->bind_param("i", $ID);
+                        $deleteStmt->execute();
+
+                        $conn->commit();
+
+                        // Refund decisions are email-notified using the same mail setup used by receipts.
+                        if (!empty($customerEmail)) {
+                            try {
+                                $decisionLabel = $action === 'accept' ? 'Approved' : 'Denied';
+                                $decisionText = $action === 'accept'
+                                    ? 'Your refund request has been approved. The related receipt has been cancelled in our system.'
+                                    : 'Your refund request has been denied. The related receipt remains active.';
+                                $formattedDate = $paymentDate ? date("F d, Y", strtotime($paymentDate)) : "N/A";
+
+                                $mail = new PHPMailer(true);
+                                $mail->isSMTP();
+                                $mail->Host = 'smtp.gmail.com';
+                                $mail->SMTPAuth = true;
+                                $mail->Username = 'jerrellnathan@gmail.com';
+                                $mail->Password = 'kzmg pbko flhr xwhp';
+                                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                                $mail->Port = 587;
+
+                                $mail->setFrom('jerrellnathan@gmail.com', 'PeaksCinemas');
+                                $mail->addAddress($customerEmail);
+                                $mail->isHTML(true);
+                                $mail->Subject = 'Your PeaksCinemas Refund Request Update';
+                                $mail->Body = <<<HTML
+                                <div style="font-family: sans-serif; background: #071018; color: #ffffff; padding: 30px; border-radius: 15px;">
+                                    <h2 style="color: #2dd4bf; text-align: center;">Refund Request {$decisionLabel}</h2>
+                                    <p style="text-align: center; color: #9ca3af;">Hello {$firstName} {$lastName},</p>
+                                    <p style="text-align: center;">{$decisionText}</p>
+                                    
+                                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                                        <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 12px; color: #8a9bad;">Receipt ID:</td><td style="padding: 12px; text-align: right; font-weight: bold;">PC{$Receipt_ID}{$year}</td></tr>
+                                        <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 12px; color: #8a9bad;">Original Payment Date:</td><td style="padding: 12px; text-align: right; font-weight: bold;">{$formattedDate}</td></tr>
+                                        <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 12px; color: #8a9bad;">Original Amount:</td><td style="padding: 12px; text-align: right; font-weight: bold;">₱{$amountPaid}</td></tr>
+                                        <tr style="border-bottom: 1px solid #2dd4bf;"><td style="padding: 12px; color: #ffffff; font-weight: bold;">Decision:</td><td style="padding: 12px; text-align: right; font-weight: bold; color: #2dd4bf;">{$decisionLabel}</td></tr>
+                                    </table>
+                                    <div style="margin-top: 30px; text-align: center; background: #112233; padding: 20px; border-radius: 10px;">
+                                        <div>If you want to talk further with Peak's Cinemas staff, please contact us through these:</div>
+                                        <div>Phone Number: +63 9202520720</div>
+                                        <div>Email: peakscinemas@gmail.com</div>
+                                    </div>
+                                </div>
+                                HTML;
+                                $mail->send();
+                            } catch (\Exception $mailError) {
+                                echo json_encode(["status" => "Success.", "action" => $action, "warning" => "Refund processed but email could not be sent."]);
+                                break;
+                            }
+                        }
+
+                        echo json_encode(["status" => "Success.", "action" => $action]);
+                    } catch (\Exception $e) {
+                        $conn->rollback();
+                        http_response_code(400);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+            break;
+        case 'top_movies':
+            if ($method == 'GET') {
+                try {
+                    $stmt = $conn->prepare('SELECT
+                                                movie.Movie_ID,
+                                                movie.MovieName,
+                                                COALESCE(SUM(seat_timeslot.SeatPrice), 0) AS TotalRevenue
+                                            FROM movie
+                                            LEFT JOIN daterange ON daterange.Movie_ID = movie.Movie_ID
+                                            LEFT JOIN timeslot ON timeslot.DateRange_ID = daterange.DateRange_ID
+                                            LEFT JOIN seat_timeslot ON seat_timeslot.TimeSlot_ID = timeslot.TimeSlot_ID
+                                            WHERE seat_timeslot.SeatAvailability = 0
+                                            GROUP BY movie.Movie_ID, movie.MovieName
+                                            ORDER BY TotalRevenue DESC
+                                            LIMIT 10');
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+
+                    $movies = [];
+                    while ($row = $result->fetch_assoc()) {
+                        $movies[] = $row;
+                    }
+
+                    // Pad with empty entries if less than 10
+                    while (count($movies) < 10) {
+                        $movies[] = [
+                            'MovieName' => '--blank (for now)--',
+                            'TotalRevenue' => '--blank (for now)--'
+                        ];
+                    }
+
+                    echo json_encode(["data" => $movies]);
+                } catch (mysqli_sql_exception $e) {
+                    http_response_code(400);
+                    echo json_encode(["error" => $e->getMessage()]);
+                }
+            }
+            break;
+        case 'theater_analytics':
+            if ($method == 'GET') {
+                if ($ID !== null && $subResource === null && $subID === null && $subResource2 === null && $subID2 === null) {
+                    $year = $ID;
+                    try {
+                        $stmt = $conn->prepare('SELECT
+                                                    theater.TheaterName,
+                                                    MONTHNAME(timeslot.Date) AS Month_Name,
+                                                    MONTH(timeslot.Date) AS Month_Num,
+                                                    SUM(seat_timeslot.SeatPrice) AS Total
+                                                FROM `seat_timeslot`
+                                                INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
+                                                INNER JOIN theater ON theater.Theater_ID = timeslot.Theater_ID
+                                                WHERE YEAR(timeslot.Date) = ? AND seat_timeslot.SeatAvailability = 0
+                                                GROUP BY theater.Theater_ID, MONTH(timeslot.Date)
+                                                ORDER BY Month_Num ASC');
+                        $stmt->bind_param('i', $year);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        $theaterData = [];
+                        while ($row = $result->fetch_assoc()) {
+                            $theater = $row['TheaterName'];
+                            if (!isset($theaterData[$theater])) {
+                                $theaterData[$theater] = [];
+                            }
+                            $theaterData[$theater][$row['Month_Num']] = (int)$row['Total'];
+                        }
+
+                        // Fill in missing months with 0
+                        foreach ($theaterData as &$data) {
+                            for ($i = 1; $i <= 12; $i++) {
+                                if (!isset($data[$i])) {
+                                    $data[$i] = 0;
+                                }
+                            }
+                            ksort($data);
+                        }
+
+                        echo json_encode(["data" => $theaterData]);
+                    } catch (mysqli_sql_exception $e) {
+                        http_response_code(400);
                         echo json_encode(["error" => $e->getMessage()]);
                     }
                 }
@@ -1356,6 +1711,197 @@
                     }
                 }              
             }            
+            break;
+        case 'staff':
+            if ($method == 'GET') {
+                if ($ID === null && $subResource === null) {
+                    try {
+                        $stmt = $conn->prepare("SELECT Admin_ID, FirstName, LastName, Email, AccessLevel FROM admin ORDER BY Admin_ID DESC");
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            echo json_encode(["data" => []]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_all(MYSQLI_ASSOC)]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        http_response_code(400);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                } elseif ($ID !== null && $subResource === null) {
+                    try {
+                        $stmt = $conn->prepare("SELECT Admin_ID, FirstName, LastName, Email, AccessLevel FROM admin WHERE Admin_ID = ?");
+                        $stmt->bind_param("i", $ID);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        if ($result->num_rows === 0) {
+                            http_response_code(404);
+                            echo json_encode(["error" => "Staff member not found"]);
+                        } else {
+                            echo json_encode(["data" => $result->fetch_assoc()]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        http_response_code(400);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+
+            if ($method == 'POST') {
+                admin_surely($jwt_secret, 2);
+
+                $staffName = trim($_POST['staffName'] ?? '');
+                $staffEmail = trim($_POST['staffEmail'] ?? '');
+                $staffLevel = trim($_POST['staffLevel'] ?? '');
+
+                if (empty($staffName) || empty($staffEmail) || $staffLevel === '') {
+                    http_response_code(400);
+                    die(json_encode(["error" => "All fields are required"]));
+                }
+
+                if (!filter_var($staffEmail, FILTER_VALIDATE_EMAIL)) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Invalid email format"]));
+                }
+
+                // Check if email exists
+                $checkStmt = $conn->prepare("SELECT Admin_ID FROM admin WHERE Email = ?");
+                $checkStmt->bind_param("s", $staffEmail);
+                $checkStmt->execute();
+                if ($checkStmt->get_result()->num_rows > 0) {
+                    http_response_code(409);
+                    die(json_encode(["error" => "Email already exists"]));
+                }
+
+                // Set default password
+                $tempPassword = 'admin1234';
+                $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
+
+                // Extract first and last name
+                $nameParts = explode(' ', $staffName, 2);
+                $firstName = $nameParts[0];
+                $lastName = $nameParts[1] ?? '';
+
+                try {
+                    $conn->begin_transaction();
+
+                    $stmt = $conn->prepare("INSERT INTO admin (FirstName, LastName, Email, AdminPassword, AccessLevel) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->bind_param("ssssi", $firstName, $lastName, $staffEmail, $hashedPassword, $staffLevel);
+
+                    if ($stmt->execute()) {
+                        $conn->commit();
+                        http_response_code(201);
+                        echo json_encode(["status" => "Staff member created successfully", "tempPassword" => $tempPassword]);
+                    } else {
+                        $conn->rollback();
+                        http_response_code(400);
+                        echo json_encode(["error" => "Failed to create staff member"]);
+                    }
+                } catch (mysqli_sql_exception $e) {
+                    $conn->rollback();
+                    http_response_code(400);
+                    echo json_encode(["error" => $e->getMessage()]);
+                }
+            }
+
+            if ($method == 'PUT') {
+                admin_surely($jwt_secret, 2);
+
+                $data = json_decode(file_get_contents('php://input'), true);
+
+                if ($ID === null) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Staff ID is required"]));
+                }
+
+                if ($subResource === 'reset-password') {
+                    // Handle password reset
+                    $newPassword = 'admin1234';
+                    $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+                    try {
+                        $conn->begin_transaction();
+
+                        $stmt = $conn->prepare("UPDATE admin SET AdminPassword = ? WHERE Admin_ID = ?");
+                        $stmt->bind_param("si", $hashedPassword, $ID);
+
+                        if ($stmt->execute() && $stmt->affected_rows > 0) {
+                            $conn->commit();
+                            http_response_code(200);
+                            echo json_encode(["status" => "Password reset successfully"]);
+                        } else {
+                            $conn->rollback();
+                            http_response_code(404);
+                            echo json_encode(["error" => "Staff member not found"]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(400);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                } else {
+                    // Handle access level update
+                    $accessLevel = $data['accessLevel'] ?? null;
+
+                    if ($accessLevel === null || !in_array($accessLevel, [0, 1, 2])) {
+                        http_response_code(400);
+                        die(json_encode(["error" => "Invalid access level"]));
+                    }
+
+                    try {
+                        $conn->begin_transaction();
+
+                        $stmt = $conn->prepare("UPDATE admin SET AccessLevel = ? WHERE Admin_ID = ?");
+                        $stmt->bind_param("ii", $accessLevel, $ID);
+
+                        if ($stmt->execute() && $stmt->affected_rows > 0) {
+                            $conn->commit();
+                            http_response_code(200);
+                            echo json_encode(["status" => "Staff member updated successfully"]);
+                        } else {
+                            $conn->rollback();
+                            http_response_code(404);
+                            echo json_encode(["error" => "Staff member not found"]);
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        $conn->rollback();
+                        http_response_code(400);
+                        echo json_encode(["error" => $e->getMessage()]);
+                    }
+                }
+            }
+
+            if ($method == 'DELETE') {
+                admin_surely($jwt_secret, 2);
+
+                if ($ID === null) {
+                    http_response_code(400);
+                    die(json_encode(["error" => "Staff ID is required"]));
+                }
+
+                try {
+                    $conn->begin_transaction();
+
+                    $stmt = $conn->prepare("DELETE FROM admin WHERE Admin_ID = ?");
+                    $stmt->bind_param("i", $ID);
+
+                    if ($stmt->execute() && $stmt->affected_rows > 0) {
+                        $conn->commit();
+                        http_response_code(200);
+                        echo json_encode(["status" => "Staff member deleted successfully"]);
+                    } else {
+                        $conn->rollback();
+                        http_response_code(404);
+                        echo json_encode(["error" => "Staff member not found"]);
+                    }
+                } catch (mysqli_sql_exception $e) {
+                    $conn->rollback();
+                    http_response_code(400);
+                    echo json_encode(["error" => $e->getMessage()]);
+                }
+            }
             break;
         case 'customer_email':
             if ($method == 'POST') {

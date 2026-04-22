@@ -55,6 +55,7 @@
 <html lang="en">
 <head>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="site.css">
     <script src="customer_gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -238,20 +239,93 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    padding: 18px;
 }
 
 .refundRequest {
-    width: 30%;
-    min-width: fit-content;
-    height: fit-content;
+    width: min(520px, 92vw);
+    height: auto;
     display: flex;
-    gap: 5px;
+    gap: 12px;
     flex-direction: column;
-    border: 3px solid #f6e8e0;
-    border-radius: 15px;
-    padding: 1rem;
-    background-color: #0c181a;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 18px;
+    background: rgba(15, 15, 15, 0.82);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+}
+
+.refundRequest form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.refundRequest form > div {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+}
+
+.refundRequest label {
+    margin: 0;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.refundRequest input[type="text"] {
+    width: 100%;
+    margin: 0;
+}
+
+.refundRequest textarea {
+    width: 100%;
+    margin: 0;
+    min-height: 120px;
+    resize: vertical;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.04);
+    color: white;
+    padding: 12px 14px;
+    line-height: 1.35rem;
+}
+
+.refundRequest textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.refundRequest button {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.06);
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.refundRequest button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(45, 212, 191, 0.55);
+    background: rgba(45, 212, 191, 0.14);
+}
+
+.refundRequest button[type="submit"] {
+    border: none;
+    background: linear-gradient(135deg, #ff4b4b, #d62c2c);
+}
+
+.refundRequest button[type="submit"]:hover {
+    background: linear-gradient(135deg, #ff5b5b, #c82323);
+    border-color: transparent;
 }
 
 </style>
@@ -284,6 +358,8 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             <p>Manage your PeaksCinemas profile information</p>
         </div><br>
 
+        <div id="profileStatusMessage" class="message" style="display:none;"></div>
+
         <form id="profileEditForm" class="profileEditForm">
             <input type="hidden" name="tab" value="0">
 
@@ -309,6 +385,22 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             <div class="password-container" style="position:relative;">
                 <input type="password" id="password" name="password" placeholder="Enter new password">
                 <button type="button" id="togglePassword" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#999;cursor:pointer;">Show</button>
+            </div>
+
+            <label for="confirmPassword">Confirm New Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter new password">
+
+            <div id="profilePasswordHelp" style="margin-top: 8px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); display: none;">
+                <div style="font-weight: 800; margin-bottom: 6px;">Password must include:</div>
+                <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-weight: 700;">
+                    <li id="peReqLen" style="color:#ff6b6b;">8–64 characters</li>
+                    <li id="peReqUpper" style="color:#ff6b6b;">1 uppercase letter</li>
+                    <li id="peReqLower" style="color:#ff6b6b;">1 lowercase letter</li>
+                    <li id="peReqNum" style="color:#ff6b6b;">1 number</li>
+                    <li id="peReqSym" style="color:#ff6b6b;">1 symbol from: @$!%*?&</li>
+                    <li id="peReqChars" style="color:#ff6b6b;">Only letters, numbers, and @$!%*?&</li>
+                </ul>
+                <div id="peMatchStatus" style="margin-top: 10px; min-height: 18px; font-weight: 800;"></div>
             </div>
 
             <input type="submit" value="Save Changes">
@@ -353,7 +445,11 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
         })
         .then(data => {
             if (data.error) {
-                console.log("uh oh");
+                const msg = document.getElementById('profileStatusMessage');
+                msg.style.display = 'block';
+                msg.className = 'message error';
+                msg.textContent = data.error;
+                return;
             }
 
             customer = data.data[0];
@@ -405,13 +501,35 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
     profileEditForm.addEventListener("submit", function(e) {
         e.preventDefault();
         const formData = new FormData(profileEditForm);
+        const msg = document.getElementById('profileStatusMessage');
+        msg.style.display = 'none';
+        msg.textContent = '';
+
+        const pw = (formData.get('password') || '').trim();
+        const conf = (document.getElementById('confirmPassword').value || '').trim();
+        if (pw.length > 0) {
+            const pwOk = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$/.test(pw);
+            if (!pwOk) {
+                msg.style.display = 'block';
+                msg.className = 'message error';
+                msg.textContent = "Password must be 8–64 characters and include uppercase, lowercase, number, and a symbol from: @$!%*?&";
+                return;
+            }
+            if (pw !== conf) {
+                msg.style.display = 'block';
+                msg.className = 'message error';
+                msg.textContent = "Passwords do not match.";
+                return;
+            }
+        }
+
         const payload = {
             LastName: formData.get('LastName'),
             FirstName: formData.get('FirstName'),
             Email: formData.get('email'),
             CountryCode: formData.get('countryCode'),
             PhoneNumber: formData.get('phone'),
-            Password: formData.get('password')
+            Password: pw
         }
 
         fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=customer/${Customer_ID}`, {
@@ -449,7 +567,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
                                     <button type="button" onclick="refundMenuOpenClose()">Back</button>
                                     <div>Booking Reference PC${Receipt_ID}${paymentYear}</div>
                                     <label for="refundReason">Why do you want to refund? </label>
-                                    <input type="text id="refundReason" name="refundReason">
+                                    <textarea id="refundReason" name="refundReason" rows="5" placeholder="Tell us why you want a refund..." required></textarea>
 
                                     <button type="submit">Submit</button>
                                    </form>`;
@@ -479,6 +597,8 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
             .then(data => {
                 if (data.error) {
                     console.log("something went wrong.");
+                    refundMenuOpenClose();
+                    getReceipts();
                     return;
                 }
                 if (data.status) {
@@ -543,7 +663,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
 
                 if (purchase.Status === "Pending Refund") {
                     tr.innerHTML = `
-                                    <td class="BookingRef">${purchase.Receipt_ID}${paymentYear}</td>
+                                    <td class="BookingRef">PC${purchase.Receipt_ID}${paymentYear}</td>
                                     <td class="PurchaseDate">${purchase.PaymentDate}</td>
                                     <td class="MovieName">${purchase.MovieName}</td>
                                     <td class="TheaterName">${purchase.TheaterName}</td>

@@ -6,6 +6,7 @@
         <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
     </head>
     <body>
+        <?php include('admin_header.php'); ?>
         <main>
             <div id="cashierFundamentalsContainer">
                 <form id="cashierFundamentals">
@@ -86,6 +87,27 @@
             selectMovies.addEventListener("change", function() {
                 const Movie_ID = this.value;
 
+                // Reset theaters and timeslots
+                selectTheaters.innerHTML = "";
+                const theaterOption = document.createElement("option");
+                theaterOption.textContent = "Please select a theater.";
+                theaterOption.value = "";
+                selectTheaters.appendChild(theaterOption);
+
+                selectTimeslots.innerHTML = "";
+                const timeslotOption = document.createElement("option");
+                timeslotOption.textContent = "Please select a timeslot.";
+                timeslotOption.value = "";
+                selectTimeslots.appendChild(timeslotOption);
+
+                // Clear seats
+                document.getElementById('seatPlanContainer').innerHTML = "";
+                document.getElementById('seatsCalculator').textContent = "";
+                document.getElementById('seatsCalculator').style.opacity = 0;
+                document.getElementById('submitButton').style.opacity = 0;
+
+                if (!Movie_ID) return;
+
                 fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/theaters&date=${today}`, {
                     method: "GET"
                 })
@@ -131,6 +153,21 @@
             selectTheaters.addEventListener("change", function() {
                 const Movie_ID = selectMovies.value;
                 const Theater_ID = this.value;
+
+                // Reset timeslots
+                selectTimeslots.innerHTML = "";
+                const timeslotOption = document.createElement("option");
+                timeslotOption.textContent = "Please select a timeslot.";
+                timeslotOption.value = "";
+                selectTimeslots.appendChild(timeslotOption);
+
+                // Clear seats
+                document.getElementById('seatPlanContainer').innerHTML = "";
+                document.getElementById('seatsCalculator').textContent = "";
+                document.getElementById('seatsCalculator').style.opacity = 0;
+                document.getElementById('submitButton').style.opacity = 0;
+
+                if (!Theater_ID) return;
 
                 fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/theater/${Theater_ID}&date=${today}`, {
                     method: "GET"
@@ -178,6 +215,14 @@
                 const Movie_ID = selectMovies.value;
                 const Theater_ID = selectTheaters.value;
                 const TimeSlot_ID = this.value;
+
+                // Clear seats
+                document.getElementById('seatPlanContainer').innerHTML = "";
+                document.getElementById('seatsCalculator').textContent = "";
+                document.getElementById('seatsCalculator').style.opacity = 0;
+                document.getElementById('submitButton').style.opacity = 0;
+
+                if (!TimeSlot_ID) return;
 
                 fetch(`http://localhost/Peak-Redux-Repo/PeaksCinema/pc_api.php?request=movie/${Movie_ID}/theater/${Theater_ID}/timeslot/${TimeSlot_ID}/seats`, {
                     method: "GET"

@@ -11,6 +11,7 @@ body {
     color: white;
     background-color: #122729;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 main {
@@ -128,14 +129,15 @@ header a.active {
 .movieContainer {
     border: 3px solid #f6e8e0;
     border-radius: 15px;
-    height: 16rem;
-    width: 10rem;
+    height: auto;
+    width: 20rem;
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     font-weight: bold;
     transition: transform 0.3s;
+    gap: 0.5rem;
 }
 
 .movieContainer:hover {
@@ -147,12 +149,13 @@ header a.active {
     border: 3px solid #f6e8e0;
     border-radius: 15px;
     display: block;
-    height: 14rem;
-    width: 9rem;
+    height: 11.5rem;
+    width: 19rem;
     text-align: center;
+    object-fit: cover;
 }
 
-#movieMenuContainer, #theaterMenuContainer {
+#movieMenuContainer, #theaterMenuContainer, #staffMenuContainer {
     z-index: 2000;
     position: fixed;
     top: 0;
@@ -165,7 +168,7 @@ header a.active {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-#movieMenu, #theaterMenu {
+#movieMenu, #theaterMenu, #staffMenu {
     width: 30%;
     min-width: fit-content;
     height: 75%;
@@ -178,7 +181,15 @@ header a.active {
     background-color: #0c181a;
 }
 
+#staffMenu {
+    height: auto;
+}
+
 #movieMenu label, #trailerPreviewText, #posterPreviewText {
+    font-weight: bold;
+}
+
+#staffMenu label {
     font-weight: bold;
 }
 
@@ -217,6 +228,19 @@ header a.active {
     font-family:'Segoe UI';
 }
 
+#staff {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#staff input, #staff select {
+    border: 2px solid #ff4d4d;
+    border-radius: 7px;
+    padding: 3px;
+    font-family:'Segoe UI';
+}
+
 #movieMenuTop {
     flex: 1;
     display: flex;
@@ -244,14 +268,15 @@ header a.active {
     border: 3px solid #f6e8e0;
     border-radius: 15px;
     display: flex;
-    height: 14rem;
-    width: 9rem;
+    height: 11.5rem;
+    width: 19rem;
     text-align: center;
     justify-content: center;
     align-items: center;
     margin: 0 auto;
     position: relative;
     transition: transform 0.3s;
+    object-fit: cover;
 }
 
 #movieMenuBottom #posterInput.uploaded {
@@ -309,7 +334,13 @@ header a.active {
     width: fit-content;
 }
 
-#movieSubmitButton{ 
+#movieSubmitButton{
+    display: inline-flex;
+    width: fit-content;
+    margin-left: auto;
+}
+
+#staffSubmitButton {
     display: inline-flex;
     width: fit-content;
     margin-left: auto;
@@ -363,9 +394,10 @@ header a.active {
     border: 3px solid #f6e8e0;
     border-radius: 15px;
     display: block;
-    height: 16rem;
-    width: 11rem;
+    height: 11.5rem;
+    width: 19rem;
     text-align: center;
+    object-fit: cover;
 }
 
 .moviePosterTrailer .movieTrailerURL {
@@ -573,20 +605,200 @@ header a.active {
 }
 
 .refundContainer {
-    width: 10rem;
-    height: 5rem;
+    width: 100%;
+    min-height: 76px;
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
     overflow: hidden;
-    padding: 5px;
+    padding: 8px 10px;
     border: 3px solid #f6e8e0;
     border-radius: 15px;
+    background-color: #0c181a;
+    color: white;
+    text-align: left;
+    font-family: inherit;
+    box-sizing: border-box;
     font-weight: bold;
-    transition: transform 0.3s;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.refundContainer:hover, .refundContainer.active {
+    transform: translateX(2px);
+    cursor: pointer;
+    border-color: #ff4d4d;
+    background-color: #14272a;
 }
 
 #theaterGallery .theaterContainer:hover {
     transform: scale(1.05);
     cursor: pointer;
+}
+
+#refundsWorkspace {
+    display: grid;
+    grid-template-columns: minmax(0, 30%) minmax(0, 70%);
+    width: 100%;
+    max-width: 100%;
+    gap: 0;
+    height: calc(100vh - 80px);
+    min-height: 620px;
+    padding: 12px 20px;
+    box-sizing: border-box;
+    align-items: stretch;
+    overflow-x: hidden;
+}
+
+#refundRequestsPanel, #refundDetailsPanel {
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+#refundRequestsPanel {
+    width: 100%;
+    min-width: 0;
+    border-right: 4px solid #f6e8e0;
+    padding-right: 16px;
+}
+
+#refundDetailsPanel {
+    width: 100%;
+    padding-left: 16px;
+    overflow-y: auto;
+}
+
+#refundsGallery {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 100%;
+    padding-right: 5px;
+    min-width: 0;
+}
+
+#refundDetailsContent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.panelTitle {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-bottom: 2px solid #f6e8e0;
+    padding-bottom: 5px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#refundDetailsEmpty {
+    color: #f6e8e0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.refundReasonBox {
+    border: 2px solid #f6e8e0;
+    border-radius: 10px;
+    padding: 12px;
+    min-height: 300px;
+    background-color: #0c181a;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.refundReasonLabel {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.refundActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: flex-end;
+}
+
+.approveRefundBtn {
+    background-color: #0f4f34;
+}
+
+.denyRefundBtn {
+    background-color: #721c24;
+}
+
+.bookingRef {
+    font-size: 0.92rem;
+}
+
+.receiptIndex {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.refundMetaLine {
+    display: inline-flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 4px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.refundMetaLine strong,
+.refundMetaLine span,
+.bookingRef,
+.refundCustomer,
+.refundAmount,
+.refundDate,
+.receiptIndex {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#refundRequestsPanel *,
+#refundDetailsPanel * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1000px) {
+    #refundsWorkspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+    }
+    #refundRequestsPanel {
+        border-right: none;
+        border-bottom: 4px solid #f6e8e0;
+        padding-right: 10px;
+        padding-bottom: 14px;
+    }
+    #refundDetailsPanel {
+        padding-left: 10px;
+        padding-top: 12px;
+    }
 }
 
 #addDateMenu {
@@ -690,7 +902,112 @@ header a.active {
     gap: 10px;
  }
 
-/* staff_cashier.php */
+/* admin_management.php */
+
+.adminContainer {
+    width: 100%;
+    min-height: 76px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    padding: 8px 10px;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    background-color: #0c181a;
+    color: white;
+    text-align: left;
+    font-family: inherit;
+    box-sizing: border-box;
+    font-weight: bold;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.adminContainer:hover {
+    transform: translateX(2px);
+    border-color: #ff4d4d;
+    background-color: #14272a;
+}
+
+.adminInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
+.adminName {
+    font-weight: bold;
+    color: white;
+    word-break: break-word;
+}
+
+.adminEmail {
+    font-size: 0.9em;
+    color: #8a9bad;
+    word-break: break-word;
+}
+
+.adminControls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.levelSelect {
+    width: fit-content;
+    min-width: 12rem;
+    appearance: base-select;
+    border: 2px solid black;
+    color: black;
+    background-color: #f6e8e0;
+    border-radius: 15px;
+    padding: 5px 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.levelSelect:hover {
+    transform: scale(1.05);
+}
+
+.deleteAdminBtn {
+    background-color: #ad1b07;
+    color: white;
+    border: 2px solid #ad1b07;
+    border-radius: 20px;
+    padding: 5px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.deleteAdminBtn:hover {
+    background-color: #8b1505;
+    transform: scale(1.05);
+}
+
+.resetPasswordBtn {
+    background-color: #0f5f8f;
+    color: white;
+    border: 2px solid #0f5f8f;
+    border-radius: 20px;
+    padding: 5px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.resetPasswordBtn:hover {
+    background-color: #0d4a6f;
+    transform: scale(1.05);
+}
 
 #cashierFundamentalsContainer {
     display: flex;
@@ -848,10 +1165,35 @@ header a.active {
     font-weight: bold;
 }
 
+#resetForm {
+    width: 20%;
+    min-width: fit-content;
+    height: fit-content;
+    min-height: 30%;
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+    border: 3px solid #f6e8e0;
+    border-radius: 15px;
+    padding: 0.8rem 0.9rem;
+    background-color: #0c181a;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    box-sizing: border-box;
+}
+
 #loginForm input {
     border: 2px solid #48666b;
     border-radius: 7px;
     padding: 3px;
+    font-family:'Segoe UI';
+}
+
+#resetForm input {
+    border: 2px solid #48666b;
+    border-radius: 7px;
+    padding: 6px 8px;
     font-family:'Segoe UI';
 }
 
@@ -860,6 +1202,86 @@ header a.active {
     flex-direction: column;
     width: 75%;
     min-width: 15rem;
+}
+
+#resetForm .field {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 15rem;
+    max-width: 22rem;
+    gap: 6px;
+}
+
+.formTitle {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.formSubtitle {
+    font-weight: 600;
+    color: #d1d5db;
+    font-size: 0.92rem;
+    margin: 0;
+    text-align: center;
+    max-width: 28rem;
+    line-height: 1.25rem;
+}
+
+.passwordRequirements {
+    width: 100%;
+    max-width: 22rem;
+    padding: 10px 12px;
+    border: 2px solid #f6e8e0;
+    border-radius: 12px;
+    background-color: #122729;
+    box-sizing: border-box;
+}
+
+.passwordRequirementsTitle {
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.passwordRequirements ul {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 700;
+}
+
+.reqOk {
+    color: #7CFC9A;
+}
+
+.reqBad {
+    color: #ff6b6b;
+}
+
+.inlineStatus {
+    width: 100%;
+    max-width: 22rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+    min-height: 1.2rem;
+    text-align: left;
+}
+
+.generalAdminButton:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    border-color: #48666b;
+}
+
+.generalAdminButton:disabled:hover {
+    background-color: black;
+    color: white;
+    border-color: #48666b;
 }
 
 /* admin_theater-specific */
@@ -916,4 +1338,107 @@ main#theaterSpecific #content {
     height: 100%;
     margin: 10px;
 }
+
+    .daterangepicker {
+        background-color: #1e2d3d;
+        border: 2px solid #2dd4bf;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        font-family: 'Segoe UI', sans-serif;
+        color: white;
+    }
+
+    .daterangepicker .calendar-table th {
+        color: #2dd4bf;
+        font-weight: bold;
+    }
+
+    .daterangepicker .calendar-table thead tr:last-child th {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    .daterangepicker .calendar-table {
+        background-color: #1e2d3d;
+        border: none;
+    }
+
+    .daterangepicker .calendar-table table {
+        border-color: transparent;
+    }
+
+    .daterangepicker td.available {
+        color: rgb(57, 148, 190);
+        border-radius: 6px;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .daterangepicker td.available:hover {
+        background-color: #2dd4bf;
+        color: #071018;
+        font-weight: bold;
+    }
+
+    .daterangepicker td.active,
+    .daterangepicker td.active:hover {
+        background-color: #2dd4bf;
+        color: #071018;
+        font-weight: bold;
+        border-radius: 6px;
+    }
+
+    .daterangepicker td.in-range {
+        background-color: rgba(45, 212, 191, 0.2);
+        color: white;
+    }
+
+    .daterangepicker td.off,
+    .daterangepicker td.disabled {
+        color: #374151;
+    }
+
+    .daterangepicker td.today {
+        font-weight: bold;
+        border: 1px solid #2dd4bf;
+    }
+
+    .daterangepicker select.monthselect,
+    .daterangepicker select.yearselect {
+        background-color: #0d1b2a;
+        color: white;
+        border: 1px solid #2dd4bf;
+        border-radius: 6px;
+        padding: 2px 4px;
+    }
+
+    .daterangepicker .prev span,
+    .daterangepicker .next span {
+        border-color: #2dd4bf;
+    }
+
+    .daterangepicker .prev:hover,
+    .daterangepicker .next:hover {
+        background-color: rgba(45, 212, 191, 0.2);
+    }
+
+    .dateRangePickerInput {
+        background-color: #0d1b2a;
+        color: white;
+        border: 2px solid #2dd4bf;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        width: 220px;
+    }
+
+    .dateRangePickerInput:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3);
+    }
+
+    .daterangepicker:before,
+    .daterangepicker:after {
+        border-bottom-color: #2dd4bf;
+    }
 

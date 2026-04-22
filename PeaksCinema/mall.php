@@ -57,6 +57,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="stylesheet" href="site.css">
     <style>
 *{
 margin:0;

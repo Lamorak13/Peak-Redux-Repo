@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="site.css">
   <script src="customer_gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
