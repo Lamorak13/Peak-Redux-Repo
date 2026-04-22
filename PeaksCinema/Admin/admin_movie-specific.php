@@ -4,6 +4,10 @@
         <script src="admin_gate.js"></script>
         <script>admin_gate.gatekeep(1); </script>
         <link rel="stylesheet" type="text/css" href="admin_stylesheet.css">
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     </head>
     <body>
         <?php include("admin_header.php"); ?>

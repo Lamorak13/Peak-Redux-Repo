@@ -1067,15 +1067,27 @@
                     }
                 }
                 else if ($ID === 'customer' && $subResource !== null && $subID === null && $subResource2 === null && $subID2 === null) {
-                    $stmt = $conn->prepare("SELECT receipt.*, ticket.*, customer.LastName, customer.FirstName, movie.*, theater.*, timeslot.* FROM receipt
+                   $stmt = $conn->prepare("
+                                            SELECT 
+                                                receipt.Receipt_ID, 
+                                                receipt.AmountPaid, 
+                                                receipt.PaymentDate, 
+                                                receipt.Status,
+                                                movie.MovieName, 
+                                                theater.TheaterName,
+                                                /* Concatenating Row and Column from the 'seats' table */
+                                                GROUP_CONCAT(CONCAT(seats.SeatRow, seats.SeatColumn) SEPARATOR ', ') as Seat_List
+                                            FROM receipt
                                             INNER JOIN ticket ON ticket.Receipt_ID = receipt.Receipt_ID
-                                            INNER JOIN customer ON customer.Customer_ID = ticket.Customer_ID
-                                            INNER JOIN seat_timeslot ON seat_timeslot.SeatTimeSlot_ID = ticket.SeatTimeSlot_ID
-                                            INNER JOIN timeslot ON timeslot.TimeSlot_ID = seat_timeslot.TimeSlot_ID
-                                            INNER JOIN daterange ON daterange.DateRange_ID = timeslot.DateRange_ID
-                                            INNER JOIN movie ON movie.Movie_ID = daterange.Movie_ID
-                                            INNER JOIN theater ON theater.Theater_ID = daterange.Theater_ID
-                                            WHERE customer.Customer_ID = ?");
+                                            INNER JOIN seat_timeslot ON ticket.SeatTimeSlot_ID = seat_timeslot.SeatTimeSlot_ID
+                                            INNER JOIN seats ON seat_timeslot.Seat_ID = seats.Seat_ID
+                                            INNER JOIN timeslot ON seat_timeslot.TimeSlot_ID = timeslot.TimeSlot_ID
+                                            INNER JOIN daterange ON timeslot.DateRange_ID = daterange.DateRange_ID
+                                            INNER JOIN movie ON daterange.Movie_ID = movie.Movie_ID
+                                            INNER JOIN theater ON daterange.Theater_ID = theater.Theater_ID
+                                            WHERE receipt.Customer_ID = ?
+                                            GROUP BY receipt.Receipt_ID
+                                        ");
                     try {
                         $stmt->bind_param("i", $subResource);
                         $stmt->execute();
@@ -1097,7 +1109,15 @@
                     $Customer_ID = $data['Customer_ID'];
                     $PaymentMethod = $data['PaymentMethod'];
                     $AmountPaid = $data['totalPrice'];
-                    $selectedSeats = $data['selectedSeats'];                    
+                    $selectedSeats = $data['selectedSeats'];
+
+                    $emailStmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
+                    $emailStmt->bind_param('i', $Customer_ID);
+                    $emailStmt->execute();
+                    $result = $emailStmt->get_result();
+                    $row = $result->fetch_assoc();
+
+                    $address = $row['Email'] ?? null;
 
                     $conn->begin_transaction();
                     try {
@@ -1118,9 +1138,84 @@
                             $stmt3->bind_param("i", $seat['SeatTimeSlot_ID']);
                             $stmt3->execute();
                         }
+                        
+                        $detail_stmt = $conn->prepare("
+                            SELECT m.MovieName, t.Date, t.StartTime, th.TheaterName, c.FirstName, c.LastName, r.PaymentMethod,
+                                s.SeatRow, s.SeatColumn, tk.Price
+                            FROM ticket tk
+                            JOIN seat_timeslot st ON tk.SeatTimeSlot_ID = st.SeatTimeSlot_ID
+                            JOIN timeslot t ON st.TimeSlot_ID = t.TimeSlot_ID
+                            JOIN movie m ON t.Movie_ID = m.Movie_ID
+                            JOIN theater th ON t.Theater_ID = th.Theater_ID
+                            JOIN seats s ON st.Seat_ID = s.Seat_ID
+                            JOIN customer c ON tk.Customer_ID = c.Customer_ID
+                            JOIN receipt r ON tk.Receipt_ID = r.Receipt_ID
+                            WHERE tk.Receipt_ID = ?
+                        ");
+                        $detail_stmt->bind_param("i", $Receipt_ID);
+                        $detail_stmt->execute();
+                        $results = $detail_stmt->get_result();
 
-                        echo json_encode(["status" => "Success!!!!", "Receipt_ID" => $Receipt_ID]);
+                        $seatList = [];
+                        $totalTickets = 0;
+                        $totalPrice = 0;
+                        $firstRow = null;
+
+                        while ($row = $results->fetch_assoc()) {
+                            if (!$firstRow) $firstRow = $row; // Keep one row for header info
+                            $seatList[] = $row['SeatRow'] . $row['SeatColumn'];
+                            $totalPrice += $row['Price'];
+                            $totalTickets++;
+                        }
+
+                        $seatsString = implode(", ", $seatList);
+
+                        $paymentMethodDisplay = strtoupper($firstRow['PaymentMethod']);
+                        $formattedTime = date("h:i A", strtotime($firstRow['StartTime']));
+
+                        $mail = new PHPMailer(true);
+                        $mail->isSMTP();
+                        $mail->Host = 'smtp.gmail.com';
+                        $mail->SMTPAuth = true;
+                        $mail->Username = 'jerrellnathan@gmail.com';
+                        $mail->Password = 'kzmg pbko flhr xwhp';
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = 587;
+
+                        $mail->setFrom('jerrellnathan@gmail.com', 'PeaksCinemas');
+                        $mail->addAddress($address);
+                        $mail->isHTML(true);
+                        $mail->Subject = 'Your PeaksCinemas Booking Receipt';
+
+                        $mail->Body = <<<HTML
+                        <div style="font-family: sans-serif; background: #071018; color: #ffffff; padding: 30px; border-radius: 15px;">
+                            <h2 style="color: #2dd4bf; text-align: center;">Booking Confirmation</h2>
+                            <p style="text-align: center; color: #9ca3af;">Thank you for your purchase!</p>
+                            
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Movie:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$firstRow['MovieName']}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Cinema:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$firstRow['TheaterName']}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Date/Time:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$firstRow['Date']} | {$formattedTime}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Seats:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$seatsString}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Tickets:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$totalTickets}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Customer:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$firstRow['LastName']}, {$firstRow['FirstName']}</td></tr>
+                                <tr style="border-bottom: 1px solid #334e68;"><td style="padding: 15px; color: #8a9bad;">Payment:</td><td style="padding: 15px; text-align: right; font-weight: bold;">{$paymentMethodDisplay}</td></tr>
+                                <tr style="border-bottom: 1px solid #2dd4bf;"><td style="padding: 15px; color: #ffffff; font-weight: bold;">Total:</td><td style="padding: 15px; text-align: right; font-weight: bold; color: #2dd4bf; font-size: 1.2em;">₱{$totalPrice}</td></tr>
+                            </table>
+                            
+                            <div style="margin-top: 30px; text-align: center; background: #112233; padding: 20px; border-radius: 10px;">
+                                <p style="margin: 0; color: #8a9bad;">Booking Reference</p>
+                                <h2 style="color: #2dd4bf; margin: 10px 0 0 0; letter-spacing: 2px;">PC{$Receipt_ID}2026</h2>
+                                <div>If you did not book this, please immediately refund through the website or contact us using our contact information below:</div>
+                                <div>Phone Number: +63 9202520720</div>
+                                <div>Email: peakscinemas@gmail.com</div>
+                            </div>
+                        </div>
+                        HTML;
+
+                        $mail->send();
                         $conn->commit();
+                        echo json_encode(["status" => "Success!!!!", "Receipt_ID" => $Receipt_ID]);
                     } catch (mysqli_sql_exception $e) {
                         $conn->rollback();
                         echo json_encode(["error" => "There has been an error with submitting. Please try again."]);
@@ -1264,39 +1359,8 @@
             break;
         case 'customer_email':
             if ($method == 'POST') {
-                $data = json_decode(file_get_contents('php://input'), true);
+                $data = json_decode(file_get_contents('php://input'), true);               
                 
-                $email2BSent = $data['Body'];
-
-                $emailStmt = $conn->prepare("SELECT Email FROM customer WHERE Customer_ID = ?");
-                $emailStmt->bind_param('i', $Customer_ID);
-                $emailStmt->execute();
-                $result = $emailStmt->get_result();
-                $row = $result->fetch_assoc();
-
-                $address = $row['Email'] ?? null;
-
-                try {
-                    $mail = new PHPMailer(true);
-                    $mail->isSMTP();
-                    $mail->Host = 'smtp.gmail.com';
-                    $mail->SMTPAuth = true;
-                    $mail->Username = 'jerrellnathan@gmail.com';
-                    $mail->Password = 'kzmg pbko flhr xwhp';
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = 587;
-
-                    $mail->setFrom('jerrellnathan@gmail.com', 'PeaksCinemas');
-                    $mail->addAddress($address);
-
-                    $mail->isHTML(true);
-                    $mail->Subject = 'You just bought brand new tickets!';
-                    $mail->Body = 'HELLO HELLO HELLO';
-
-                    $mail->send();
-                } catch (Exception $e) {
-                    echo "console.log('damnnn')";
-                }
             }
             break;
         default:

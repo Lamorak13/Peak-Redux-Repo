@@ -547,7 +547,7 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
                                     <td class="PurchaseDate">${purchase.PaymentDate}</td>
                                     <td class="MovieName">${purchase.MovieName}</td>
                                     <td class="TheaterName">${purchase.TheaterName}</td>
-                                    <td class="seats"></td>
+                                    <td class="seats">${purchase.Seat_List}</td>
                                     <td class="TotalPrice">₱${purchase.AmountPaid}</td>
                                     <td class="status">${purchase.Status}</td>
                                     <td class="refund">
@@ -555,11 +555,11 @@ input[type="submit"]:hover { transform: translateY(-3px) scale(1.02); }
                                 `;
                 } else {
                     tr.innerHTML = `
-                                    <td class="BookingRef">${purchase.Receipt_ID}${paymentYear}</td>
+                                    <td class="BookingRef">PC${purchase.Receipt_ID}${paymentYear}</td>
                                     <td class="PurchaseDate">${purchase.PaymentDate}</td>
                                     <td class="MovieName">${purchase.MovieName}</td>
                                     <td class="TheaterName">${purchase.TheaterName}</td>
-                                    <td class="seats"></td>
+                                    <td class="seats">${purchase.Seat_List}</td>
                                     <td class="TotalPrice">₱${purchase.AmountPaid}</td>
                                     <td class="status">${purchase.Status}</td>
                                     <td class="refund">                                    
